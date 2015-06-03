@@ -1,0 +1,113 @@
+#!/usr/bin/perl
+
+use strict;
+
+my $types = {
+    bfi     => 'BFI',
+    bib     => 'Bib',
+    doaj    => 'DOAJ',
+    romeo   => 'Sherpa/Romeo',
+};
+my $comm = shift (@ARGV);
+if ($command eq 'harvest') {
+    my ($type, $year) = @ARGV;
+    if (!exists ($types->{$type})) {
+        if ($type) {
+            &usage ($types, 'unkmown data type: ' . $type);
+        } else {
+            &usage ($types);
+        }
+    }
+    if ($year !~ m/201[3-9]/) {
+        if ($year) {
+            &usage ($types, 'invalid year: ' . $year);
+        } else {
+            &usage ($types);
+        }
+    }
+    if ($type eq 'bib') {
+        foreach $t (qw(romeo doaj bfi)) {
+            if (!-e "/var/lib/oa-indicator/$year/$t") {
+                die ("fatal: please harvest $types->{$t} data for $year before harvesting bibliographic data\n");
+                warn ("      oa-indicator harvest $t $year\n");
+                exit (1);
+            }
+        }
+        if (-e "/var/lib/oa-indicator/$year/$type") {
+            &archive_source ($year, $type);
+        }
+        system ("/usr/sbin/oa-indicator-harvest-$type $year");
+    } else {
+        if (-e "/var/lib/oa-indicator/$year/$type") {
+            if (&confirm ($types->{$type}, $year)) {
+                &archive_source ($year, $type);
+            } else {
+                die ($types->{$type} . " re-harvest cancelled\n");
+            }
+        }
+        system ("/usr/bin/oa-indicator-harvest-$type $year");
+    }
+}
+if ($comm eq 'run') {
+    my ($year) = @ARGV;
+    if ($year !~ m/201[3-9]/) {
+        if ($year) {
+            &usage ($types, 'invalid year: ' . $year);
+        } else {
+            &usage ($types);
+        }
+    }
+}
+exit (0);
+
+sub confirm
+{
+    my ($type, $year) = @_;
+    my ($ans);
+
+    print (STDERR "$type data already exists for $year, please confirm that you want to replace that data [N/y]: ");
+    chomp ($ans = <STDIN>);
+    if ($ans =~ m/^y(es)?$/i) {
+        return (1);
+    } else {
+        return (0);
+    }
+}
+
+sub archive_source
+{
+    my ($year, $type) = @_;
+    my $n = '01';
+
+    while ((-e "/var/lib/oa-indicator/$year/$type.$n") ||
+           (-e "/var/lib/oa-indicator/$year/$type.$n.tar") ||
+           (-e "/var/lib/oa-indicator/$year/$type.$n.tar.gz")) {
+        $n = sprintf ('%02d', $n + 1);
+    }
+    if (system ("tar cf /var/lib/oa-indicator/$year/$type.$n.tar /var/lib/oa-indicator/$year/$type")) {
+        die ("fatal: failed to tar existing source:\n" .
+             "       tar cf /var/lib/oa-indicator/$year/$type.$n.tar /var/lib/oa-indicator/$year/$type\n");
+    }
+    if (system ("gzip -9 /var/lib/oa-indicator/$year/$type.$n.tar")) {
+        die ("fatal: failed to gzip existing source:\n" .
+             "       gzip /var/lib/oa-indicator/$year/$type.$n.tar\n");
+    }
+    if (system ("rm -rf /var/lib/oa-indicator/$year/$type")) {
+        die ("fatal: failed to remove existing source after archiving:\n" .
+             "       rm -rf /var/lib/oa-indicator/$year/$type\n");
+    }
+}
+
+sub usage
+{
+    my ($types, $msg) = @_;
+
+    if ($msg) {
+        warn ("\n$msg\n");
+    }
+    warn ('usage: aoind harvest <' . join (' | ', sort (keys (%{$types}))) . "> <year>\n");
+    warn ("       aoind run <year>\n\n");
+    warn ("       valid years are 2013-2019\n\n");
+    exit (1);
+}
+

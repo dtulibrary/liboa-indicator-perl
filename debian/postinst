@@ -1,0 +1,32 @@
+#! /bin/sh
+set -e
+DIR="/etc/oa-indicator /var/log/oa-indicator /var/lib/oa-indicator /var/run/oa-indicator"
+case "$1" in
+    configure)
+        if ! grep oa-indicator /etc/group > /dev/null
+        then
+            addgroup oa-indicator
+        fi
+        chgrp -R oa-indicator $DIR
+        chmod 2775 $DIR
+        find /var/lib/oa-indicator/ -type d | xargs chgrp oa-indicator
+        find /var/lib/oa-indicator/ -type d | xargs chmod 2775
+        if [ -d /san -a -d /var/lib/oa-indicator ]
+        then
+            if [ ! -e /san/oa-indicator ]
+            then
+                mv /var/lib/oa-indicator /san/
+                ln -s /san/oa-indicator /var/lib/oa-indicator
+            fi
+        fi
+    ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+exit 0
+
+

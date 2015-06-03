@@ -1,0 +1,34 @@
+use 5.020002;
+use ExtUtils::MakeMaker;
+WriteMakefile(
+    NAME              => 'OA::Indicator',
+    VERSION_FROM      => 'lib/OA/Indicator.pm',
+    PREREQ_PM         => {},
+    ABSTRACT_FROM     => 'lib/OA/Indicator.pm',
+    AUTHOR            => 'franck <franck@cvt.dk>',
+);
+
+sub MY::postamble
+{
+    return <<'MAKE_FRAG';
+debian: all
+	@dpkg-buildpackage -rfakeroot -uc -us
+
+install::
+	@mkdir -p $(DESTDIR)/etc/oa-indicator
+	@mkdir -p $(DESTDIR)/var/log/oa-indicator
+	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/db
+	@mkdir -p $(DESTDIR)/var/run/oa-indicator
+	@install -D -m 775 bin/oa-indicator $(DESTDIR)/usr/bin/oa-indicator
+        @for file in sbin/*
+        do
+            install -D -m 775 $$file $(DESTDIR)/usr/$$file
+        done
+
+distclean::
+	rm -rf debian/liboa-indicator-perl
+	rm -f debian/files debian/liboa-indicator-perl.substvars \
+              build-stamp install-stamp
+MAKE_FRAG
+}
+

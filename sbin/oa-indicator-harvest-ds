@@ -1,0 +1,328 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Fatal qw(open mkdir unlink rmdir);
+use DS2::MQueue;
+use DS2::Message::Export::Request;
+use DS2::Message::Export::Response;
+use OA::Indicator;
+use OA::Indicator::MODS::MXD;
+
+my $oai = new OA::Indicator (verbose => 1);
+my $mxd = new OA::Indicator::MODS::MXD ();
+#Parse arguments
+my $args = {start => time};
+while ($ARGV[0] =~ m/^-/) {
+    my $arg = shift (@ARGV);
+    if (($arg eq '-o') || ($arg eq '--output')) {
+        $args->{'file'} = shift (@ARGV);
+        if (!$args->{'file'}) {
+            &usage ();
+        }
+        if ($args->{'file'} !~ m/\.xml$/) {
+            &usage ('Output file should have a .xml extension');
+        }
+        next;
+    }
+    if (($arg eq '-q') || ($arg eq '--quiet')) {
+        $oai->verbose (0);
+        next;
+    }
+    if ($arg eq '-t') {
+        $args->{'type'} = shift (@ARGV);
+        if ($args->{'type'} ne 'mxd') {
+            &usage ("Unknown type: $args->{'type'}");
+        }
+        next;
+    }
+    if ($arg eq '-y') {
+        $args->{'year'} = shift (@ARGV);
+        if (!$oai->valid_year ($args->{'year'})) {
+            &usage ("invalid year: $args->{'year'} (use: " . $oai->valid_year_range . ')');
+        }
+        next;
+    }
+    &usage ("unknown argument: $arg");
+}
+#Get and validate source
+my $src = shift (@ARGV);
+my $source = &source ($src);
+if (!$source) {
+    &usage ();
+}
+#Define and open files
+if (!$args->{'file'}) {
+    $args->{'file'} = "$src." . &date_time () . '.xml';
+}
+&open_files ($args, $mxd);
+&set_log ($args, $oai);
+$oai->log ('i', 'harvesting source %s (%s)', $src, $source);
+$oai->log ('i', "output to '%s'", $args->{'file'});
+#Create proper config file and define queue name
+my $queue = &create_config ($source);
+$oai->log ('i', 'using queue: %s', $queue);
+#Create queue (should be done before creating the request queue!)
+my $qres = DS2::MQueue->new ({op => 'response'});
+#Use request queue (export) to place request
+my $qreq = DS2::MQueue->new ({op => 'request'});
+my $req = DS2::Message::Export::Request->new ({requestor  => 'OAindicator',
+                                               fromdate   => '2000-01-01T00:00:00',
+                                               set        => $source,
+                                               routingkey => $queue })->serialise ();
+&file_output ($args, 'dat', join ("\t", 'request', &time_date_time ()), "\n");
+$qreq->put ('export', $req);
+$oai->log ('i', 'put in request: %s', $req);
+#Sleeping on the job... so we know records will be waiting for us
+&sleep ($oai, 10);
+#Opening response queue and getting records, also making sure an interupt will delete the queue
+$SIG{'INT'} = sub { &delete_queue ($oai, $qres, $queue); &delete_config ($queue); exit (0); };
+&file_output ($args, 'fou', '<?xml version="1.0" encoding="utf-8"?>', "\n");
+&file_output ($args, 'fou', '<records>', "\n");
+&file_output ($args, 'dat', join ("\t", 'fetch', &time_date_time ()), "\n");
+my $recno = 0;
+my $deleted = 0;
+my $skipped = 0;
+while (1) {
+    my $res = DS2::Message::Export::Response->new ($qres->get ());
+    if ($res->response () eq 'ok') {
+        if ($res->status () eq 'ok') {
+            my $xml = $res->metadata ();
+            if ($args->{'type'} eq 'mxd') {
+                $mxd->parse ($xml);
+                if ($args->{'year'}) {
+                    if (($mxd->year () eq '') || ($mxd->year () != $args->{'year'})) {
+                        if (!exists ($args->{'bfiIDs'}{$mxd->id})) {
+                            $recno++;
+                            $skipped++;
+                            next;
+                        }
+                    }
+                }
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $mxd->primary ()), "\n");
+                foreach my $ftx ($mxd->fulltext ()) {
+                    &file_output ($args, 'ftx', join ("\t", $res->pkey (), @{$ftx}), "\n");
+                }
+                foreach my $issn ($mxd->issn ()) {
+                    &file_output ($args, 'iss', join ("\t", $res->pkey (), @{$issn}), "\n");
+                }
+            } else {
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
+            }
+            $xml =~ s/<\?xml [^>]*>[\s\r\n]*//;
+            &file_output ($args, 'fou', $xml);
+        } else {
+            &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), 'deleted'), "\n");
+            $deleted++;
+        }
+        $recno++;
+        if (($recno % 1000) == 0) {
+            $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
+        }
+    } elsif ($res->response () eq 'eor') {   
+        $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
+        $oai->log ('i', 'elapse %s', $oai->elapse (time - $args->{'start'}));
+        &delete_queue ($oai, $qres, $queue);
+        $oai->log ('i', 'done');
+        &file_output ($args, 'fou', '</records>', "\n");
+        &file_output ($args, 'dat', join ("\t", 'end', &time_date_time ()), "\n");
+        &file_output ($args, 'dat', join ("\t", 'records', $recno), "\n");
+        &file_output ($args, 'dat', join ("\t", 'status', 'done'), "\n");
+        &delete_config ($queue);
+        exit (0);      
+    } else {
+        $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
+        $oai->log ('i', 'elapse %s', $oai->elapse (time - $args->{'start'}));
+        $oai->log ('f', 'error in payload');
+        &delete_queue ($oai, $qres, $queue);
+        $oai->log ('f', 'failed');
+        &file_output ($args, 'dat', join ("\t", 'end', &time_date_time ()), "\n");
+        &file_output ($args, 'dat', join ("\t", 'records', $recno), "\n");
+        &file_output ($args, 'dat', join ("\t", 'status', 'failed'), "\n");
+        &delete_config ($queue);
+    }
+}
+
+sub sleep
+{
+    my ($oai, $sec) = @_;
+
+    if ($oai->verbose ()) {
+        $oai->verbose (0);
+        $oai->log ('i', "sleeping $sec seconds");
+        $oai->verbose (1);
+        print (STDERR "sleeping on the job:");
+        while ($sec > 5) {
+            print (STDERR "  $sec sec.");
+            sleep (5);
+            $sec -= 5;
+        }
+        while ($sec > 0) {
+            print (STDERR "  $sec");
+            sleep (1);
+            $sec--;
+        }
+        print (STDERR "\n");
+    } else {
+        $oai->log ('i', "sleeping $sec seconds");
+        sleep ($sec);
+    }
+}
+
+sub create_config
+{
+    my ($source) = @_;
+
+    my $queue = 'export.response.oai.' . $source . ".$$." . time;
+    mkdir ("/tmp/$queue");
+    mkdir ("/tmp/$queue/DS2");
+    mkdir ("/tmp/$queue/DS2/config");
+    open (my $fin, '/etc/libds2-mqueue-perl/mqconfig.xml');
+    open (my $fou, "> /tmp/$queue/DS2/config/mqconfig.xml");
+    while (<$fin>) {
+        s/QUEUE-NAME/$queue/g;
+        print ($fou $_);
+    }
+    close ($fou);
+    close ($fin);
+    $ENV{'DATASTORE_HOME'} = "/tmp/$queue/DS2";
+    return ($queue);
+}
+
+sub delete_queue
+{
+    my ($oai, $qres, $queue) = @_;
+
+    if ($qres->queueExists ($queue)) {
+        $qres->deleteQueue ($queue);
+        $oai->log ('i', 'delete_queue: %s', $queue);
+    } else {
+        $oai->log ('e', 'delete_queue: nothing to delete');
+    }
+}
+
+sub delete_config
+{
+    my ($queue) = @_;
+
+    unlink ("/tmp/$queue/DS2/config/mqconfig.xml");
+    rmdir ("/tmp/$queue/DS2/config");
+    rmdir ("/tmp/$queue/DS2");
+    rmdir ("/tmp/$queue");
+}
+
+sub source
+{
+    my ($src) = @_;
+    my $sources = {
+        aau     => 'rdb_vbn',
+        au      => 'rdb_au',
+        cbs     => 'rdb_cbs',
+        dtu     => 'orbit',
+        itu     => 'rdb_itu',
+        ku      => 'rdb_ku',
+        ruc     => 'rdb_ruc',
+        sdu     => 'rdb_sdu',
+    };
+    if (defined ($src)) {
+        if ($src eq '--list') {
+            return (sort (keys (%{$sources})));
+        }
+        $src = lc ($src);
+        $src =~ s/^\s+//;
+        $src =~ s/\s+$//;
+        if ($sources->{$src}) {
+            return ($sources->{$src});
+        }
+        $src =~ s/[^a-z]+/_/g;
+        foreach my $s (keys (%{$sources})) {
+            if ($sources->{$s} eq $src) {
+                return ($src);
+            }
+        }
+    }
+    return (undef);
+}
+
+sub date_time
+{
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
+
+    return (sprintf ("%04d-%02d-%02d.%02d.%02d.%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
+}
+
+sub time_date_time
+{
+    my $time = time;
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime ($time);
+
+    return (time, sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
+}
+
+sub open_files
+{
+    my ($args, $mxd) = @_;
+
+    my $file = $args->{'file'};
+    if ($file =~ s/\.xml$//) {
+        open ($args->{'fou'}, "> $file.xml");
+        open ($args->{'log'}, "> $file.log");
+        open ($args->{'ids'}, "> $file.ids");
+        open ($args->{'dat'}, "> $file.dat");
+        if ($args->{'type'} eq 'mxd') {
+            open ($args->{'ftx'}, "> $file.ftx");
+            open ($args->{'iss'}, "> $file.issn");
+        }
+        binmode ($args->{'fou'}, 'utf8');
+        binmode ($args->{'log'}, 'utf8');
+        binmode ($args->{'ids'}, 'utf8');
+        binmode ($args->{'dat'}, 'utf8');
+        if ($args->{'type'} eq 'mxd') {
+            binmode ($args->{'ftx'}, 'utf8');
+        }
+        select((select($args->{'log'}), $|=1)[0]);
+        select((select($args->{'dat'}), $|=1)[0]);
+        my $fou = $args->{'ids'};
+        if ($args->{'type'} eq 'mxd') {
+            print ($fou '#', join ("\t", qw(id stamp date status), $mxd->primary_fields ()), "\n");
+        } else {
+            print ($fou '#', join ("\t", qw(id stamp date status)), "\n");
+        }
+        if ($args->{'type'} eq 'mxd') {
+            $args->{'bfiIDs'} = {};
+#           TODO
+#           load BFI IDs for a specific year, to catch records with a different year but part of a publication in the required ARY
+        }
+    } else {
+        die ('output file does not end with .xml');
+    }
+}
+
+sub set_log
+{
+    my ($args, $oai) = @_;
+
+    my $file = $args->{'file'};
+    $file =~ s/\.xml$//;
+    $oai->log_file ("$file.log");
+}
+
+sub file_output
+{
+    my ($args, $name, @param) = @_;
+
+    my $fou = $args->{$name};
+    print ($fou @param);
+}
+
+sub usage
+{
+    my ($msg) = @_;
+
+    if ($msg) {
+        warn ("\n\n" . $msg . "\n\n");
+    }
+    my $sources = join (' | ', &source ('--list'));
+    warn ("usage: oa-indicator-harvest-ds [-o <xml-file>] [-t <type>] [-y <year>] [-q | --quiet] <$sources>\n");
+    die  ("types: mods\n");
+}
+

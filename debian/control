@@ -1,0 +1,13 @@
+Source: liboa-indicator-perl
+Priority: optional
+Maintainer: franck <franck@cvt.dk>
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.2
+Section: libs
+
+Package: liboa-indicator-perl
+Section: libs
+Architecture: all
+Depends: perl, perl-base, tar, gzip, libwww-perl, liburi-perl, libxml-libxml-perl, libjson-xs-perl, libds2-mqueue-perl
+Description: The OA-Indicator main library
+    The OA-Indicator main library, including all scripts.

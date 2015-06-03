@@ -1,0 +1,15 @@
+bin/oa-indicator
+debian/changelog
+debian/control
+debian/postinst
+debian/rules
+lib/OA/Indicator/DB.pm
+lib/OA/Indicator/MODS/MXD.pm
+lib/OA/Indicator.pm
+lib/OA/Indicator/XML.pm
+Makefile.PL
+MANIFEST
+README
+sbin/oa-indicator-harvest-bib
+sbin/oa-indicator-harvest-ds
+t/Liboa-indicator-perl.t
