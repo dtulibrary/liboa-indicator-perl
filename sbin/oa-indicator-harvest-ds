@@ -82,6 +82,7 @@ $SIG{'INT'} = sub { &delete_queue ($oai, $qres, $queue); &delete_config ($queue)
 my $recno = 0;
 my $deleted = 0;
 my $skipped = 0;
+my $bfiadded = 0;
 while (1) {
     my $res = DS2::Message::Export::Response->new ($qres->get ());
     if ($res->response () eq 'ok') {
@@ -91,7 +92,10 @@ while (1) {
                 $mxd->parse ($xml);
                 if ($args->{'year'}) {
                     if (($mxd->year () eq '') || ($mxd->year () != $args->{'year'})) {
-                        if (!exists ($args->{'bfiIDs'}{$mxd->id})) {
+                        if (exists ($args->{'bfiIDs'}{$mxd->id})) {
+                            $bfiadded++;
+                            delete ($args->{'bfiIDs'}{$mxd->id});
+                        } else {
                             $recno++;
                             $skipped++;
                             next;
@@ -120,6 +124,11 @@ while (1) {
         }
     } elsif ($res->response () eq 'eor') {   
         $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
+        my $n = 0;
+        foreach my $id (keys (%{$args->{'bfiIDs'}})) {
+            $n++;
+        }
+        $oai->log ('i', '%d records added through BFI ids, %d BFI ids not found in dataset', $bfiadded, $n);
         $oai->log ('i', 'elapse %s', $oai->elapse (time - $args->{'start'}));
         &delete_queue ($oai, $qres, $queue);
         $oai->log ('i', 'done');
