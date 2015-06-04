@@ -54,8 +54,8 @@ if (!$source) {
 if (!$args->{'file'}) {
     $args->{'file'} = "$src." . &date_time () . '.xml';
 }
-&open_files ($args, $mxd);
 &set_log ($args, $oai);
+&open_files ($oai, $args, $mxd, $src);
 $oai->log ('i', 'harvesting source %s (%s)', $src, $source);
 $oai->log ('i', "output to '%s'", $args->{'file'});
 #Create proper config file and define queue name
@@ -260,7 +260,7 @@ sub time_date_time
 
 sub open_files
 {
-    my ($args, $mxd) = @_;
+    my ($oai, $args, $mxd, $src) = @_;
 
     my $file = $args->{'file'};
     if ($file =~ s/\.xml$//) {
@@ -289,8 +289,29 @@ sub open_files
         }
         if ($args->{'type'} eq 'mxd') {
             $args->{'bfiIDs'} = {};
-#           TODO
-#           load BFI IDs for a specific year, to catch records with a different year but part of a publication in the required ARY
+            $file =~ s/\/bib\/.*//;
+            $file .= '/bfi/bfi.ids.gz';
+            if (-e $file) {
+                $oai->log ('i', 'getting bfi ids from "%s"', $file);
+                open (my $fin, "zcat $file |");
+                $src = lc ($src);
+                $src =~ s/[^a-z]//g;
+                my $n = 0;
+                while (<$fin>) {
+                    if (m/^#/) {
+                        next;
+                    }
+                    my ($id, $pubid, $source) = split ("\t");
+                    $source = lc ($src);
+                    $source =~ s/[^a-z]//g;
+                    if ($source eq $src) {
+                        $args->{'bfiIDs'}{$id} = 1;
+                        $n++;
+                    }
+                }
+                $oai->log ('i', 'loaded %d bfi ids', $n);
+                close ($fin);
+            }
         }
     } else {
         die ('output file does not end with .xml');
