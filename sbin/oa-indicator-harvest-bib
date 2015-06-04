@@ -13,6 +13,7 @@ if (!$oai->valid_year ($year)) {
 my $dir = "/var/lib/oa-indicator/$year";
 if (!-e $dir) {
     mkdir ($dir, 0775);
+    system ("chmod 2775 $dir");
 }
 $dir .= '/bib';
 if (-e $dir) {
@@ -21,6 +22,7 @@ if (-e $dir) {
          "       otherwise please report this as a bug\n");
 }
 mkdir ($dir, 0775);
+system ("chmod 2775 $dir");
 $oai->log_file ("$dir/harvest.log");
 $oai->log_main ('i', "harvesting bibliographic records, see $dir/harvest.log for details");
 my @sources = qw(aau au cbs dtu itu ku ruc sdu);

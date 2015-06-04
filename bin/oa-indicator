@@ -9,7 +9,7 @@ my $types = {
     romeo   => 'Sherpa/Romeo',
 };
 my $comm = shift (@ARGV);
-if ($command eq 'harvest') {
+if ($comm eq 'harvest') {
     my ($type, $year) = @ARGV;
     if (!exists ($types->{$type})) {
         if ($type) {
@@ -26,7 +26,7 @@ if ($command eq 'harvest') {
         }
     }
     if ($type eq 'bib') {
-        foreach $t (qw(romeo doaj bfi)) {
+        foreach my $t (qw(romeo doaj bfi)) {
             if (!-e "/var/lib/oa-indicator/$year/$t") {
                 die ("fatal: please harvest $types->{$t} data for $year before harvesting bibliographic data\n");
                 warn ("      oa-indicator harvest $t $year\n");
