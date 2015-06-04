@@ -311,7 +311,7 @@ sub open_files
                         next;
                     }
                     my ($id, $pubid, $source) = split ("\t");
-                    $source = lc ($src);
+                    $source = lc ($source);
                     $source =~ s/[^a-z]//g;
                     if ($source eq $src) {
                         $args->{'bfiIDs'}{$id} = 1;
