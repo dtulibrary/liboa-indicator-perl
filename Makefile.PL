@@ -20,9 +20,9 @@ install::
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/db
 	@mkdir -p $(DESTDIR)/var/run/oa-indicator
 	@install -D -m 775 bin/oa-indicator $(DESTDIR)/usr/bin/oa-indicator
-        @for file in sbin/*
-        do
-            install -D -m 775 $$file $(DESTDIR)/usr/$$file
+	@for file in sbin/*; \
+        do \
+            install -D -m 775 $$file $(DESTDIR)/usr/$$file; \
         done
 
 distclean::
