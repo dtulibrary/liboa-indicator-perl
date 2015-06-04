@@ -80,7 +80,7 @@ sub log_main
 {
     my ($self, $level, $msg, @param) = @_;
     
-    $self->_log ('log_main', '/var/log/oa-indicator.log', $level, $msg, @param);
+    $self->_log ('log_main', '/var/log/oa-indicator/oa-indicator.log', $level, $msg, @param);
 }
 
 sub log

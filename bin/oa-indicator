@@ -58,6 +58,11 @@ if ($comm eq 'run') {
         }
     }
 }
+if ($comm) {
+    &usage ("unknown command: $comm");
+} else {
+    &usage ();
+}
 exit (0);
 
 sub confirm
