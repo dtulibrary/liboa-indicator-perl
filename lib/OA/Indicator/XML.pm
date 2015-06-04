@@ -40,10 +40,13 @@ sub parse
 
 sub node
 {
-    my ($self, $xpath) = @_;
+    my ($self, $xpath, $doc) = @_;
     my (@ret, $node);
 
-    foreach $node ($self->{'doc'}->findnodes ($xpath)) {
+    if (!defined ($doc)) {
+        $doc = $self->{'doc'};
+    }
+    foreach $node ($doc->findnodes ($xpath)) {
         if (wantarray) {
             push (@ret, $node);
         } else {
@@ -59,10 +62,13 @@ sub node
 
 sub field
 {
-    my ($self, $xpath) = @_;
+    my ($self, $xpath, $doc) = @_;
     my (@ret, $node, $val);
 
-    foreach $node ($self->{'doc'}->findnodes ($xpath)) {
+    if (!defined ($doc)) {
+        $doc = $self->{'doc'};
+    }
+    foreach $node ($doc->findnodes ($xpath)) {
         $node = $node->firstChild;
         if (ref ($node) eq 'XML::LibXML::Text') {
             $val = $node->to_literal ();

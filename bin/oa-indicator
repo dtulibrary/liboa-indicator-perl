@@ -59,9 +59,9 @@ if ($comm eq 'run') {
     }
 }
 if ($comm) {
-    &usage ("unknown command: $comm");
+    &usage ($types, "unknown command: $comm");
 } else {
-    &usage ();
+    &usage ($types);
 }
 exit (0);
 
