@@ -1,0 +1,108 @@
+#!/usr/bin/perl
+
+use strict;
+use Fatal qw(mkdir open);
+use OA::Indicator;
+use OA::Indicator::MXD;
+
+my $oai = new OA::Indicator (verbose => 1);
+my $year = shift (@ARGV);
+if (!$oai->valid_year ($year)) {
+    die ("usage: oa-indicator-harvest-mxd <year>\n" .
+         '       year: ' . $oai->valid_year_range . "\n");
+}
+my $dir = "/var/lib/oa-indicator/$year";
+if (!-e $dir) {
+    mkdir ($dir, 0775);
+    system ("chmod 2775 $dir");
+}
+$dir .= '/mxd';
+if (-e $dir) {
+    die ("fatal: output directory already exists: $dir\n" .
+         "       if you are running this script directly... please don't and use oa-indicator\n" . 
+         "       otherwise please report this as a bug\n");
+}
+mkdir ($dir, 0775);
+system ("chmod 2775 $dir");
+my $mxd = new OA::Indicator::MXD ();
+$oai->log_file ("$dir/harvest.log");
+$oai->log_main ('i', "harvesting MXD records, see $dir/harvest.log for details");
+my @sources = qw(aau au cbs dtu itu ku ruc sdu);
+$oai->log ('i', 'starting harvest of: %s', join (', ', @sources));
+my $run = {};
+foreach my $src (@sources) {
+    $oai->log ('i', 'harvesting %s...', $src);
+    my $file = "/var/lib/oa-indicator/$year/bib/$src.ids.gz";
+    $run->{'total'} = 0;
+    if (-e $file) {
+        open (my $fin, "zcat $file |");
+        while (<$fin>) {
+            my ($id, $stamp, $date, $status, $source_id) = split ("\t");
+            if ($status ne 'deleted') {
+                $run->{$src}{$source_id} = $id;
+                $run->{'total'}++;
+            }
+        }
+        close ($fin);
+    } else {
+        $oai->log ('e', 'missing source ids file: ' . $file);
+        $oai->log ('f', 'failed');
+        $oai->log_main ('f', "harvesting MXD records failed");
+        exit (1);
+    }
+    open (my $fin, "zcat /var/lib/oa-indicator/$year/mxd_source/$src.rec.xml.gz |");
+    my $buf = '';
+    $run->{'recs'} = 0;
+    $run->{'start'} = time;
+    open (my $fou, "> /var/lib/oa-indicator/$year/mxd/$src.xml");
+    binmode ($fou, 'utf8');
+    print ($fou '<?xml version="1.0" encoding="utf-8"?>', "\n<records>\n");
+    open (my $fid, "> /var/lib/oa-indicator/$year/mxd/$src.ids");
+    binmode ($fid, 'utf8');
+    print ($fid '#', join ("\t", qw(id stamp date), $mxd->primary_fields), "\n");
+    open (my $ftx, "> /var/lib/oa-indicator/$year/mxd/$src.ftx");
+    binmode ($ftx, 'utf8');
+    print ($ftx '#', join ("\t", 'id', $mxd->fulltext_fields), "\n");
+    open (my $fis, "> /var/lib/oa-indicator/$year/mxd/$src.issn");
+    print ($fis '#', join ("\t", 'id', $mxd->issn_fields), "\n");
+    while (<$fin>) {
+        chomp;
+        $buf .= $_;
+        $buf =~ s/^<records>//;
+        $buf =~ s/^[\s\t\r\n]+//;
+        while ($buf =~ s/<metadata>(.*?)<\/metadata>//s) {
+            my $xml = $1;
+            $run->{'recs'}++;
+            if (($run->{'recs'} % 1000) == 0) {
+                $oai->log ('i', '%d of %d records done (%0.2f rec/sec)', $run->{'recs'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'})));
+            }
+            $mxd->parse ($xml);
+            if (exists ($run->{$src}{$mxd->id ()})) {
+                print ($fou $xml, "\n");
+                print ($fid join ("\t", $run->{$src}{$mxd->id ()}, $oai->stamp (), $mxd->primary), "\n");
+                foreach my $ftx ($mxd->fulltext ()) {
+                    print ($ftx join ("\t", $run->{$src}{$mxd->id ()}, @{$ftx}), "\n");
+                }
+                foreach my $issn ($mxd->issn ()) {
+                    print ($fis join ("\t", $run->{$src}{$mxd->id ()}, @{$issn}), "\n");
+                }
+            }
+        }
+    }
+    $oai->log ('i', '%d of %d records done (%0.2f rec/sec)', $run->{'recs'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'})));
+    close ($fis);
+    close ($ftx);
+    close ($fid);
+    close ($fou);
+    close ($fin);
+}
+if ($run->{'fatal'}) {
+    $oai->log ('w', 'check for potential left over queues and/or config files');
+    $oai->log ('f', 'failed');
+    $oai->log_main ('f', "harvest of MXD failed");
+} else {
+    $oai->log ('i', 'done');
+    $oai->log_main ('f', "harvest of MXD done");
+}
+exit (0);
+
