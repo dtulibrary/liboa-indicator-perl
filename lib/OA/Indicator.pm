@@ -56,6 +56,14 @@ sub elapse
     }
 }
 
+sub stamp
+{
+    my $time = time;
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime ($time);
+
+    return (time, sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
+}
+
 sub verbose
 {
     my ($self, $verbose) = @_;
