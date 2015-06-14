@@ -1,4 +1,4 @@
-package OA::Indicator::DB::Romeo;
+package OA::Indicator::DB::BFI;
 
 use strict;
 use warnings;
