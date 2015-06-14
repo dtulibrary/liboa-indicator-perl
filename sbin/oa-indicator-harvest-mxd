@@ -37,8 +37,15 @@ foreach my $src (@sources) {
     if (-e $file) {
         open (my $fin, "zcat $file |");
         while (<$fin>) {
+            if (m/^#/) {
+                next;
+            }
+            chomp;
             my ($id, $stamp, $date, $status, $source_id) = split ("\t");
             if ($status ne 'deleted') {
+                if (exists ($run->{$src}{$source_id})) {
+                    warn ("duplicate id: '$source_id' - $_\n");
+                }
                 $run->{$src}{$source_id} = $id;
                 $run->{'total'}++;
             }
@@ -53,6 +60,8 @@ foreach my $src (@sources) {
     open (my $fin, "zcat /var/lib/oa-indicator/$year/mxd_source/$src.rec.xml.gz |");
     my $buf = '';
     $run->{'recs'} = 0;
+    $run->{'found'} = 0;
+    $run->{'error'} = 0;
     $run->{'start'} = time;
     open (my $fou, "> /var/lib/oa-indicator/$year/mxd/$src.xml");
     binmode ($fou, 'utf8');
@@ -72,24 +81,36 @@ foreach my $src (@sources) {
         $buf =~ s/^[\s\t\r\n]+//;
         while ($buf =~ s/<metadata>(.*?)<\/metadata>//s) {
             my $xml = $1;
-            $run->{'recs'}++;
-            if (($run->{'recs'} % 1000) == 0) {
-                $oai->log ('i', '%d of %d records done (%0.2f rec/sec)', $run->{'recs'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'})));
+            if ($xml !~ m/</) {
+                $run->{'error'}++;
+                if ($xml =~ m/Could not serialize record/) {
+                    $oai->log ('w', 'XML error: not serialized by Pure');
+                } else {
+                    $oai->log ('w', 'XML error: ' . $xml);
+                }
+                next;
             }
+            $run->{'recs'}++;
             $mxd->parse ($xml);
             if (exists ($run->{$src}{$mxd->id ()})) {
+                $run->{'found'}++;
                 print ($fou $xml, "\n");
                 print ($fid join ("\t", $run->{$src}{$mxd->id ()}, $oai->stamp (), $mxd->primary), "\n");
-                foreach my $ftx ($mxd->fulltext ()) {
-                    print ($ftx join ("\t", $run->{$src}{$mxd->id ()}, @{$ftx}), "\n");
+                foreach my $rec ($mxd->fulltext ()) {
+                    print ($ftx join ("\t", $run->{$src}{$mxd->id ()}, @{$rec}), "\n");
                 }
-                foreach my $issn ($mxd->issn ()) {
-                    print ($fis join ("\t", $run->{$src}{$mxd->id ()}, @{$issn}), "\n");
+                foreach my $rec ($mxd->issn ()) {
+                    print ($fis join ("\t", $run->{$src}{$mxd->id ()}, @{$rec}), "\n");
                 }
+            }
+            if ((($run->{'recs'} % 10000) == 0) || (($run->{'found'}) && (($run->{'found'} % 1000) == 0))) {
+                $oai->log ('i', '%d processed, found %d of %d records done (%0.2f rec/sec) %d errors',
+                           $run->{'recs'}, $run->{'found'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'} + 0.000001)), $run->{'error'});
             }
         }
     }
-    $oai->log ('i', '%d of %d records done (%0.2f rec/sec)', $run->{'recs'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'})));
+    $oai->log ('i', '%d processed, found %d of %d records done (%0.2f rec/sec) %d errors',
+               $run->{'recs'}, $run->{'found'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'} + 0.000001)), $run->{'error'});
     close ($fis);
     close ($ftx);
     close ($fid);
