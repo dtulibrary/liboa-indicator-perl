@@ -6,6 +6,7 @@ my $types = {
     bfi     => 'BFI',
     bib     => 'Bib',
     doaj    => 'DOAJ',
+    mxd     => 'MXD',
     romeo   => 'Sherpa/Romeo',
 };
 my $comm = shift (@ARGV);
@@ -35,6 +36,22 @@ if ($comm eq 'harvest') {
         }
         if (-e "/var/lib/oa-indicator/$year/$type") {
             &archive_source ($year, $type);
+        }
+        system ("/usr/sbin/oa-indicator-harvest-$type $year");
+    } elsif ($type eq 'mxd') {
+        foreach my $t (qw(bib)) {
+            if (!-e "/var/lib/oa-indicator/$year/$t") {
+                die ("fatal: please harvest $types->{$t} data for $year before harvesting MXD data\n");
+                warn ("      oa-indicator harvest $t $year\n");
+                exit (1);
+            }
+        }
+        if (-e "/var/lib/oa-indicator/$year/$type") {
+            if (&confirm ($types->{$type}, $year)) {
+                &archive_source ($year, $type);
+            } else {
+                die ($types->{$type} . " re-harvest cancelled\n");
+            }
         }
         system ("/usr/sbin/oa-indicator-harvest-$type $year");
     } else {
