@@ -2,6 +2,7 @@ package OA::Indicator::XML;
 
 use strict;
 use warnings;
+use XML::LibXML;
 
 our $VERSION = '1.0';
 
