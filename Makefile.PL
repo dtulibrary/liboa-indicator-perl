@@ -4,7 +4,7 @@ WriteMakefile(
     NAME              => 'OA::Indicator',
     VERSION_FROM      => 'lib/OA/Indicator.pm',
     PREREQ_PM         => {},
-    ABSTRACT_FROM     => 'lib/OA/Indicator.pm',
+#   ABSTRACT_FROM     => 'lib/OA/Indicator.pm',
     AUTHOR            => 'franck <franck@cvt.dk>',
 );
 
