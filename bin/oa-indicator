@@ -1,35 +1,35 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
+use OA::Indicator;
+use OA::Indicator::DB;
 
-my $types = {
-    bfi     => 'BFI',
-    bib     => 'Bib',
-    doaj    => 'DOAJ',
-    mxd     => 'MXD',
-    romeo   => 'Sherpa/Romeo',
-};
+my $oai = new OA::Indicator (verbose => 1);
 my $comm = shift (@ARGV);
+if (!$comm) {
+    &usage ($oai);
+}
 if ($comm eq 'harvest') {
     my ($type, $year) = @ARGV;
-    if (!exists ($types->{$type})) {
+    if (!$oai->data_type ($type)) {
         if ($type) {
-            &usage ($types, 'unkmown data type: ' . $type);
+            &usage ($oai, 'unkmown data type: ' . $type);
         } else {
-            &usage ($types);
+            &usage ($oai);
         }
     }
-    if ($year !~ m/201[3-9]/) {
+    if (!$oai->valid_year ($year)) {
         if ($year) {
-            &usage ($types, 'invalid year: ' . $year);
+            &usage ($oai, 'invalid year: ' . $year);
         } else {
-            &usage ($types);
+            &usage ($oai);
         }
     }
     if ($type eq 'bib') {
         foreach my $t (qw(romeo doaj bfi)) {
             if (!-e "/var/lib/oa-indicator/$year/$t") {
-                die ("fatal: please harvest $types->{$t} data for $year before harvesting bibliographic data\n");
+                die ("fatal: please harvest " . $oai->data_type ($t) . " data for $year before harvesting bibliographic data\n");
                 warn ("      oa-indicator harvest $t $year\n");
                 exit (1);
             }
@@ -41,47 +41,117 @@ if ($comm eq 'harvest') {
     } elsif ($type eq 'mxd') {
         foreach my $t (qw(bib)) {
             if (!-e "/var/lib/oa-indicator/$year/$t") {
-                die ("fatal: please harvest $types->{$t} data for $year before harvesting MXD data\n");
+                die ("fatal: please harvest " . $oai->data_type ($t) . " data for $year before harvesting MXD data\n");
                 warn ("      oa-indicator harvest $t $year\n");
                 exit (1);
             }
         }
         if (-e "/var/lib/oa-indicator/$year/$type") {
-            if (&confirm ($types->{$type}, $year)) {
+            if (&confirm ($oai->data_type ($type), $year)) {
                 &archive_source ($year, $type);
             } else {
-                die ($types->{$type} . " re-harvest cancelled\n");
+                die ($oai->data_type ($type) . " re-harvest cancelled\n");
             }
         }
         system ("/usr/sbin/oa-indicator-harvest-$type $year");
     } else {
         if (-e "/var/lib/oa-indicator/$year/$type") {
-            if (&confirm ($types->{$type}, $year)) {
+            if (&confirm ($oai->data_type ($type), $year)) {
                 &archive_source ($year, $type);
             } else {
-                die ($types->{$type} . " re-harvest cancelled\n");
+                die ($oai->data_type ($type) . " re-harvest cancelled\n");
             }
         }
-        system ("/usr/bin/oa-indicator-harvest-$type $year");
+        system ("/usr/sbin/oa-indicator-harvest-$type $year");
     }
     exit (0);
 }
-if ($comm eq 'run') {
-    my ($year) = @ARGV;
+if ($comm eq 'load') {
+    my ($year, $run_type, @desc) = @ARGV;
     if ($year !~ m/201[3-9]/) {
         if ($year) {
-            &usage ($types, 'invalid year: ' . $year);
+            &usage ($oai, 'invalid year: ' . $year);
         } else {
-            &usage ($types);
+            &usage ($oai);
         }
     }
+    if ($run_type !~ m/^(devel|test|prod)$/) {
+        if ($run_type) {
+            &usage ($oai, 'invalid run type: ' . $run_type);
+        } else {
+            &usage ($oai);
+        }
+    }
+    my $desc = join (' ', @desc);
+    system ("/usr/sbin/oa-indicator-load $year $run_type begin $desc");
+    system ("/usr/sbin/oa-indicator-load $year $run_type bfi");
+#   system ("/usr/sbin/oa-indicator-load $year $run_type doaj");
+    system ("/usr/sbin/oa-indicator-load $year $run_type mxd");
+    system ("/usr/sbin/oa-indicator-load $year $run_type romeo");
+    system ("/usr/sbin/oa-indicator-load $year $run_type bib");
+#   FIX - add error checks and success and errors to end call
+    system ("/usr/sbin/oa-indicator-load $year $run_type end");
     exit (0);
 }
-if ($comm) {
-    &usage ($types, "unknown command: $comm");
-} else {
-    &usage ($types);
+if ($comm eq 'segment') {
+    my ($year, $run_type, $name) = @ARGV;
+    if ($year) {
+        if (!$oai->valid_year ($year)) {
+            &usage ($oai, 'invalid year: ' . $year);
+        }
+    } else {
+        &usage ($oai);
+    }
+    if ($run_type) {
+        if ($run_type !~ m/^(devel|test|prod)$/) {
+            &usage ($oai, 'invalid run type: ' . $run_type);
+        }
+    } else {
+        &usage ($oai);
+    }
+    my $db = new OA::Indicator::DB ($year, $run_type);
+    $db->open ();
+    if (!$db->segment_validate ($name)) {
+        &usage ($oai, "fatal: invalid segment: $name, valid segments are: " . join (' | ', $db->segments));
+    }
+    $oai->log_file ("/var/lib/oa-indicator/$year/$name.log");
+    $oai->log_main ('i', "starting segment $name, see /var/lib/oa-indicator/$year/$name.log for details");
+    if ($name eq 'scope') {
+        require OA::Indicator::Segments::Scope;
+        $db->segment_start ('scope');
+        my $seg = new OA::Indicator::Segments::Scope ($db->db (), $oai);
+        if ($seg->process ()) {
+            $db->segment_end ('scope', 1);
+        } else {
+            $db->segment_end ('scope', 0);
+        }
+        exit (0);
+    }
+    if ($name eq 'screen') {
+        require OA::Indicator::Segments::Screen;
+        $db->segment_start ('screen');
+        my $seg = new OA::Indicator::Segments::Screen ($db->db (), $oai);
+        if ($seg->process ()) {
+            $db->segment_end ('screen', 1);
+        } else {
+            $db->segment_end ('screen', 0);
+        }
+        exit (0);
+    }
+    if ($name eq 'fetch') {
+        require OA::Indicator::Segments::Fetch;
+        $db->segment_start ('fetch');
+        my $seg = new OA::Indicator::Segments::Fetch ($db->db (), $oai);
+        if ($seg->process ()) {
+            $db->segment_end ('fetch', 1);
+        } else {
+            $db->segment_end ('fetch', 0);
+        }
+        exit (0);
+    }
+    die ("un-implemented segment: $name\n");
 }
+&usage ($oai, "unknown command: $comm");
 exit (0);
 
 sub confirm
@@ -124,14 +194,15 @@ sub archive_source
 
 sub usage
 {
-    my ($types, $msg) = @_;
+    my ($oai, $msg) = @_;
 
     if ($msg) {
         warn ("\n$msg\n");
     }
-    warn ('usage: aoind harvest <' . join (' | ', sort (keys (%{$types}))) . "> <year>\n");
-    warn ("       aoind run <year>\n\n");
-    warn ("       valid years are 2013-2019\n\n");
+    warn ('usage: ao-indicator harvest <' . join (' | ', $oai->data_type ()) . "> <year>\n");
+    warn ("       ao-indicator load    <year> <devel | test | prod> [description])\n");
+    warn ("       ao-indicator segment <year> <devel | test | prod> <segment-name>\n\n");
+    warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
 }
 
