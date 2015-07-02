@@ -13,7 +13,13 @@ sub new
 
     $self->{'year-from'} = 2013;
     $self->{'year-to'} = 2019;
-
+    $self->{'data-types'} = {
+        bfi     => 'BFI',
+        bib     => 'Bib',
+        doaj    => 'DOAJ',
+        mxd     => 'MXD',
+        romeo   => 'Sherpa/Romeo',
+    };
     return (bless ($self, $class));
 }
 
@@ -21,6 +27,9 @@ sub valid_year
 {
     my ($self, $year) = @_;
 
+    if (!$year) {
+        return (0);
+    }
     if (($year < $self->{'year-from'}) || ($year > $self->{'year-to'})) {
         return (0);
     } else {
@@ -33,6 +42,17 @@ sub valid_year_range
     my ($self) = @_;
 
     return ($self->{'year-from'} . '-' . $self->{'year-to'});
+}
+
+sub data_type
+{
+    my ($self, $name) = @_;
+
+    if ($name) {
+        return ($self->{'data-types'}{$name});
+    } else {
+        return (sort (keys (%{$self->{'data-types'}})));
+    }
 }
 
 sub elapse
@@ -111,6 +131,8 @@ sub _log
         $fou = $self->{$type};
     } else {
         open ($fou, ">> $file");
+        binmode ($fou, 'utf8');
+        select((select($fou), $|=1)[0]);
         $self->{$type} = $fou;
     }
     printf ($fou "%04d-%02d-%02d %02d:%02d:%02d %s " . $msg . "\n", 1900 + $year, $mon + 1, $day, $hour, $min, $sec, $level, @param);
