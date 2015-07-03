@@ -11,17 +11,17 @@ if (!$comm) {
     &usage ($oai);
 }
 if ($comm eq 'harvest') {
-    my ($type, $year) = @ARGV;
-    if (!$oai->data_type ($type)) {
-        if ($type) {
-            &usage ($oai, 'unkmown data type: ' . $type);
+    my ($year, $type) = @ARGV;
+    if (!$oai->valid_year ($year)) {
+        if ($year) {
+            &usage ($oai, 'invalid year: ' . $year);
         } else {
             &usage ($oai);
         }
     }
-    if (!$oai->valid_year ($year)) {
-        if ($year) {
-            &usage ($oai, 'invalid year: ' . $year);
+    if (!$oai->data_type ($type)) {
+        if ($type) {
+            &usage ($oai, 'unkmown data type: ' . $type);
         } else {
             &usage ($oai);
         }
@@ -199,7 +199,7 @@ sub usage
     if ($msg) {
         warn ("\n$msg\n");
     }
-    warn ('usage: ao-indicator harvest <' . join (' | ', $oai->data_type ()) . "> <year>\n");
+    warn ('usage: ao-indicator harvest <year> <' . join (' | ', $oai->data_type ()) . ">\n");
     warn ("       ao-indicator load    <year> <devel | test | prod> [description])\n");
     warn ("       ao-indicator segment <year> <devel | test | prod> <segment-name>\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
