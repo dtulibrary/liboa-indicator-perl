@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
+use warnings;
 use Fatal qw(open mkdir unlink rmdir);
 use DS2::MQueue;
 use DS2::Message::Export::Request;
@@ -30,7 +31,7 @@ while ($ARGV[0] =~ m/^-/) {
     }
     if ($arg eq '-t') {
         $args->{'type'} = shift (@ARGV);
-        if ($args->{'type'} ne 'mxd') {
+        if ($args->{'type'} !~ m/^(mxd|romeo)$/) {
             &usage ("Unknown type: $args->{'type'}");
         }
         next;
@@ -111,6 +112,8 @@ while (1) {
                 foreach my $issn ($mxd->issn ()) {
                     &file_output ($args, 'iss', join ("\t", $res->pkey (), @{$issn}), "\n");
                 }
+            } elsif ($args->{'type'} eq 'romeo') {
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
             } else {
                 &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
             }
@@ -143,7 +146,7 @@ while (1) {
     } else {
         $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
         $oai->log ('i', 'elapse %s', $oai->elapse (time - $args->{'start'}));
-        $oai->log ('f', 'error in payload');
+        $oai->log ('f', 'error in payload: ' . $res->response ());
         &delete_queue ($oai, $qres, $queue);
         $oai->log ('f', 'failed');
         &file_output ($args, 'dat', join ("\t", 'end', &time_date_time ()), "\n");
@@ -233,6 +236,7 @@ sub source
         ku      => 'rdb_ku',
         ruc     => 'rdb_ruc',
         sdu     => 'rdb_sdu',
+        romeo   => 'romeo',
     };
     if (defined ($src)) {
         if ($src eq '--list') {
@@ -276,7 +280,6 @@ sub open_files
     my $file = $args->{'file'};
     if ($file =~ s/\.xml$//) {
         open ($args->{'fou'}, "> $file.xml");
-        open ($args->{'log'}, "> $file.log");
         open ($args->{'ids'}, "> $file.ids");
         open ($args->{'dat'}, "> $file.dat");
         if ($args->{'type'} eq 'mxd') {
@@ -284,13 +287,11 @@ sub open_files
             open ($args->{'iss'}, "> $file.issn");
         }
         binmode ($args->{'fou'}, 'utf8');
-        binmode ($args->{'log'}, 'utf8');
         binmode ($args->{'ids'}, 'utf8');
         binmode ($args->{'dat'}, 'utf8');
         if ($args->{'type'} eq 'mxd') {
             binmode ($args->{'ftx'}, 'utf8');
         }
-        select((select($args->{'log'}), $|=1)[0]);
         select((select($args->{'dat'}), $|=1)[0]);
         my $fou = $args->{'ids'};
         if ($args->{'type'} eq 'mxd') {
@@ -307,20 +308,24 @@ sub open_files
                 open (my $fin, "zcat $file |");
                 $src = lc ($src);
                 $src =~ s/[^a-z]//g;
-                my $n = 0;
+                my $count = {total => 0, source => 0, pubid => 0};
                 while (<$fin>) {
                     if (m/^#/) {
                         next;
                     }
+                    $count->{'total'}++;
                     my ($id, $pubid, $source) = split ("\t");
                     $source = lc ($source);
                     $source =~ s/[^a-z]//g;
                     if ($source eq $src) {
-                        $args->{'bfiIDs'}{$id} = 1;
-                        $n++;
+                        $count->{'source'}++;
+                        if ($pubid) {
+                            $count->{'pubid'}++;
+                            $args->{'bfiIDs'}{$id} = $pubid;
+                        }
                     }
                 }
-                $oai->log ('i', 'loaded %d bfi ids', $n);
+                $oai->log ('i', 'loaded %d bfi ids with pubid, out of %d in %s and %d in total', $count->{'pubid'}, $count->{'source'}, uc ($src), $count->{'total'});
                 close ($fin);
             }
         }
@@ -355,6 +360,6 @@ sub usage
     }
     my $sources = join (' | ', &source ('--list'));
     warn ("usage: oa-indicator-harvest-ds [-o <xml-file>] [-t <type>] [-y <year>] [-q | --quiet] <$sources>\n");
-    die  ("types: mods\n");
+    die  ("types: mxd | romeo\n");
 }
 
