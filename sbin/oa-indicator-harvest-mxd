@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
 use Fatal qw(mkdir open);
 use OA::Indicator;
 use OA::Indicator::MXD;
@@ -74,6 +75,9 @@ foreach my $src (@sources) {
     print ($ftx '#', join ("\t", 'id', $mxd->fulltext_fields), "\n");
     open (my $fis, "> /var/lib/oa-indicator/$year/mxd/$src.issn");
     print ($fis '#', join ("\t", 'id', $mxd->issn_fields), "\n");
+    open (my $fpe, "> /var/lib/oa-indicator/$year/mxd/$src.persons");
+    binmode ($fpe, 'utf8');
+    print ($fpe '#', join ("\t", 'id', $mxd->person_fields), "\n");
     while (<$fin>) {
         chomp;
         $buf .= $_;
@@ -101,6 +105,9 @@ foreach my $src (@sources) {
                 }
                 foreach my $rec ($mxd->issn ()) {
                     print ($fis join ("\t", $run->{$src}{$mxd->id ()}, @{$rec}), "\n");
+                }
+                foreach my $rec ($mxd->person ()) {
+                    print ($fpe join ("\t", $run->{$src}{$mxd->id ()}, @{$rec}), "\n");
                 }
             }
             if ((($run->{'recs'} % 10000) == 0) || (($run->{'found'}) && (($run->{'found'} % 1000) == 0))) {
