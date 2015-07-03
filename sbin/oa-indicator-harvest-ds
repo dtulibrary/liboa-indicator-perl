@@ -9,9 +9,10 @@ use DS2::Message::Export::Response;
 use OA::Indicator;
 use OA::Indicator::MODS::MXD;
 use OA::Indicator::MODS::Romeo;
+use OA::Indicator::MODS::DOAJ;
 
 my $oai = new OA::Indicator (verbose => 1);
-my $handler = {mxd => new OA::Indicator::MODS::MXD (), romeo => new OA::Indicator::MODS::Romeo ()};
+my $handler = {mxd => new OA::Indicator::MODS::MXD (), romeo => new OA::Indicator::MODS::Romeo (), doaj => new OA::Indicator::MODS::DOAJ ()};
 #Parse arguments
 my $args = {start => time};
 while ($ARGV[0] =~ m/^-/) {
@@ -116,6 +117,9 @@ while (1) {
             } elsif ($args->{'type'} eq 'romeo') {
                 $handler->{'romeo'}->parse ($xml);
                 &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'romeo'}->primary ()), "\n");
+            } elsif ($args->{'type'} eq 'doaj') {
+                $handler->{'doaj'}->parse ($xml);
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'doaj'}->primary ()), "\n");
             } else {
                 &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
             }
@@ -241,6 +245,7 @@ sub source
         ruc     => 'rdb_ruc',
         sdu     => 'rdb_sdu',
         romeo   => 'romeo',
+        doaj    => 'doaj_jou',
     };
     if (defined ($src)) {
         if ($src eq '--list') {
