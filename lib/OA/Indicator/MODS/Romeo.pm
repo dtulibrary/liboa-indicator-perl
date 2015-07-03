@@ -29,8 +29,19 @@ sub parse
     $self->{'doc'} = $self->{'xml'}->parse ($xml);
     $self->{'rec'} = {};
     foreach my $f (qw(source_id)) {
-        $self->{'rec'}{$f} = $self->{'xml'}->field ($self->{'xpath'}{$f});
+        $self->{'rec'}{$f} = $self->field ($f);
     }
+}
+
+sub field
+{
+    my ($self, $name) = @_;
+
+    my $s = $self->{'xml'}->field ($self->{'xpath'}{$name});
+    $s =~ s/[\s\t\n\r]+/ /g;
+    $s =~ s/^\s//;
+    $s =~ s/\s$//;
+    return ($s);
 }
 
 sub id
@@ -53,7 +64,7 @@ sub primary
     my @ret = ();
     foreach my $f (@{$self->{'primary_fields'}}) {
         if (!exists ($self->{'rec'}{$f})) {
-            $self->{'rec'}{$f} = $self->{'xml'}->field ($self->{'xpath'}{$f});
+            $self->{'rec'}{$f} = $self->field ($f);
         }
         push (@ret, $self->{'rec'}{$f});
     }

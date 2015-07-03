@@ -33,8 +33,25 @@ sub parse
     $self->{'doc'} = $self->{'xml'}->parse ($xml);
     $self->{'rec'} = {};
     foreach my $f (qw(source_id year)) {
-        $self->{'rec'}{$f} = $self->{'xml'}->field ($self->{'xpath'}{$f});
+        $self->{'rec'}{$f} = $self->field ($f);
     }
+}
+
+sub field
+{
+    my ($self, $name, $obj) = @_;
+
+    my $xpath;
+    if (exists ($self->{'xpath'}{$name})) {
+        $xpath = $self->{'xpath'}{$name};
+    } else {
+        $xpath = $name;
+    }
+    my $s = $self->{'xml'}->field ($xpath, $obj);
+    $s =~ s/[\s\t\n\r]+/ /g;
+    $s =~ s/^\s//;
+    $s =~ s/\s$//;
+    return ($s);
 }
 
 sub id
@@ -64,7 +81,7 @@ sub primary
     my @ret = ();
     foreach my $f (@{$self->{'primary_fields'}}) {
         if (!exists ($self->{'rec'}{$f})) {
-            $self->{'rec'}{$f} = $self->{'xml'}->field ($self->{'xpath'}{$f});
+            $self->{'rec'}{$f} = $self->field ($f);
         }
         push (@ret, $self->{'rec'}{$f});
     }
@@ -82,9 +99,9 @@ sub fulltext
     my @ret = ();
 
     foreach my $obj ($self->{'xml'}->node ($self->{'xpath'}{'url'})) {
-        if ($self->{'xml'}->field ($self->{'xpath'}{'url_note'}, $obj) eq 'ds.dtic.dk:link:remote_fulltext') {
-            my $access = $self->{'xml'}->field ($self->{'xpath'}{'url_access'}, $obj);
-            my $url = $self->{'xml'}->field ('.', $obj);
+        if ($self->field ('url_note', $obj) eq 'ds.dtic.dk:link:remote_fulltext') {
+            my $access = $self->field ('url_access', $obj);
+            my $url = $self->field ('.', $obj);
             push (@ret, [$access, $url]);
         }
     }
@@ -101,10 +118,10 @@ sub issn
     my ($self) = @_;
     my @ret = ();
 
-    foreach my $issn ($self->{'xml'}->field ($self->{'xpath'}{'pissn'})) {
+    foreach my $issn ($self->field ('pissn')) {
         push (@ret, ['print', $issn]);
     }
-    foreach my $issn ($self->{'xml'}->field ($self->{'xpath'}{'eissn'})) {
+    foreach my $issn ($self->field ('eissn')) {
         push (@ret, ['electronic', $issn]);
     }
     return (@ret);
