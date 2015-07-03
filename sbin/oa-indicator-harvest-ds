@@ -8,9 +8,10 @@ use DS2::Message::Export::Request;
 use DS2::Message::Export::Response;
 use OA::Indicator;
 use OA::Indicator::MODS::MXD;
+use OA::Indicator::MODS::Romeo;
 
 my $oai = new OA::Indicator (verbose => 1);
-my $mxd = new OA::Indicator::MODS::MXD ();
+my $handler = {mxd => new OA::Indicator::MODS::MXD (), romeo => new OA::Indicator::MODS::Romeo ()};
 #Parse arguments
 my $args = {start => time};
 while ($ARGV[0] =~ m/^-/) {
@@ -18,10 +19,10 @@ while ($ARGV[0] =~ m/^-/) {
     if (($arg eq '-o') || ($arg eq '--output')) {
         $args->{'file'} = shift (@ARGV);
         if (!$args->{'file'}) {
-            &usage ();
+            &usage ($handler);
         }
         if ($args->{'file'} !~ m/\.xml$/) {
-            &usage ('Output file should have a .xml extension');
+            &usage ($handler, 'Output file should have a .xml extension');
         }
         next;
     }
@@ -31,32 +32,32 @@ while ($ARGV[0] =~ m/^-/) {
     }
     if ($arg eq '-t') {
         $args->{'type'} = shift (@ARGV);
-        if ($args->{'type'} !~ m/^(mxd|romeo)$/) {
-            &usage ("Unknown type: $args->{'type'}");
+        if (!exists ($handler->{$args->{'type'}})) {
+            &usage ($handler, "Unknown type: $args->{'type'}");
         }
         next;
     }
     if ($arg eq '-y') {
         $args->{'year'} = shift (@ARGV);
         if (!$oai->valid_year ($args->{'year'})) {
-            &usage ("invalid year: $args->{'year'} (use: " . $oai->valid_year_range . ')');
+            &usage ($handler, "invalid year: $args->{'year'} (use: " . $oai->valid_year_range . ')');
         }
         next;
     }
-    &usage ("unknown argument: $arg");
+    &usage ($handler, "unknown argument: $arg");
 }
 #Get and validate source
 my $src = shift (@ARGV);
 my $source = &source ($src);
 if (!$source) {
-    &usage ();
+    &usage ($handler);
 }
 #Define and open files
 if (!$args->{'file'}) {
     $args->{'file'} = "$src." . &date_time () . '.xml';
 }
 &set_log ($args, $oai);
-&open_files ($oai, $args, $mxd, $src);
+&open_files ($oai, $args, $handler, $src);
 $oai->log ('i', 'harvesting source %s (%s)', $src, $source);
 $oai->log ('i', "output to '%s'", $args->{'file'});
 #Create proper config file and define queue name
@@ -90,30 +91,31 @@ while (1) {
         if ($res->status () eq 'ok') {
             my $xml = $res->metadata ();
             if ($args->{'type'} eq 'mxd') {
-                $mxd->parse ($xml);
+                $handler->{'mxd'}->parse ($xml);
                 if ($args->{'year'}) {
-                    if (($mxd->year () eq '') || ($mxd->year () != $args->{'year'})) {
-                        if (exists ($args->{'bfiIDs'}{$mxd->id})) {
+                    if (($handler->{'mxd'}->year () eq '') || ($handler->{'mxd'}->year () != $args->{'year'})) {
+                        if (exists ($args->{'bfiIDs'}{$handler->{'mxd'}->id})) {
                             $bfiadded++;
-                            delete ($args->{'bfiIDs'}{$mxd->id});
+                            delete ($args->{'bfiIDs'}{$handler->{'mxd'}->id});
                         } else {
                             $recno++;
                             $skipped++;
                             next;
                         }
                     } else {
-                        delete ($args->{'bfiIDs'}{$mxd->id});
+                        delete ($args->{'bfiIDs'}{$handler->{'mxd'}->id});
                     }
                 }
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $mxd->primary ()), "\n");
-                foreach my $ftx ($mxd->fulltext ()) {
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'mxd'}->primary ()), "\n");
+                foreach my $ftx ($handler->{'mxd'}->fulltext ()) {
                     &file_output ($args, 'ftx', join ("\t", $res->pkey (), @{$ftx}), "\n");
                 }
-                foreach my $issn ($mxd->issn ()) {
+                foreach my $issn ($handler->{'mxd'}->issn ()) {
                     &file_output ($args, 'iss', join ("\t", $res->pkey (), @{$issn}), "\n");
                 }
             } elsif ($args->{'type'} eq 'romeo') {
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
+                $handler->{'romeo'}->parse ($xml);
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'romeo'}->primary ()), "\n");
             } else {
                 &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
             }
@@ -133,7 +135,9 @@ while (1) {
         foreach my $id (keys (%{$args->{'bfiIDs'}})) {
             $n++;
         }
-        $oai->log ('i', '%d records added through BFI ids, %d BFI ids not found in dataset', $bfiadded, $n);
+        if ($args->{'type'} eq 'mxd') {
+            $oai->log ('i', '%d records added through BFI ids, %d BFI ids not found in dataset', $bfiadded, $n);
+        }
         $oai->log ('i', 'elapse %s', $oai->elapse (time - $args->{'start'}));
         &delete_queue ($oai, $qres, $queue);
         $oai->log ('i', 'done');
@@ -275,7 +279,7 @@ sub time_date_time
 
 sub open_files
 {
-    my ($oai, $args, $mxd, $src) = @_;
+    my ($oai, $args, $handler, $src) = @_;
 
     my $file = $args->{'file'};
     if ($file =~ s/\.xml$//) {
@@ -294,8 +298,8 @@ sub open_files
         }
         select((select($args->{'dat'}), $|=1)[0]);
         my $fou = $args->{'ids'};
-        if ($args->{'type'} eq 'mxd') {
-            print ($fou '#', join ("\t", qw(id stamp date status), $mxd->primary_fields ()), "\n");
+        if (exists ($handler->{$args->{'type'}})) {
+            print ($fou '#', join ("\t", qw(id stamp date status), $handler->{$args->{'type'}}->primary_fields ()), "\n");
         } else {
             print ($fou '#', join ("\t", qw(id stamp date status)), "\n");
         }
@@ -353,13 +357,13 @@ sub file_output
 
 sub usage
 {
-    my ($msg) = @_;
+    my ($handler, $msg) = @_;
 
     if ($msg) {
         warn ("\n\n" . $msg . "\n\n");
     }
     my $sources = join (' | ', &source ('--list'));
     warn ("usage: oa-indicator-harvest-ds [-o <xml-file>] [-t <type>] [-y <year>] [-q | --quiet] <$sources>\n");
-    die  ("types: mxd | romeo\n");
+    die  ("types: " . join (' | ', sort (keys (%{$handler}))) . "\n");
 }
 
