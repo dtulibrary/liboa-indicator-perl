@@ -1,13 +1,14 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
 use Fatal qw(mkdir open);
 use OA::Indicator;
 
 my $oai = new OA::Indicator (verbose => 1);
 my $year = shift (@ARGV);
 if (!$oai->valid_year ($year)) {
-    die ("usage: oa-indicator-harvest-bfi <year>\n" .
+    die ("usage: oa-indicator-harvest-bib <year>\n" .
          '       year: ' . $oai->valid_year_range . "\n");
 }
 my $dir = "/var/lib/oa-indicator/$year";
