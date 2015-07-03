@@ -1,0 +1,105 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Fatal qw(mkdir open);
+use OA::Indicator;
+
+my $oai = new OA::Indicator (verbose => 1);
+my $year = shift (@ARGV);
+if (!$oai->valid_year ($year)) {
+    die ("usage: oa-indicator-harvest-romeo <year>\n" .
+         '       year: ' . $oai->valid_year_range . "\n");
+}
+my $dir = "/var/lib/oa-indicator/$year";
+if (!-e $dir) {
+    mkdir ($dir, 0775);
+    system ("chmod 2775 $dir");
+}
+$dir .= '/romeo';
+if (-e $dir) {
+    die ("fatal: output directory already exists: $dir\n" .
+         "       if you are running this script directly... please don't and use oa-indicator\n" . 
+         "       otherwise please report this as a bug\n");
+}
+mkdir ($dir, 0775);
+system ("chmod 2775 $dir");
+$oai->log_file ("$dir/harvest.log");
+$oai->log_main ('i', "harvesting romeo records, see $dir/harvest.log for details");
+my @sources = qw(romeo);
+$oai->log ('i', 'starting harvest of: %s', join (', ', @sources));
+my $run = {};
+foreach my $src (@sources) {
+    system ("/usr/sbin/oa-indicator-harvest-ds -t romeo -y $year --quiet -o $dir/$src.xml $src &");
+    $run->{'pending'}++;
+}
+$oai->log ('i', 'waiting for harvests to complete...');
+$run->{'start'} = time;
+$run->{'check'} = 0;
+while (1) {
+    sleep (10);
+    $run->{'check'}++;
+    $run->{'msg'} = sprintf ('check #%d, %d harvests pending: ', $run->{'check'}, $run->{'pending'});
+    foreach my $src (@sources) {
+        if ($run->{'done'}{$src}) {
+            next;
+        }
+        open (my $fin, "$dir/$src.log");
+        my ($rec, $del);
+        while (<$fin>) {
+            if (m/harvested\s+([0-9]+)\s+records,\s+([0-9]+)\s+deleted/) {
+                $rec = $1;
+                $del = $2;
+            }
+            if (m/^[-0-9]+ [:0-9]+ i done$/) {
+                if ($run->{'msg'}) {
+                    $oai->log ('i', $run->{'msg'});
+                    $run->{'msg'} = '';
+                }
+                $run->{'pending'}--;
+                $run->{'done'}{$src} = 1;
+                $oai->log ('i', '    %s is done. %d entries, %d deletes, %d records', $src, $rec, $del, ($rec - $del));
+                my $msg;
+                chomp ($msg = `gzip -9v $dir/$src.xml 2>&1`);
+                $msg =~ s/.*:\s+//;
+                $oai->log ('i', '        compressing XML: %s', $msg);
+                chomp ($msg = `gzip -9v $dir/$src.ids 2>&1`);
+                $msg =~ s/.*:\s+//;
+                $oai->log ('i', '        compressing IDs: %s', $msg);
+                last;
+            }
+            if (m/^[-0-9]+ [:0-9]+ f failed$/) {
+                $run->{'pending'}--;
+                $run->{'done'}{$src} = 1;
+                $oai->log ('f', '%s failed', $src);
+                $run->{'fatal'} = 1;
+                last;
+            }
+        }
+        close ($fin);
+        if (!$run->{'done'}{$src}) {
+            my $job = `ps auxww | grep 'oa-indicator-harvest-ds.*$src' | grep -v grep`;
+            if (!$job) {
+                $run->{'pending'}--;
+                $run->{'done'}{$src} = 1;
+                $oai->log ('f', 'job for source %s is lost, must have failed', $src);
+                $oai->log ('w', 'harvest of %s may not have ended cleanly, maybe leaving configuration and queue in place', $src);
+                $run->{'fatal'} = 1;
+            }
+        }
+    }
+    if ($run->{'pending'} < 1) {
+        last;
+    }
+}
+$oai->log ('i', 'elapse %s', $oai->elapse (time - $run->{'start'}));
+if ($run->{'fatal'}) {
+    $oai->log ('w', 'check for potential left over queues and/or config files');
+    $oai->log ('f', 'failed');
+    $oai->log_main ('f', "harvest of romeo failed");
+} else {
+    $oai->log ('i', 'done');
+    $oai->log_main ('f', "harvest of romeo done");
+}
+exit (0);
+
