@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+use strict;
+use warnings;
 use Fatal qw(mkdir open);
 use OA::Indicator;
 use OA::Indicator::DB;
@@ -14,15 +16,15 @@ if (!-e $dir) {
     die ("no data for year: $year ($dir)\n");
 }
 if ($run_type !~ m/^(devel|test|prod)$/) {
-    &usage ("invalid run-type: $run_type");
+    &usage ($oai, "invalid run-type: $run_type");
 }
 if ($data_type !~ m/^(begin|bfi|bib|doaj|mxd|romeo|end)$/) {
     &usage ($oai, "invalid data-type: $data_type");
 }
 if ($data_type !~ m/^(begin|end)$/) {
-    $dir .= '/' . $type;
-    if (-e $dir) {
-        &usage ($oai, "no data for type: $type ($dir)");
+    $dir .= '/' . $data_type;
+    if (!-e $dir) {
+        &usage ($oai, "no data for type: $data_type ($dir)");
     }
     $oai->log_file ("$dir/load.log");
 }
@@ -30,29 +32,31 @@ my $oaiDB = new OA::Indicator::DB ($year, $run_type);
 if ($data_type eq 'begin') {
     $oaiDB->create (join (' ', @desc));
     $oaiDB->segment_start ('load');
+    $oai->log_main ('i', "starting a new load for $year, $run_type run #" . $oaiDB->run());
     exit (0);
 }
 if ($data_type eq 'end') {
 #   FIX - success and errors should be much more informaed
+    $oaiDB->open ();
     $oaiDB->segment_end ('load', 'success', '');
     exit (0);
 }
 my $db = $oaiDB->open ();
-$oai->log_main ('i', "loading $type records, see $dir/load.log for details");
+$oai->log_main ('i', "loading $data_type records, see $dir/load.log for details");
 my $handler;
-if ($type eq 'bfi') {
+if ($data_type eq 'bfi') {
     require OA::Indicator::DB::BFI;
     $handler = new OA::Indicator::DB::BFI ($db, $oai);
-} elsif ($type eq 'bib') {
+} elsif ($data_type eq 'bib') {
     require OA::Indicator::DB::Bib;
     $handler = new OA::Indicator::DB::Bib ($db, $oai);
-} elsif ($type eq 'doaj') {
+} elsif ($data_type eq 'doaj') {
     require OA::Indicator::DB::DOAJ;
     $handler = new OA::Indicator::DB::DOAJ ($db, $oai);
-} elsif ($type eq 'mxd') {
+} elsif ($data_type eq 'mxd') {
     require OA::Indicator::DB::MXD;
     $handler = new OA::Indicator::DB::MXD ($db, $oai);
-} elsif ($type eq 'romeo') {
+} elsif ($data_type eq 'romeo') {
     require OA::Indicator::DB::Romeo;
     $handler = new OA::Indicator::DB::Romeo ($db, $oai);
 }
@@ -62,7 +66,7 @@ exit (0);
 
 sub usage
 {
-    my ($msg) = @_;
+    my ($oai, $msg) = @_;
 
     if ($msg) {
         warn ($msg . "\n");
@@ -71,6 +75,6 @@ sub usage
          "       oa-indicator-harvest-load <year> <run-type> <data-type>\n" .
          "       oa-indicator-harvest-load <year> <run-type> end\n" .
          '       year:      ' . $oai->valid_year_range . "\n" .
-         '       run-type:  devel | test | prod' . "\n");
+         '       run-type:  devel | test | prod' . "\n" .
          '       data-type: bfi | bib | doaj | mxd | romeo' . "\n");
 }
