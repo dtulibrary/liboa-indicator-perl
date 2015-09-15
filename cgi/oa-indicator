@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use OA::Indicator;
+use OA::Indicator::WS;
+
+our ($oai, $ws);
+if (!defined ($oai)) {
+    $oai = new OA::Indicator (verbose => 0);
+}
+if (!defined ($ws)) {
+    $ws = new OA::Indicator::WS ();
+}
+$ws->process ();
+exit (0);
+
