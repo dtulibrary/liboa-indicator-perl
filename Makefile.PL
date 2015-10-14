@@ -17,8 +17,10 @@ debian: all
 install::
 	@mkdir -p $(DESTDIR)/etc/oa-indicator
 	@mkdir -p $(DESTDIR)/var/log/oa-indicator
+	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/cgi
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/db
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/ft
+	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/log
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/tmp
 	@mkdir -p $(DESTDIR)/var/run/oa-indicator
 	@install -D -m 775 bin/oa-indicator $(DESTDIR)/usr/bin/oa-indicator
@@ -26,6 +28,11 @@ install::
         do \
             install -D -m 775 $$file $(DESTDIR)/usr/$$file; \
         done
+	@for file in cgi/*; \
+        do \
+            install -D -m 775 $$file $(DESTDIR)/var/lib/oa-indicator/$$file; \
+        done
+	@install -D -m 664 etc/apache.conf $(DESTDIR)/etc/apache2/conf-enabled/oa-indicator.conf
 
 distclean::
 	rm -rf debian/liboa-indicator-perl
