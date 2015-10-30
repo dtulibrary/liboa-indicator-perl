@@ -12,6 +12,7 @@ sub new
     $self->{'primary_fields'} = [qw(source source_id pubid doc_type doc_review doc_level class research level fraction point cooperation title lang issn eissn)];
     $self->{'xpath'} = {
         id         => '/m:mods/m:identifier[@type="ds.dtic.dk:id:pub:dads:recordid"]',
+        year       => '/m:mods/m:relatedItem/m:originInfo[@eventType="publisher"]/m:dateOther',
         source     => '/m:mods/m:extension/d:bfi/d:contributions/d:contribution/d:recordOriginOrig',
         source_id  => '/m:mods/m:extension/d:bfi/d:contributions/d:contribution/d:identifier[@type="ds.dtic.dk:id:pub:dads:sourceid"]',
         pubid      => '/m:mods/m:identifier[@type="ds.dtic.dk:id:pub:bfi:publication"]',
@@ -39,7 +40,7 @@ sub parse
 
     $self->{'doc'} = $self->{'xml'}->parse ($xml);
     $self->{'rec'} = {};
-    foreach my $f (qw(source_id)) {
+    foreach my $f (qw(year source_id)) {
         $self->{'rec'}{$f} = $self->field ($f);
     }
 }
@@ -53,6 +54,13 @@ sub field
     $s =~ s/^\s//;
     $s =~ s/\s$//;
     return ($s);
+}
+
+sub year
+{
+    my ($self) = @_;
+
+    return ($self->{'rec'}{'year'});
 }
 
 sub id
