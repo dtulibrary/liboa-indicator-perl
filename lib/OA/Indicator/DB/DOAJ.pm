@@ -137,6 +137,13 @@ sub cache
     my $rec;
     while ($rec = $self->{'db'}->next ($rs)) {
         foreach my $fld (qw(pissn eissn)) {
+            if ((!defined ($rec->{$fld})) || ($rec->{$fld} eq '')) {
+                next;
+            }
+            if ($rec->{$fld} !~ m/^[0-9]{7}[0-9X]$/) {
+                $self->{'oai'}->log ('w',  "invalid ISSN: $rec->{$fld} for $rec->{'id'}");
+                next;
+            }
             if (exists ($self->{'cache'}{$rec->{$fld}})) {
                 if ($self->{'cache'}{$rec->{$fld}}->[0] ne $rec->{'license'}) {
                     $self->{'oai'}->log ('w',  "existing ISSN with two different license: $rec->{$fld} : $self->{'cache'}{$rec->{$fld}}->[0] != $rec->{'license'}");
