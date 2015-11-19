@@ -18,30 +18,38 @@ sub new
 }
 
 sub create
-{   
+{
     my ($self) = @_;
 
     my $db = $self->{'db'};
     $db->sql ('create table if not exists mxd (
-                   id              text primary key,
-                   source          text,
-                   source_id       text,
-                   stamp           integer,
-                   date            text,
-                   year            integer,                                                                                                                
-                   doc_type        text,                                                                                                                
-                   doc_review      text,                                                                                                                
-                   doc_level       text,                                                                                                                
-                   research_area   text,
-                   jno             integer,
-                   pno             integer,
-                   jtitle          text,
-                   jtitle_alt      text,
-                   issn            text,
-                   eissn           text,
-                   original_xml    text
+                   id               text primary key,
+                   source           text,
+                   source_id        text,
+                   stamp            integer,
+                   date             text,
+                   oai_harvest      text,
+                   oai_datestamp    text,
+                   year             integer,
+                   pubyear          text,
+                   doc_type         text,
+                   doc_review       text,
+                   doc_level        text,
+                   research_area    text,
+                   jno              integer,
+                   pno              integer,
+                   jtitle           text,
+                   jtitle_alt       text,
+                   issn             text,
+                   eissn            text,
+                   doi              text,
+                   title_main       text,
+                   title_sub        text,
+                   first_author     text,
+                   first_author_pos integer,
+                   original_xml     text
               )');
-    $db->sql ('create index if not exists bfi_source_id on mxd (source_id)');
+    $db->sql ('create index if not exists mxd_source_id on mxd (source_id)');
     $db->sql ('create table if not exists mxdft (
                    id              integer primary key,
                    dads_id         text,
@@ -49,9 +57,9 @@ sub create
                    source_id       text,
                    type            text,
                    uri             text,
-                   access          text,                                                                                                                
-                   text            text,                                                                                                                
-                   role            text,                                                                                                                
+                   access          text,
+                   text            text,
+                   role            text,
                    size            integer,
                    mime            text,
                    filename        text
@@ -63,13 +71,13 @@ sub create
                    dads_id         text,
                    source          text,
                    source_id       text,
-                   role            text,
                    position        integer,
+                   role            text,
                    firstname       text,
                    lastname        text,
                    email           text,
-                   pid             text,                                                                                                                
-                   pid_type        text,                                                                                                                
+                   pid             text,
+                   pid_type        text,
                    pid_source      text
               )');
     $db->sql ('create index if not exists mxd_person_dads_id on mxd_person (dads_id)');
@@ -115,6 +123,30 @@ sub load_source
     }
     close ($fin);
     $self->{'oai'}->log ('i',  "loaded $count issn");
+    my $first_author = {};
+#   loading first local author
+    if (!open ($fin, "/var/lib/oa-indicator/$year/mxd/$src.persons")) {
+        $self->{'oai'}->log ('f', "failed to open /var/lib/oa-indicator/$year/mxd/$src.persons ($!)");
+        $self->{'oai'}->log ('f', 'failed');
+        return (0);
+    }
+    while (<$fin>) {
+        chomp;
+        if (m/^#/) {
+            next;
+        }
+        my $rec = {};
+        my @fields = split ("\t");
+        foreach my $fld (qw(dads_id position role firstname lastname email pid pid_type pid_source)) {
+            $rec->{$fld} = shift (@fields);
+        }
+        if ((defined ($rec->{'pid_type'})) && ($rec->{'pid_type'} eq 'loc_per') && (!exists ($first_author->{$rec->{'dads_id'}}))) {
+            $first_author->{$rec->{'dads_id'}}{'name'} = $rec->{'lastname'} . ', ' . $rec->{'firstname'};
+            $first_author->{$rec->{'dads_id'}}{'pos'} = $rec->{'position'};
+        }
+    }
+    close ($fin);
+#   loading primary fields
     my $idmap = {};
     my $records = {};
     if (!open ($fin, "/var/lib/oa-indicator/$year/mxd/$src.ids")) {
@@ -130,11 +162,18 @@ sub load_source
         }
         my $rec = {};
         my @fields = split ("\t");
-        foreach my $fld (qw(id stamp date source_id year doc_type doc_level doc_review research_area jno pno jtitle jtitle_alt)) {
+        foreach my $fld (qw(id stamp date oai_harvest oai_datestamp source_id year doc_type doc_level doc_review research_area jno pno jtitle jtitle_alt doi title_main title_sub pubyear)) {
             $rec->{$fld} = shift (@fields);
         }
         $rec->{'source'} = $src;
         $rec->{'original_xml'} = '';
+        if (exists ($first_author->{$rec->{'id'}})) {
+            $rec->{'first_author'} = $first_author->{$rec->{'id'}}{'name'};
+            $rec->{'first_author_pos'} = $first_author->{$rec->{'id'}}{'pos'};
+        } else {
+            $rec->{'first_author'} = '';
+            $rec->{'first_author_pos'} = 0;
+        }
         $idmap->{$rec->{'id'}} = $rec->{'source_id'};
         $records->{$rec->{'source_id'}} = $rec;
         $count->{'rows'}++;
@@ -207,8 +246,6 @@ sub load_source
         $self->{'oai'}->log ('f', 'failed');
         return (0);
     }
-    my $pos = 1;
-    my $posid = '';
     while (<$fin>) {
         chomp;
         if (m/^#/) {
@@ -216,18 +253,11 @@ sub load_source
         }
         my $rec = {};
         my @fields = split ("\t");
-        foreach my $fld (qw(dads_id role firstname lastname email pid pid_type pid_source)) {
+        foreach my $fld (qw(dads_id position role firstname lastname email pid pid_type pid_source)) {
             $rec->{$fld} = shift (@fields);
         }
         $rec->{'source_id'} = $idmap->{$rec->{'dads_id'}};
         $rec->{'source'} = $src;
-        if ($rec->{'dads_id'} eq $posid) {
-            $pos++;
-        } else {
-            $pos = 1;
-            $posid = $rec->{'dads_id'};
-        }
-        $rec->{'position'} = $pos;
         $self->{'db'}->insert ('mxd_person', $rec);
         $count->{'person'}++;
     }
@@ -258,12 +288,12 @@ sub load_source
                 my $did = $records->{$id}{'id'};
                 if ($issn->{$did}) {
                     if ($issn->{$did}{'print'}) {
-                        $records->{$id}{'issn'} = join (';', sort (keys (%{$issn->{$did}{'print'}})));
+                        $records->{$id}{'issn'} = join (',', sort (keys (%{$issn->{$did}{'print'}})));
                     } else {
                         $records->{$id}{'issn'} = '';
                     }
                     if ($issn->{$did}{'electronic'}) {
-                        $records->{$id}{'eissn'} = join (';', sort (keys (%{$issn->{$did}{'electronic'}})));
+                        $records->{$id}{'eissn'} = join (',', sort (keys (%{$issn->{$did}{'electronic'}})));
                     } else {
                         $records->{$id}{'eissn'} = '';
                     }
@@ -348,14 +378,38 @@ sub level
 sub issn
 {
     my ($self, $id) = @_;
-    
+
     my $s;
     my @ret = ();
     if ($s = $self->field ($id, 'issn')) {
-        push (@ret, split ("\t", $s));
+        push (@ret, split (',', $s));
     }
     if ($s = $self->field ($id, 'eissn')) {
-        push (@ret, split ("\t", $s));
+        push (@ret, split (',', $s));
+    }
+    return (@ret);
+}
+
+sub pissn
+{
+    my ($self, $id) = @_;
+
+    my $s;
+    my @ret = ();
+    if ($s = $self->field ($id, 'issn')) {
+        push (@ret, split (',', $s));
+    }
+    return (@ret);
+}
+
+sub eissn
+{
+    my ($self, $id) = @_;
+
+    my $s;
+    my @ret = ();
+    if ($s = $self->field ($id, 'eissn')) {
+        push (@ret, split (',', $s));
     }
     return (@ret);
 }
