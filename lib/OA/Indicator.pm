@@ -12,13 +12,28 @@ sub new
     my $self = \%args;
 
     $self->{'year-from'} = 2013;
-    $self->{'year-to'} = 2019;
-    $self->{'data-types'} = {
+    $self->{'year-to'}   = 2019;
+    $self->{'run-types'} = [qw(devel test prod)];
+    $self->{'run-type'}  = {
+        devel => 'Development',
+        prod  => 'Production',
+        test  => 'Test',
+    };
+    $self->{'data-types'} = [qw(bfi doaj romeo bib mxd)];
+    $self->{'data-type'}  = {
         bfi     => 'BFI',
         bib     => 'Bib',
         doaj    => 'DOAJ',
         mxd     => 'MXD',
         romeo   => 'Sherpa/Romeo',
+    };
+    $self->{'segments'} = [qw(load scope screen fetch classify)];
+    $self->{'segment'}  = {
+        load     => 'Load',
+        scope    => 'Scope',
+        screen   => 'Screen',
+        fetch    => 'Fetch fulltext',
+        classify => 'Classify',
     };
     return (bless ($self, $class));
 }
@@ -44,15 +59,56 @@ sub valid_year_range
     return ($self->{'year-from'} . '-' . $self->{'year-to'});
 }
 
+sub run_type
+{
+    my ($self, $name) = @_;
+
+    return ($self->{'run-type'}{$name});
+}
+
+sub run_types
+{
+    my ($self) = @_;
+
+    return (@{$self->{'run-types'}});
+}
+
 sub data_type
 {
     my ($self, $name) = @_;
 
-    if ($name) {
-        return ($self->{'data-types'}{$name});
-    } else {
-        return (sort (keys (%{$self->{'data-types'}})));
+    return ($self->{'data-type'}{$name});
+}
+
+sub data_types
+{
+    my ($self) = @_;
+
+    return (@{$self->{'data-types'}});
+}
+
+sub segment
+{
+    my ($self, $name) = @_;
+
+    return ($self->{'segment'}{$name});
+}
+
+sub segments
+{
+    my ($self) = @_;
+
+    return (@{$self->{'segments'}});
+}
+
+sub arg
+{
+    my ($self, $name, $value) = @_;
+
+    if (defined ($value)) {
+        $self->{'arg'}{$name} = $value;
     }
+    return ($self->{'arg'}{$name});
 }
 
 sub elapse
