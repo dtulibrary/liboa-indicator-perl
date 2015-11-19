@@ -136,6 +136,9 @@ sub color
         my $rec;
         while ($rec = $self->{'db'}->next ($rs)) {
             foreach my $fld (qw(source_id pissn eissn)) {
+                if ($rec->{$fld} =~ m/^[\s\n\r]*$/) {
+                    next;
+                }
                 if (exists ($self->{'cache'}{$rec->{$fld}})) {
                     if ($self->{'cache'}{$rec->{$fld}}->[0] ne $rec->{'color'}) {
                         $self->{'oai'}->log ('w',  "existing ISSN with two different colors: $rec->{$fld} : $self->{'cache'}{$rec->{$fld}}->[0] != $rec->{'color'}");
