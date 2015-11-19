@@ -33,6 +33,12 @@ install::
             install -D -m 775 $$file $(DESTDIR)/var/lib/oa-indicator/$$file; \
         done
 	@install -D -m 664 etc/apache.conf $(DESTDIR)/etc/apache2/conf-enabled/oa-indicator.conf
+	@install -D -m 664 etc/whitelist.tab $(DESTDIR)/etc/oa-indicator/whitelist.tab
+	@cd etc; \
+        for file in html/*; \
+        do \
+            install -D -m 664 $$file $(DESTDIR)/etc/oa-indicator/$$file; \
+        done
 
 distclean::
 	rm -rf debian/liboa-indicator-perl
