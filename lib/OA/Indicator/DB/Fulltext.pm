@@ -108,14 +108,18 @@ sub harvest
         $rs = $db->select ('*', 'fulltext', "url='$rec->{'url'}'");
         my $rc;
         if ($rc = $db->next ($rs)) {
-            if (($rc->{'harvested_last'} + $self->{'cachetime'}) >= time) {
+            if (($rc->{'success'}) && (($rc->{'harvested_last'} + $self->{'cachetime'}) >= time)) {
                 $self->{'oai'}->log ('i', "skipping harvest of cached URL: $rec->{'url'}");
                 $count->{'cache'}++;
+                $rec->{'pending'} = 0;
+                $rec->{'status'} = 'ok';
+                $db->update ('fulltext_requests', 'id', $rec);
                 next;
             }
         } else {
             $rc = {new => 1, url => $rec->{'url'}, harvested_first => time, errors_consecutive => 0, errors_total => 0};
         }
+        $count->{'harvest'}++;
         my $host = $self->host ($rec->{'url'});
         if (exists ($queue->{$host})) {
             push (@{$queue->{$host}}, [$rec, $rc]);
@@ -124,7 +128,7 @@ sub harvest
             $queue->{$host} = [[$rec, $rc]];
         }
     }
-    $self->{'oai'}->log ('i', "$count->{'cache'} URL cached, $count->{'url'} URL to harvest from $count->{'hosts'} hosts");
+    $self->{'oai'}->log ('i', "$count->{'url'} URL, $count->{'cache'} URL cached, $count->{'harvest'} URL to harvest from $count->{'hosts'} hosts");
     my $match = 1;
     while ($match) {
         $match = 0;
@@ -151,7 +155,7 @@ sub harvest
                 $db->update ('fulltext', 'url', $rc);
             }
             $count->{'done'}++;
-            $self->{'oai'}->log ('i', "done $count->{'done'} of $count->{'url'} URL: $rc->{'http_code'} - $rec->{'url'}");
+            $self->{'oai'}->log ('i', "done $count->{'done'} of $count->{'harvest'} URL: $rc->{'http_code'} - $rec->{'url'}");
         }
     }
 }
