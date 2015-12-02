@@ -9,7 +9,18 @@ sub new
     my ($class) = @_;
     my $self = {};
 
-    $self->{'primary_fields'} = [qw(source_id year type level review research_area jno pno jtitle jtitle_alt)];
+    $self->{'whitelist'} = [];
+    open (my $fh, '/etc/oa-indicator/whitelist.tab');
+    while (<$fh>) {
+        if (m/^#/) {
+            next;
+        }
+        chomp;
+        my ($name, $shortname, $domain) = split ("\t", $_);
+        push (@{$self->{'whitelist'}}, $domain);
+    }
+    close ($fh);
+    $self->{'primary_fields'} = [qw(source_id year type level review research_area jno pno jtitle jtitle_alt doi title_main title_sub pubyear)];
     $self->{'xpath'} = {
         source_id            => '/mxd:ddf_doc/@rec_id',
         year                 => '/mxd:ddf_doc/@doc_year',
@@ -21,6 +32,10 @@ sub new
         pno                  => '/mxd:ddf_doc/mxd:publication/@bfi_publisher_no',
         jtitle               => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title',
         jtitle_alt           => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title_alternative',
+        doi                  => '//mxd:doi',
+        title_main           => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:main',
+        title_sub            => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:sub',
+        pubyear              => '/mxd:ddf_doc/mxd:publication/*/mxd:year',
         do                   => '/mxd:ddf_doc/mxd:publication/mxd:digital_object',
         do_role              => '@role',
         do_access            => '@access',
@@ -122,6 +137,23 @@ sub fulltext
                 push (@{$rec}, '');
             }
         }
+        my $url = $rec->[1];
+        if ($url =~ m/\/\/([^\/]+)/) {
+            my $host = $1;
+            my $white = 0;
+            foreach my $dom (@{$self->{'whitelist'}}) {
+                if (($host eq $dom) || ($host =~ m/\.$dom$/)) {
+                    $white = 1;
+                    last;
+                }
+            }
+            if (!$white) {
+                next;
+            }
+        } else {
+            warn ("could not extra hostname from URL: $url (" . $self->id () . "\n");
+            next;
+        }
         push (@ret, $rec);
     }
     return (@ret);
@@ -148,7 +180,7 @@ sub issn
 
 sub person_fields
 {
-    return (qw(role first last email id type source));
+    return (qw(pos role first last email id type source));
 }
 
 sub person
@@ -156,8 +188,9 @@ sub person
     my ($self) = @_;
     my @ret = ();
 
+    my $n = 1;
     foreach my $obj ($self->{'xml'}->node ($self->{'xpath'}{'person'})) {
-        my $rec = [];
+        my $rec = [$n++];
         foreach my $f (qw(person_role person_first person_last person_email person_id)) {
             if ($f eq 'person_id') {
                 foreach my $id ($self->{'xml'}->node ($self->{'xpath'}{$f}, $obj)) {
