@@ -22,13 +22,35 @@ sub process
 
     my $count = {};
     my $records = {};
+    my $publications = {};
     my $rec;
-    my $rs = $self->{'db'}->select ('id,doaj_issn,bfi_level,romeo_color,fulltext_link,fulltext_link_oa,fulltext_downloaded,fulltext_verified',
+    my $rs = $self->{'db'}->select ('id,doaj_issn,bfi_level,romeo_color,fulltext_link,fulltext_link_oa,fulltext_downloaded,fulltext_verified,dedupkey,research_area',
                                     'records',
                                     'scoped = 1 and screened = 1');
     while ($rec = $self->{'db'}->next ($rs)) {
         $count->{'total'}++;
         $records->{$rec->{'id'}} = $rec;
+        $publications->{$rec->{dedupkey}}{$rec->{'id'}} = $rec;
+    }
+    foreach my $dkey (keys (%{$publications})) {
+        my $bfi_research_area = '';
+        my $mra = {hum => 0, med => 0, sci => 0, soc => 0};
+        foreach my $id (keys (%{$publications->{$dkey}})) {
+            if ($publications->{$dkey}{$id}{'bfi_research_area'}) {
+                $bfi_research_area = $publications->{$dkey}{$id}{'bfi_research_area'};
+            }
+            $mra->{$publications->{$dkey}{$id}{'research_area'}}++;
+        }
+        my $pub_research_area;
+        if ($bfi_research_area) {
+            $pub_research_area = $bfi_research_area;
+        } else {
+            my @mra = sort {$mra->{$a} <=> $mra->{$b}} keys (%{$mra});
+            $pub_research_area = pop (@mra);
+        }
+        foreach my $id (keys (%{$publications->{$dkey}})) {
+            $records->{$id}{'pub_research_area'} = $pub_research_area;
+        }
     }
     $self->{'oai'}->log ('i', "starting classifying of $count->{'total'} records");
     foreach my $id (keys (%{$records})) {
@@ -52,7 +74,7 @@ sub process
                         $count->{'ft-success'}++;
                         $rec->{'fulltext_downloaded'} = 1;
                         $rec->{'fulltext_verified'} = 1;
-                        if ($rc->{'pdf_pages'} > 0) {
+                        if (($rc->{'pdf_pages'}) && ($rc->{'pdf_pages'} > 0)) {
                             $rec->{'fulltext_pdf'} = 1;
                         }
                     } else {
@@ -114,6 +136,8 @@ sub process
             }
         }
         $rec->{'class_reasons'} = join (',', @{$rec->{'class_reasons'}});
+        $rec->{'pub_class'} = $rec->{'class'};
+        $rec->{'pub_class_reasons'} = $rec->{'class_reasons'};
         $self->{'db'}->update ('records', 'id', $rec);
         $count->{'done'}++;
         if (($count->{'done'} % 5000) == 0) {
@@ -123,6 +147,36 @@ sub process
     $self->{'oai'}->log ('i', "processed $count->{'done'} records out of $count->{'total'}");
     foreach my $f (sort (keys (%{$count}))) {
         $self->{'oai'}->log ('d', "count: %-20s %d", $f, $count->{$f});
+    }
+    $self->{'oai'}->log ('i', "updating publication classes");
+    foreach my $dkey (keys (%{$publications})) {
+        my $class = '';
+        my $class_reasons = '';
+        foreach my $id (keys (%{$publications->{$dkey}})) {
+            if ($publications->{$dkey}{$id}{'class'} eq 'realized') {
+                $class = 'realized';
+                $class_reasons = $publications->{$dkey}{$id}{'class_reasons'};
+            } else {
+                if ($publications->{$dkey}{$id}{'class'} eq 'unused') {
+                    if ($class ne 'realized') {
+                        $class = 'unused';
+                        $class_reasons = $publications->{$dkey}{$id}{'class_reasons'};
+                    }
+                } else {
+                    if (!$class) {
+                        $class = 'unclear';
+                        $class_reasons = $publications->{$dkey}{$id}{'class_reasons'};
+                    }
+                }
+            }
+        }
+        foreach my $id (keys (%{$publications->{$dkey}})) {
+            if ($publications->{$dkey}{$id}{'pub_class'} ne $class) {
+                $publications->{$dkey}{$id}{'pub_class'} = $class;
+                $publications->{$dkey}{$id}{'class_reasons'} = $class_reasons;
+            }
+            $self->{'db'}->update ('records', 'id', $publications->{$dkey}{$id});
+        }
     }
     $self->{'oai'}->log ('i', 'done');
     return (1);
