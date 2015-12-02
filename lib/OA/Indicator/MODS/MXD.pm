@@ -9,13 +9,14 @@ sub new
     my ($class) = @_;
     my $self = {};
 
-    $self->{'primary_fields'} = [qw(source_id year type level review)];
+    $self->{'primary_fields'} = [qw(source_id year type level review dedupkey)];
     $self->{'xpath'} = {
         source_id  => '/m:mods/m:identifier[@type="ds.dtic.dk:id:pub:dads:sourceid"]',
         year       => '/m:mods/m:relatedItem/m:originInfo/m:dateOther',
         type       => '/m:mods/m:genre[@type="ds.dtic.dk:type:origin"]',
         level      => '/m:mods/m:targetAudience[@authorityURI="ds.dtic.dk:level:origin"]',
         review     => '/m:mods/m:targetAudience[@authorityURI="ds.dtic.dk:review:origin"]',
+        dedupkey   => '/m:mods/m:identifier[@type="ds.dtic.dk:id:pub:dads:dedupkey"]',
         url        => '/m:mods/m:location/m:url',
         url_access => '@access',
         url_note   => '@note',
