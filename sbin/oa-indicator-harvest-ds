@@ -10,9 +10,11 @@ use OA::Indicator;
 use OA::Indicator::MODS::MXD;
 use OA::Indicator::MODS::Romeo;
 use OA::Indicator::MODS::DOAJ;
+use OA::Indicator::MODS::BFI;
 
 my $oai = new OA::Indicator (verbose => 1);
-my $handler = {mxd => new OA::Indicator::MODS::MXD (), romeo => new OA::Indicator::MODS::Romeo (), doaj => new OA::Indicator::MODS::DOAJ ()};
+my $handler = {mxd => new OA::Indicator::MODS::MXD (), romeo => new OA::Indicator::MODS::Romeo (), doaj => new OA::Indicator::MODS::DOAJ (),
+               bfi => new OA::Indicator::MODS::BFI ()};
 #Parse arguments
 my $args = {start => time};
 while ($ARGV[0] =~ m/^-/) {
@@ -120,6 +122,14 @@ while (1) {
             } elsif ($args->{'type'} eq 'doaj') {
                 $handler->{'doaj'}->parse ($xml);
                 &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'doaj'}->primary ()), "\n");
+            } elsif ($args->{'type'} eq 'bfi') {
+                $handler->{'bfi'}->parse ($xml);
+                if ($handler->{'bfi'}->year () != $args->{'year'}) {
+                    next;
+                }
+                foreach my $rec ($handler->{'bfi'}->primary ()) {
+                    &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', @{$rec}), "\n");
+                }
             } else {
                 &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
             }
@@ -246,6 +256,7 @@ sub source
         sdu     => 'rdb_sdu',
         romeo   => 'romeo',
         doaj    => 'doaj_jou',
+        bfi     => 'bfi',
     };
     if (defined ($src)) {
         if ($src eq '--list') {
@@ -323,14 +334,14 @@ sub open_files
                         next;
                     }
                     $count->{'total'}++;
-                    my ($id, $pubid, $source) = split ("\t");
+                    my ($id, $stamp, $date, $status, $source, $source_id, $pubid) = split ("\t");
                     $source = lc ($source);
                     $source =~ s/[^a-z]//g;
                     if ($source eq $src) {
                         $count->{'source'}++;
                         if ($pubid) {
                             $count->{'pubid'}++;
-                            $args->{'bfiIDs'}{$id} = $pubid;
+                            $args->{'bfiIDs'}{$source_id} = $pubid;
                         }
                     }
                 }
