@@ -25,7 +25,12 @@ sub parse
     if (!$self->{'parser'}) {
         $self->{'parser'} = new XML::LibXML ();
     }
-    $doc = $self->{'parser'}->parse_string ($xml);
+    eval {
+        $doc = $self->{'parser'}->parse_string ($xml);
+    };
+    if ($@) {
+        die ("XML parse error: $@\nXML: $xml\n - ");
+    }
     if ($self->{'prefix'}) {
         $xpc = new XML::LibXML::XPathContext ($doc);
         foreach my $pre (keys (%{$self->{'prefix'}})) {
