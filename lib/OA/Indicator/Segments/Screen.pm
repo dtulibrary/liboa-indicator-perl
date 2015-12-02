@@ -20,11 +20,14 @@ sub process
 
     my $count = {};
     my $records = {};
-    my $rs = $self->{'db'}->select ('id', 'records');
+    my $rs = $self->{'db'}->select ('id,year', 'records');
     my $rec;
     while ($rec = $self->{'db'}->next ($rs)) {
         $count->{'total'}++;
-        $records->{$rec->{'id'}} = {id => $rec->{'id'}};
+        if (!$rec->{'year'}) {
+            $rec->{'year'} = 0;
+        }
+        $records->{$rec->{'id'}} = {id => $rec->{'id'}, year => $rec->{'year'}};
     }
     $self->{'oai'}->log ('i', "starting screening of $count->{'total'} records");
     my $mxd = new OA::Indicator::DB::MXD ($self->{'db'}, $self->{'oai'});
@@ -37,7 +40,12 @@ sub process
                     last;
                 }
             }
-            if ($records->{$id}{'screened_issn'}) {
+            if ($records->{$id}{'year'} == $self->{'oai'}->arg ('year')) {
+                $records->{$id}{'screened_year'} = 1;
+            } else {
+                $records->{$id}{'screened_year'} = 0;
+            }
+            if (($records->{$id}{'screened_issn'}) && ($records->{$id}{'screened_year'})) {
                 $records->{$id}{'screened'} = 1;
             } else {
                 $records->{$id}{'screened'} = 0;
