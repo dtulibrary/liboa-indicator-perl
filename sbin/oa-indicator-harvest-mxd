@@ -5,6 +5,8 @@ use warnings;
 use Fatal qw(mkdir open);
 use OA::Indicator;
 use OA::Indicator::MXD;
+use LWP::UserAgent;
+use HTTP::Request;
 
 my $oai = new OA::Indicator (verbose => 1);
 my $year = shift (@ARGV);
@@ -44,10 +46,10 @@ foreach my $src (@sources) {
             chomp;
             my ($id, $stamp, $date, $status, $source_id) = split ("\t");
             if ($status ne 'deleted') {
-                if (exists ($run->{$src}{$source_id})) {
-                    warn ("duplicate id: '$source_id' - $_\n");
+                if (exists ($run->{$src}{$id})) {
+                    warn ("duplicate id: '$id' - $_\n");
                 }
-                $run->{$src}{$source_id} = $id;
+                $run->{$src}{$id} = $source_id;
                 $run->{'total'}++;
             }
         }
@@ -58,8 +60,6 @@ foreach my $src (@sources) {
         $oai->log_main ('f', "harvesting MXD records failed");
         exit (1);
     }
-    open (my $fin, "zcat /var/lib/oa-indicator/$year/mxd_source/$src.rec.xml.gz |");
-    my $buf = '';
     $run->{'recs'} = 0;
     $run->{'found'} = 0;
     $run->{'error'} = 0;
@@ -69,7 +69,7 @@ foreach my $src (@sources) {
     print ($fou '<?xml version="1.0" encoding="utf-8"?>', "\n<records>\n");
     open (my $fid, "> /var/lib/oa-indicator/$year/mxd/$src.ids");
     binmode ($fid, 'utf8');
-    print ($fid '#', join ("\t", qw(id stamp date), $mxd->primary_fields), "\n");
+    print ($fid '#', join ("\t", qw(id stamp date responseDate OAIdatestamp), $mxd->primary_fields), "\n");
     open (my $ftx, "> /var/lib/oa-indicator/$year/mxd/$src.ftx");
     binmode ($ftx, 'utf8');
     print ($ftx '#', join ("\t", 'id', $mxd->fulltext_fields), "\n");
@@ -78,51 +78,51 @@ foreach my $src (@sources) {
     open (my $fpe, "> /var/lib/oa-indicator/$year/mxd/$src.persons");
     binmode ($fpe, 'utf8');
     print ($fpe '#', join ("\t", 'id', $mxd->person_fields), "\n");
-    while (<$fin>) {
-        chomp;
-        $buf .= $_;
-        $buf =~ s/^<records>//;
-        $buf =~ s/^[\s\t\r\n]+//;
-        while ($buf =~ s/<metadata>(.*?)<\/metadata>//s) {
-            my $xml = $1;
-            if ($xml !~ m/</) {
-                $run->{'error'}++;
-                if ($xml =~ m/Could not serialize record/) {
-                    $oai->log ('w', 'XML error: not serialized by Pure');
-                } else {
-                    $oai->log ('w', 'XML error: ' . $xml);
+    my @IDS = keys (%{$run->{$src}});
+    my @ids = ();
+    while (@IDS) {
+        my $id = shift (@IDS);
+        push (@ids, $id);
+        if (($#ids == 99) || (!@IDS)) {
+            my $records = &harvest ($oai, @ids);
+            foreach my $i (@ids) {
+                if ($records->{$i}{'mxd'} !~ m/</) {
+                    $run->{'error'}++;
+                    if ($records->{$i}{'mxd'} =~ m/Could not serialize record/) {
+                        $oai->log ('w', "XML error ($i): not serialized by Pure");
+                    } else {
+                        $oai->log ('w', "XML error ($i): " . $records->{$i}{'mxd'});
+                    }
+                    next;
                 }
-                next;
-            }
-            $run->{'recs'}++;
-            $mxd->parse ($xml);
-            if (exists ($run->{$src}{$mxd->id ()})) {
-                $run->{'found'}++;
-                print ($fou $xml, "\n");
-                print ($fid join ("\t", $run->{$src}{$mxd->id ()}, $oai->stamp (), $mxd->primary), "\n");
+                $run->{'recs'}++;
+                $mxd->parse ($records->{$i}{'mxd'});
+                print ($fou $records->{$i}{'mxd'}, "\n");
+                print ($fid join ("\t", $i, $oai->stamp (), $records->{$i}{'responseDate'}, $records->{$i}{'datestamp'}, $mxd->primary), "\n");
                 foreach my $rec ($mxd->fulltext ()) {
-                    print ($ftx join ("\t", $run->{$src}{$mxd->id ()}, @{$rec}), "\n");
+                    print ($ftx join ("\t", $i, @{$rec}), "\n");
                 }
                 foreach my $rec ($mxd->issn ()) {
-                    print ($fis join ("\t", $run->{$src}{$mxd->id ()}, @{$rec}), "\n");
+                    print ($fis join ("\t", $i, @{$rec}), "\n");
                 }
                 foreach my $rec ($mxd->person ()) {
-                    print ($fpe join ("\t", $run->{$src}{$mxd->id ()}, @{$rec}), "\n");
+                    print ($fpe join ("\t", $i, @{$rec}), "\n");
+                }
+                if (($run->{'recs'} % 1000) == 0) {
+                    $oai->log ('i', 'processed %d of %d records (%0.2f rec/sec) %d errors',
+                               $run->{'recs'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'} + 0.000001)), $run->{'error'});
                 }
             }
-            if ((($run->{'recs'} % 10000) == 0) || (($run->{'found'}) && (($run->{'found'} % 1000) == 0))) {
-                $oai->log ('i', '%d processed, found %d of %d records done (%0.2f rec/sec) %d errors',
-                           $run->{'recs'}, $run->{'found'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'} + 0.000001)), $run->{'error'});
-            }
+            @ids = ();
         }
     }
-    $oai->log ('i', '%d processed, found %d of %d records done (%0.2f rec/sec) %d errors',
-               $run->{'recs'}, $run->{'found'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'} + 0.000001)), $run->{'error'});
+    $oai->log ('i', 'processed %d of %d records (%0.2f rec/sec) %d errors',
+               $run->{'recs'}, $run->{'total'}, ($run->{'recs'} / (time - $run->{'start'} + 0.000001)), $run->{'error'});
+    print ($fou "</records>\n");
     close ($fis);
     close ($ftx);
     close ($fid);
     close ($fou);
-    close ($fin);
 }
 if ($run->{'fatal'}) {
     $oai->log ('w', 'check for potential left over queues and/or config files');
@@ -130,7 +130,120 @@ if ($run->{'fatal'}) {
     $oai->log_main ('f', "harvest of MXD failed");
 } else {
     $oai->log ('i', 'done');
-    $oai->log_main ('f', "harvest of MXD done");
+    $oai->log_main ('i', "harvest of MXD done");
 }
 exit (0);
 
+sub harvest
+{
+    my $oai = shift (@_);
+
+    my $records = {};
+    my $ua = new LWP::UserAgent;
+    $ua->agent ('OA-Indicator/1.0');
+    $ua->timeout (180);
+    $ua->ssl_opts (SSL_verify_mode => 'SSL_VERIFY_NONE', verify_hostnames => 0);
+    my $url = 'http://ws.dads.dtic.dk/ws/admin_webservices?verb=GetOrigRecord&ds2identifier_list=' . join (',', @_);
+    my $re = new HTTP::Request ('GET' => $url);
+    my $rs = $ua->request ($re);
+    if ($rs->is_success) {
+        my $s = $rs->header ('Client-Aborted');
+        if ((defined ($s)) && ($s !~ m/^\s*$/)) {
+            if ($s eq 'die') {
+                $oai->log ('f', 'error getting records: client_aborted - die');
+            } else {
+                $oai->log ('f', 'error getting records: client_aborted - unknown');
+            }
+            $oai->log ('f', 'failed');
+            $oai->log_main ('f', "harvest of MXD failed");
+            exit (1);
+        }
+        $s = $rs->header ('X-Died');
+        if ((defined ($s)) && ($s !~ m/^\s*$/)) {
+            $s =~ s/ at \/.*//;
+            if ($s =~ m/eof when chunk header expected/i) {
+                $oai->log ('f', 'error getting records: connection lost');
+            } elsif ($s =~ m/read timeout/i) {
+                $oai->log ('f', 'error getting records: connection timeout');
+            } else {
+                $oai->log ('f', 'error getting records: unknown error');
+            }
+            $oai->log ('f', 'failed');
+            $oai->log_main ('f', "harvest of MXD failed");
+            exit (1);
+        }
+    } else {
+        $oai->log ('f', 'error getting records: %s : %s', $rs->code, $rs->message);
+        $oai->log ('f', 'failed');
+        $oai->log_main ('f', "harvest of MXD failed");
+        exit (1);
+    }
+    my $content = $rs->content;
+    my $size = $rs->header ('Content-Length');
+    if ($size) {
+        if ($size > length ($content)) {
+            $oai->log ('f', 'error getting records: short content - based on Content-Length');
+            $oai->log ('f', 'failed');
+            $oai->log_main ('f', "harvest of MXD failed");
+            exit (1);
+        }
+    }
+    while ($content =~ m/<OrigRecord ds2identifier="([^"]+)">(.*?)<\/OrigRecord>/gs) {
+        my $rec = {};
+        $rec->{'id'} = $1;
+        $rec->{'xml'} = $2;
+        if ($rec->{'xml'} =~ m/<responseDate>([^<]+)<\/responseDate>/) {
+            $rec->{'responseDate'} = $1;
+        } else {
+            $oai->log ('f', 'error getting responseDate: ' . $rec->{'xml'});
+            $oai->log ('f', 'failed');
+            $oai->log_main ('f', "harvest of MXD failed");
+            exit (1);
+        }
+        if ($rec->{'xml'} =~ m/<header>(.*?)<\/header>/s) {
+            my $head = $1;
+            if ($head =~ m/<identifier>oai:pure.atira.dk:publications\/(.*?)<\/identifier>/) {
+                $rec->{'source_id'} = $1;
+            }
+            if ($head =~ m/<datestamp>(.*?)<\/datestamp>/) {
+                $rec->{'datestamp'} = $1;
+            }
+        }
+        if ((!$rec->{'source_id'}) || (!$rec->{'datestamp'})) {
+            $oai->log ('f', 'error getting identifier and/or datestamp: ' . $rec->{'xml'});
+            $oai->log ('f', 'failed');
+            $oai->log_main ('f', "harvest of MXD failed");
+            exit (1);
+        }
+        if ($rec->{'xml'} =~ m/<metadata>(.*?)<\/metadata>/s) {
+            $rec->{'mxd'} = $1;
+        } else {
+            $oai->log ('f', 'error getting metadata: ' . $rec->{'xml'});
+            $oai->log ('f', 'failed');
+            $oai->log_main ('f', "harvest of MXD failed");
+            exit (1);
+        }
+        $records->{$rec->{'id'}} = $rec;
+    }
+    my $missing = 0;
+    foreach my $id (@_) {
+        if (exists ($records->{$id})) {
+            $records->{$id}{'match'} = 1;
+        } else {
+            $missing++;
+        }
+    }
+    my $extra = 0;
+    foreach my $id (keys (%{$records})) {
+        if (!$records->{$id}{'match'}) {
+            $extra++;
+        }
+    }
+    if (($missing) || ($extra)) {
+        $oai->log ('f', 'error getting metadata: %d missing records, %d extra', $missing, $extra);
+        $oai->log ('f', 'failed');
+        $oai->log_main ('f', "harvest of MXD failed");
+        exit (1);
+    }
+    return ($records);
+}
