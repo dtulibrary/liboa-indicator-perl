@@ -26,23 +26,24 @@ if ($data_type !~ m/^(begin|end)$/) {
     if (!-e $dir) {
         &usage ($oai, "no data for type: $data_type ($dir)");
     }
-    $oai->log_file ("$dir/load.log");
 }
-my $oaiDB = new OA::Indicator::DB ($year, $run_type);
+my $oaiDB = new OA::Indicator::DB ();
 if ($data_type eq 'begin') {
-    $oaiDB->create (join (' ', @desc));
+    $oaiDB->create ($year, $run_type, join (' ', @desc));
     $oaiDB->segment_start ('load');
     $oai->log_main ('i', "starting a new load for $year, $run_type run #" . $oaiDB->run());
     exit (0);
 }
 if ($data_type eq 'end') {
-#   FIX - success and errors should be much more informaed
-    $oaiDB->open ();
-    $oaiDB->segment_end ('load', 'success', '');
+    my $status = shift (@desc);
+    $oaiDB->open ($year, $run_type);
+    $oaiDB->segment_end ('load', $status, @desc);
     exit (0);
 }
-my $db = $oaiDB->open ();
-$oai->log_main ('i', "loading $data_type records, see $dir/load.log for details");
+my $db = $oaiDB->open ($year, $run_type);
+my $logdir = '/var/lib/oa-indicator/log/' . $oaiDB->id;
+$oai->log_file ("$logdir/load_$data_type.log");
+$oai->log_main ('i', "loading $data_type records, see $logdir/load_$data_type.log for details");
 my $handler;
 if ($data_type eq 'bfi') {
     require OA::Indicator::DB::BFI;
