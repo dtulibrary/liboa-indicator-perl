@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.00-03) unstable; urgency=low
+
+  * First version with outside review of the output. This will lead to
+    more changes.
+    
+    GIT revision: 5786079f196a23154a23693ffe3931bbc2dfd104
+
+ -- franck <franck@cvt.dk>  Thu, 03 Dec 2015 11:18:17 +0100
+
 liboa-indicator-perl (1.00-02) unstable; urgency=low
 
   * Many more changes that just a patch could justify...
