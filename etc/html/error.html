@@ -1,0 +1,55 @@
+<html>
+<head>
+    <title>
+        Record status - ${source_id} (${source}) - ${title}
+    </title>
+    <meta charset="UTF-8"/>
+    <style>
+        .label {
+            font-weight: bold;
+        }
+        h2 {
+            margin-top: 0.80em;
+            margin-bottom: 0.10em;
+        }
+        .header {
+            background-color: #485f68;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            height: 60px;
+            vertical-align: middle;
+        }
+        .footer {
+            background-color: #485f68;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            height: 30px;
+            vertical-align: middle;
+        }
+        .error {
+            height:600px;
+        }
+    </style>
+</head>
+<body>
+    <table width="100%">
+        <tr>
+            <td colspan="2" class="header">
+                Open Access Indicator
+            </td>
+        </tr>
+        <tr class="error">
+            <td colspan="2" class="title">
+                <h1>${error}</h1>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" class="footer">
+                <hr/>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<html>
+<head>
+    <title>
+        Record status - ${source_id} (${source}) - ${title}
+    </title>
+    <meta charset="UTF-8"/>
+    <style>
+        .label {
+            font-weight: bold;
+        }
+        h2 {
+            margin-top: 0.80em;
+            margin-bottom: 0.10em;
+        }
+        .header {
+            background-color: #485f68;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            height: 60px;
+            vertical-align: middle;
+        }
+        .footer {
+            background-color: #485f68;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            height: 30px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <table width="100%">
+        <tr>
+            <td colspan="2" class="header">
+                Open Access Indicator
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" class="title">
+                <h1>${title}</h1>
+            </td>
+        </tr>
+        <tr>
+            <oa:if_var name="scoped">
+                <td class="label">In Scope</td>
+            </oa:if_var>
+            <oa:if_var name="scoped" not="1">
+                <td class="label">Out of Scope</td>
+            </oa:if_var>
+            <td>
+                ${scopeDetails.raw}
+            </td>
+        </tr>
+        <tr>
+            <oa:if_var name="screened">
+                <td class="label">Screened In</td>
+            </oa:if_var>
+            <oa:if_var name="screened" not="1">
+                <td class="label">Screened Out</td>
+            </oa:if_var>
+            <td>
+                ${screenDetails.raw}
+            </td>
+        </tr>
+        <tr>
+            <td class="label">OA Classification</td>
+            <td>
+                ${classDetails}
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Fulltext</td>
+            <td colspan="1">
+                ${fulltext}
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <h2>Type</h2>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Record type</td>
+            <td>
+                ${type}
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Level</td>
+            <td>
+                ${level}
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Review Type</td>
+            <td>
+                ${review}
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Research Area</td>
+            <td>
+                ${research_area}
+            </td>
+        </tr>
+        <oa:if_var name="jtitle">
+            <tr>
+                <td class="label">Journal Title</td>
+                <td>
+                    ${jtitle}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="bfi_class">
+            <tr>
+                <td colspan="2">
+                    <h2>BFI Fields</h2>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Classification</td>
+                <td>
+                    ${bfi_class}
+                </td>
+            </tr>
+            <oa:if_var name="bfi_level">
+                <tr>
+                    <td class="label">Level</td>
+                    <td>
+                        ${bfi_level}
+                    </td>
+                </tr>
+            </oa:if_var>
+            <oa:if_var name="bfi_id">
+                <tr>
+                    <td class="label">Publication ID</td>
+                    <td>
+                        ${bfi_id}
+                    </td>
+                </tr>
+            </oa:if_var>
+        </oa:if_var>
+        <tr>
+            <td colspan="2">
+                <h2>Publication information</h2>
+            </td>
+        </tr>
+        <oa:if_var name="jtitle">
+            <tr>
+                <td class="label">Journal Title</td>
+                <td>
+                    ${jtitle}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="jtitle_alt">
+            <tr>
+                <td class="label">Alternate Journal Title</td>
+                <td>
+                    ${jtitle_alt}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="issn">
+            <tr>
+                <td class="label">ISSN</td>
+                <td>
+                    ${issn}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="eissn">
+            <tr>
+                <td class="label">E-ISSN</td>
+                <td>
+                    ${eissn}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="jno">
+            <tr>
+                <td class="label">BFI Serial Number</td>
+                <td>
+                    ${jno}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="pno">
+            <tr>
+                <td class="label">BFI Publisher Number</td>
+                <td>
+                    ${pno}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="doi">
+            <tr>
+                <td class="label">DOI</td>
+                <td>
+                    ${doi}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="year">
+            <tr>
+                <td class="label">ARY</td>
+                <td>
+                    ${year}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="pubyear">
+            <tr>
+                <td class="label">Publication Year</td>
+                <td>
+                    ${pubyear}
+                </td>
+            </tr>
+        </oa:if_var>
+        <oa:if_var name="romeo_color">
+            <tr>
+                <td class="label">Romeo Color</td>
+                <td>
+                    ${romeo_color} (${romeo_issn})
+                </td>
+            </tr>
+        </oa:if_var>
+        <tr>
+            <td class="label">First Local Author</td>
+            <td>
+                ${first_author} (pos: ${first_author_pos})
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <h2>Links</h2>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">CRIS Link</td>
+            <td>
+                <a href="${cris_link}">${source_id}</a>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">OAI Link</td>
+            <td>
+                <a href="${oai_link}">${source_id}</a>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">OA Indicator MXD</td>
+            <td>
+                <a href="${mxd_link}">${source_id}</a>
+            </td>
+        </tr>
+        <oa:if_var name="duplicates">
+            <tr>
+                <td class="label">Duplicates</td>
+                <td>
+                     ${duplicates.raw}
+                </td>
+            </tr>
+        </oa:if_var>
+        <tr>
+            <td colspan="2">
+                <h2>Admin</h2>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">ID</td>
+            <td>${source_id} (${source})</td>
+        </tr>
+        <tr>
+            <td class="label">OAI harvested on</td>
+            <td>${oai_harvest}</td>
+        </tr>
+        <tr>
+            <td class="label">OAI date stamp</td>
+            <td>${oai_datestamp}</td>
+        </tr>
+        <tr>
+            <td class="label">Processed on</td>
+            <td>${date}</td>
+        </tr>
+        <tr>
+            <td colspan="2" class="footer">
+                <hr/>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
