@@ -1,0 +1,216 @@
+cover                          en Cover
+cover                          da Forside
+cover-oa-indicator             en Danish Open Access Indicator
+cover-oa-indicator             da Dansk Open Access Indikator
+cover-indicator-year           en Indicator year:
+cover-indicator-year           da Indikatorstatistikår:
+cover-submission-year          en Submission year:
+cover-submission-year          da Indberetningsår:
+cover-version                  en Version:
+cover-version                  da Version:
+cover-compilation-date         en Compilation date:
+cover-compilation-date         da Kørselsdato:
+cover-text                     en This is the dataset of the annual Open Access calculation for Danish research publications within \
+                                  the scope of the Open Access Indicator.
+cover-text                     da Dette er datasæt for den årlige kørsel af den Danske Open Access Indikator for for \
+                                  skningspublikationer indenfor genstandsfeltet
+cover-pri                      en Primary Tabs:
+cover-pri                      da Primære faner:
+cover-pri-1                    en "National": Aggregated number for Open Access status of publications nationally
+cover-pri-1                    da "Nationalt": Summering for publikationer på nationalt niveau 
+cover-pri-2                    en "Main Research Areas":  Aggregated numbers for Open Access status of publications per Main Research Area
+cover-pri-2                    da "Hovedforskningsområder": Summering for publikationer - fordelt på hovedforskningsområder
+cover-pri-3                    en "Universities":  Aggregated numbers for Open Access status of publications per University
+cover-pri-3                    da "Universiteter": Summeringer for publikationer - fordelt på universiteter
+cover-pri-4                    en "Scoped Publications": Complete set of publications in-scope ; the foundation for this calculation
+cover-pri-4                    da "Genstandsfeltet - Publikationer": Komplet liste af publikationer i genstandsfeltet \
+                                  (reduceret genstandsfelt)
+cover-pri-5                    en "Scoped Records": Complete set of metadata records in-scope; the foundation for the publications of \
+                                  this calculation
+cover-pri-5                    da "Genstandsfelt - Poster": Komplet liste af publikationsposter i genstandsfeltet, som indsamlet fra \
+                                  universiteterne (ureduceret genstandsfelt)
+
+cover-sec                      en Secondary Tabs:
+cover-sec                      da Secondary Tabs:
+cover-sec-1                    en "Descoped records": Records screened off as part of the scoping
+cover-sec-1                    da "Descoped records": Records screened off as part of the scoping
+cover-sec-2                    en "Supplement BFI records": Records from BFI not in scope, but with in-scope duplicates 
+cover-sec-2                    da "Supplement BFI records": Records from BFI not in scope, but with in-scope duplicates 
+
+national                       en National
+national                       da Nationalt
+all                            en All
+all                            da Alle
+absolute                       en Absolute
+absolute                       da Absolut
+realised                       en Realised
+realised                       da Realiseret
+realized                       en Realised
+realized                       da Realiseret
+unused                         en Unused
+unused                         da Uudnyttet
+unclear                        en Unclear
+unclear                        da Uklart
+total                          en Total
+total                          da Total
+total-clear                    en Total wo/unclear
+total-clear                    da Total uden uklart
+relative                       en Relative
+relative                       da Relativt
+relative-clear                 en Relative (wo/unclear)
+relative-clear                 da Relativt (uden uklart)
+
+research_area                  en Main Research Area
+research_area                  da Hovedforskningsområder
+
+hum                            en Humanities (HUM)
+hum                            da Humaniora (HUM)
+soc                            en Social sciences (SOC)
+soc                            da Socialvidenskab (SOC)
+sci                            en Science (SCI)
+sci                            da Naturvidenskab/teknik (SCI)
+med                            en Medicine (MED)
+med                            da Medicin (MED)
+
+universities                   en Universities
+universities                   da Universiteter
+aau-full                       en Aalborg University (AAU)
+aau-full                       da Aalborg Universitet (AAU)
+au-full                        en Aarhus University (AU)
+au-full                        da Aarhus Universitet (AU)
+cbs-full                       en Copenhagen Business School (CBS)
+cbs-full                       da Handelshøjskolen I København (CBS)
+dtu-full                       en Technical University of Denmark (DTU)
+dtu-full                       da Danmarks Tekniske Universitet (DTU)
+itu-full                       en IT University of Copenhagen (ITU)
+itu-full                       da IT-Universitetet i København (ITU)
+ku-full                        en University of Copenhagen (KU)
+ku-full                        da Københavns Universitet (KU)
+ruc-full                       en Roskilde University (RUC)
+ruc-full                       da Roskilde Universitet (RUC)
+sdu-full                       en University of Southern Denmark (SDU)
+sdu-full                       da Syddansk Universitet (SDU)
+
+scoped-publications            en Scoped publications
+scoped-publications            da Genstandsfelt - Publikationer
+publication                    en Publication
+publication                    da Publikation
+title                          en Title
+title                          da Titel
+first-danish-author            en First Danish Author
+first-danish-author            da Første danske forfatter
+first-danish-author-uni        en University of first danish author
+first-danish-author-uni        da Første danske forfatters universitet
+research_area                  en Main Research Area
+research_area                  da Hovedforskningsområder
+bfi_research_area              en BFI Research Area
+bfi_research_area              da BFI Research Area
+research_area_details          en Research Area Details
+research_area_details          da Research Area Details
+doi                            en DOI
+doi                            da DOI
+issn                           en ISSN
+issn                           da ISSN
+university-affiliation         en University Affiliation
+university-affiliation         da Universitets affiliation
+aau                            en AAU
+aau                            da AAU
+au                             en AU
+au                             da AU
+cbs                            en CBS
+cbs                            da CBS
+dtu                            en DTU
+dtu                            da DTU
+itu                            en ITU
+itu                            da ITU
+ku                             en KU
+ku                             da KU
+ruc                            en RUC
+ruc                            da RUC
+sdu                            en SDU
+sdu                            da SDU
+oa-indicator                   en OA Indicator
+oa-indicator                   da OA Indikator
+status                         en Status
+status                         da Status
+reason                         en Reason
+reason                         da Reason
+details                        en Details
+details                        da Details
+bfi                            en BFI
+bfi                            da BFI
+classification                 en Classification
+classification                 da Klassifikation
+level                          en Level
+level                          da Niveau
+
+antologibidrag-i-bogserier     en Antologibidrag i bogserier
+antologibidrag-i-bogserier     da Antologibidrag i bogserier
+antologibidrag-på-forlag       en Antologibidrag på forlag
+antologibidrag-på-forlag       da Antologibidrag på forlag
+doktorafhandlinger             en Doktorafhandlinger
+doktorafhandlinger             da Doktorafhandlinger
+konferencebidrag               en Konferencebidrag
+konferencebidrag               da Konferencebidrag
+monografier-i-bogserier        en Monografier i bogserier
+monografier-i-bogserier        da Monografier i bogserier
+monografier-på-forlag          en Monografier på forlag
+monografier-på-forlag          da Monografier på forlag
+tidsskriftartikler             en Journal article
+tidsskriftartikler             da Tidsskriftartikler
+
+in-ddf                         en In Danish National Research Database (DDF)
+in-ddf                         da I Den Danske Forskningsdatabase  (DDF)
+ddf-id                         en ID
+ddf-id                         da ID
+ddf-url                        en URL
+ddf-url                        da URL
+in-cris-pub                    en In university(/universities) CRIS
+in-cris-pub                    da I universitetets(/universiteternes) CRIS
+cris-id                        en ID(s)
+cris-id                        da ID(er)
+cris-url                       en URL
+cris-url                       da URL
+
+scoped-records                 en Scoped Records
+scoped-records                 da Genstandsfelt - poster
+first-local-author             en First Local Author
+first-local-author             da Første lokale forfatter
+university                     en University
+university                     da Universitet
+duplicate-records              en Duplicate records
+duplicate-records              da Dublet post(er)
+duplicates                     en Duplicate records
+duplicates                     da Dublet post(er)
+
+descoped-records               en Descoped Records
+descoped-records               da Descoped Records
+mxd                            en MXD
+mxd                            da MXD
+doc_type                       en Type
+doc_type                       da Type
+doc_review                     en Review
+doc_review                     da Review
+doc_level                      en Level
+doc_level                      da Level
+scope-violation                en Scope Rule Violation
+scope-violation                da Scope Rule Violation
+wrong-type                     en Type not "dja", "djr" or "dcp"
+wrong-type                     da Type not "dja", "djr" or "dcp"
+wrong-review                   en Review not "pr"
+wrong-review                   da Review not "pr"
+wrong-level                    en Level not "sci"
+wrong-level                    da Level not "sci"
+no-issn                        en No ISSN
+no-issn                        da No ISSN
+in-cris                        en In university CRIS
+in-cris                        da In university CRIS
+
+extra                          en Supplement BFI records
+extra                          da Supplement BFI records
+extra-records                  en Supplement BFI records - not in scope due to wrong Submission Year, but with in-scope duplicate records
+extra-records                  da Supplement BFI records - not in scope due to wrong Submission Year, but with in-scope duplicate records
+year-pub                       en Pub. Year
+year-pub                       da Pub. Year
+year-ary                       en Sub. Year
+year-ary                       da Sub. Year

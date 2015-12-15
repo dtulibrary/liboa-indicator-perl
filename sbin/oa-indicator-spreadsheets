@@ -1,0 +1,933 @@
+#!/usr/bin/perl
+
+binmode (STDOUT, 'utf8');
+use strict;
+use warnings;
+use Fatal qw(open chdir mkdir unlink);
+#use OA::Indicator;
+#use OA::Indicator::DB;
+use Spreadsheet::WriteExcel;
+use Excel::Writer::XLSX;
+
+#my $oai = new OA::Indicator (verbose => 1);
+#my ($year, $run_type) = &params ($oai);
+#my $db = new OA::Indicator::DB ();
+#$db->open ($year, $run_type);
+#&create_run ($year, $run_type, $db);
+#foreach my $type (qw(national universities research_area records publications)) {
+#    system ("wget -S -o $type.log -O $type.csv 'http://devel.oai.cvt.dk/oa-indicator/ws/$type.csv/$year/$run_type/latest'");
+#}
+#my $labels = &labels ('/etc/oa-indicator/labels.tab');
+my $labels = &labels ('etc/labels.tab');
+my $year = 2014;
+#my $oaeng = &spreadsheet ('OA-Indicator_2014_en.xls');
+my $oaeng = &spreadsheet ('OA-Indicator_2014_en.xlsx');
+#my $oadan = &spreadsheet ('OA-Indicator_2014_da.xls');
+&cover ($oaeng, $labels, 'en', 'int');
+&summary ($oaeng, $labels, 'en', 'national');
+&summary ($oaeng, $labels, 'en', 'research_area');
+&summary ($oaeng, $labels, 'en', 'universities');
+&publications ($oaeng, $labels, 'en', 'int');
+&records ($oaeng, $labels, 'en', 'int');
+&screened ($oaeng, $labels, 'en');
+&extra ($oaeng, $labels, 'en');
+$oaeng->{'wb'}->close ();
+
+
+exit (0);
+
+sub extra
+{
+    my ($sps, $labels, $lang) = @_;
+
+    my $width = {
+        'title'                   => 100,
+        'first-local-author'      =>  30,
+        'university'              =>  15,
+        'research_area'           =>  12,
+        'doi'                     =>  30,
+        'issn'                    =>  20,
+        'year-pub'                =>  10,
+        'year-ary'                =>  10,
+        'spacer-1'                =>   5,
+        'classification'          =>  15,
+        'level'                   =>   5,
+        'spacer-2'                =>   5,
+        'ddf-id'                  =>  10,
+        'ddf-url'                 =>  50,
+        'spacer-3'                =>   5,
+        'cris-id'                 =>  40,
+        'cris-url'                => 100,
+        'duplicates'              =>  40,
+    };
+    my $center = {
+        'university'              => 1,
+        'research_area'           => 1,
+        'issn'                    => 1,
+        'level'                   => 1,
+        'ddf-id'                  => 1,
+    };
+    my @fields_input = (
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'year-pub', 'year-ary',
+        'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates'
+    );
+    my @fields_official = (
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'year-pub', 'year-ary', 'spacer-1',
+        'classification', 'level', 'spacer-2', 'ddf-id', 'ddf-url', 'spacer-3', 'cris-id', 'cris-url', 'duplicates'
+    );
+    my $name = 'extra';
+    &worksheet ($sps, $name, &label ($labels, $lang, 'extra'));
+    my @sizes = ();
+    foreach my $fld (@fields_official) {
+        push (@sizes, $width->{$fld});
+    }
+    &set_size ($sps, $name, @sizes);
+    my $row = 1;
+    &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, 'extra-records'));
+    $row++;
+    my $col = 0;
+    &write ($sps, $name, $row,  $col, 8, 'head', &label ($labels, $lang, 'publication'));
+    $col += 9;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'bfi'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'in-cris-pub'));
+    $row++;
+    my @fields = @fields_official;
+    $col = 0;
+    foreach my $fld (@fields) {
+        if ($fld !~ m/^spacer-/) {
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-center', &label ($labels, $lang, $fld));
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'label', &label ($labels, $lang, $fld));
+            }
+        }
+        $col++;
+    }
+    $row++;
+    open (my $fin, "$name.csv");
+    binmode ($fin, 'utf8');
+    my $s = <$fin>;
+    while (<$fin>) {
+        chomp;
+        my $col = 0;
+        my @cols = split ("\t", $_);
+        my $rec = {};
+        foreach my $fld (@fields_input) {
+            $rec->{$fld} = shift (@cols);
+            if (defined ($rec->{$fld})) {
+                $rec->{$fld} =~ s/^\s*"//;
+                $rec->{$fld} =~ s/"\s*$//;
+                $rec->{$fld} =~ s/""/"/g;
+            } else {
+                $rec->{$fld} = '';
+            }
+        }
+        foreach my $fld (@fields) {
+            if ($fld =~ m/^spacer-/) {
+                $col++;
+                next;
+            }
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
+            } else {
+                if (($fld eq 'cris-url') && (length ($rec->{$fld}) > 250)) {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, asString => 1, fix_width => 0);
+                } else {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
+                }
+            }
+            $col++;
+        }
+        $row++;
+    }
+    close ($fin);
+}
+
+sub screened
+{
+    my ($sps, $labels, $lang) = @_;
+
+    my $width = {
+        'title'                   => 100,
+        'first-local-author'      =>  30,
+        'university'              =>  15,
+        'research_area'           =>  12,
+        'doi'                     =>  30,
+        'spacer-1'                =>   5,
+        'doc_type'                =>   6,
+        'doc_review'              =>   6,
+        'doc_level'               =>   6,
+        'issn'                    =>  20,
+        'spacer-2'                =>   5,
+        'wrong-type'              =>  10,
+        'wrong-review'            =>  10,
+        'wrong-level'             =>  10,
+        'no-issn'                 =>  10,
+        'spacer-3'                =>   5,
+        'classification'          =>  15,
+        'level'                   =>   5,
+        'spacer-4'                =>   5,
+        'ddf-id'                  =>  10,
+        'ddf-url'                 =>  50,
+        'spacer-5'                =>   5,
+        'cris-id'                 =>  40,
+        'cris-url'                => 100,
+        'duplicates'              =>  40,
+    };
+    my $center = {
+        'university'              => 1,
+        'research_area'           => 1,
+        'doc_type'                => 1,
+        'doc_review'              => 1,
+        'doc_level'               => 1,
+        'issn'                    => 1,
+        'wrong-type'              => 1,
+        'wrong-review'            => 1,
+        'wrong-level'             => 1,
+        'no-issn'                 => 1,
+        'level'                   => 1,
+        'ddf-id'                  => 1,
+    };
+    my @fields_input = (
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'doc_type', 'doc_review', 'doc_level', 'issn', 'wrong-type',
+        'wrong-review', 'wrong-level', 'no-issn', 'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates'
+    );
+    my @fields_official = (
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'spacer-1', 'doc_type', 'doc_review', 'doc_level', 'issn', 'spacer-2',
+        'wrong-type', 'wrong-review', 'wrong-level', 'no-issn', 'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5',
+        'cris-id', 'cris-url', 'duplicates'
+    );
+    my $name = 'screened';
+    &worksheet ($sps, $name, &label ($labels, $lang, 'descoped-records'));
+    my @sizes = ();
+    foreach my $fld (@fields_official) {
+        push (@sizes, $width->{$fld});
+    }
+    &set_size ($sps, $name, @sizes);
+    my $row = 1;
+    &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, 'descoped-records'));
+    $row++;
+    my $col = 0;
+    &write ($sps, $name, $row,  $col, 5, 'head', &label ($labels, $lang, 'publication'));
+    $col += 6;
+    &write ($sps, $name, $row, $col, 4, 'head', &label ($labels, $lang, 'mxd'));
+    $col += 5;
+    &write ($sps, $name, $row, $col, 4, 'head', &label ($labels, $lang, 'scope-violation'));
+    $col += 5;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'bfi'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'in-cris-pub'));
+    $row++;
+    my @fields = @fields_official;
+    $col = 0;
+    foreach my $fld (@fields) {
+        if ($fld !~ m/^spacer-/) {
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-center', &label ($labels, $lang, $fld));
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'label', &label ($labels, $lang, $fld));
+            }
+        }
+        $col++;
+    }
+    $row++;
+    open (my $fin, "$name.csv");
+    binmode ($fin, 'utf8');
+    my $s = <$fin>;
+    while (<$fin>) {
+        chomp;
+        my $col = 0;
+        my @cols = split ("\t", $_);
+        my $rec = {};
+        foreach my $fld (@fields_input) {
+            $rec->{$fld} = shift (@cols);
+            if (defined ($rec->{$fld})) {
+                $rec->{$fld} =~ s/^\s*"//;
+                $rec->{$fld} =~ s/"\s*$//;
+                $rec->{$fld} =~ s/""/"/g;
+            } else {
+                $rec->{$fld} = '';
+            }
+        }
+        foreach my $fld (@fields) {
+            if ($fld =~ m/^spacer-/) {
+                $col++;
+                next;
+            }
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
+            } else {
+                if (($fld eq 'cris-url') && (length ($rec->{$fld}) > 250)) {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, asString => 1, fix_width => 0);
+                } else {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
+                }
+            }
+            $col++;
+        }
+        $row++;
+    }
+    close ($fin);
+}
+
+sub records
+{
+    my ($sps, $labels, $lang, $int) = @_;
+
+    my $width = {
+        'title'                   => 100,
+        'first-local-author'      =>  30,
+        'university'              =>  15,
+        'research_area'           =>  12,
+        'doi'                     =>  30,
+        'issn'                    =>  20,
+        'spacer-1'                =>   5,
+        'status'                  =>  10,
+        'reason'                  =>  40,
+        'spacer-2'                =>   5,
+        'classification'          =>  15,
+        'level'                   =>   5,
+        'spacer-3'                =>   5,
+        'ddf-id'                  =>  10,
+        'ddf-url'                 =>  50,
+        'spacer-4'                =>   5,
+        'cris-id'                 =>  40,
+        'cris-url'                => 100,
+        'duplicates'              =>  40,
+    };
+    my $center = {
+        'university'              => 1,
+        'research_area'           => 1,
+        'issn'                    => 1,
+        'status'                  => 1,
+        'level'                   => 1,
+        'ddf-id'                  => 1,
+    };
+    my @fields_input = (
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'status', 'reason',
+        'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates'
+    );
+    my @fields_official = (
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'spacer-1', 'status',
+        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates'
+    );
+    my @fields_internal = (
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'spacer-1', 'status', 'reason',
+        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates'
+    );
+    my $name = 'records';
+    &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records'));
+    my @sizes = ();
+    if ($int) {
+        foreach my $fld (@fields_internal) {
+            push (@sizes, $width->{$fld});
+        }
+    } else {
+        foreach my $fld (@fields_official) {
+            push (@sizes, $width->{$fld});
+        }
+    }
+    &set_size ($sps, $name, @sizes);
+    my $row = 1;
+    &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, 'scoped-records'));
+    $row++;
+    my $col = 0;
+    &write ($sps, $name, $row,  $col, 6, 'head', &label ($labels, $lang, 'publication'));
+    $col += 7;
+    if ($int) {
+        &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'oa-indicator'));
+        $col += 3;
+    } else {
+        &write ($sps, $name, $row, $col, 1, 'head', &label ($labels, $lang, 'oa-indicator'));
+        $col += 2;
+    }
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'bfi'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'in-cris-pub'));
+    $row++;
+    my @fields;
+    if ($int) {
+        @fields = @fields_internal;
+    } else {
+        @fields = @fields_official;
+    }
+    $col = 0;
+    foreach my $fld (@fields) {
+        if ($fld !~ m/^spacer-/) {
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-center', &label ($labels, $lang, $fld));
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'label', &label ($labels, $lang, $fld));
+            }
+        }
+        $col++;
+    }
+    $row++;
+    open (my $fin, "$name.csv");
+    binmode ($fin, 'utf8');
+    my $s = <$fin>;
+    while (<$fin>) {
+        chomp;
+        my $col = 0;
+        my @cols = split ("\t", $_);
+        my $rec = {};
+        foreach my $fld (@fields_input) {
+            $rec->{$fld} = shift (@cols);
+            if (defined ($rec->{$fld})) {
+                $rec->{$fld} =~ s/^\s*"//;
+                $rec->{$fld} =~ s/"\s*$//;
+                $rec->{$fld} =~ s/""/"/g;
+            } else {
+                $rec->{$fld} = '';
+            }
+        }
+        foreach my $fld (@fields) {
+            if ($fld =~ m/^spacer-/) {
+                $col++;
+                next;
+            }
+            if ($center->{$fld}) {
+                if ($fld eq 'status') {
+                    &write ($sps, $name, $row,  $col, 1, 'text-' . $rec->{$fld}, &label ($labels, $lang, $rec->{$fld}), fix_width => 0);
+                } else {
+                    &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
+                }
+            } else {
+                if (($fld eq 'cris-url') && (length ($rec->{$fld}) > 250)) {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, asString => 1, fix_width => 0);
+                } else {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
+                }
+            }
+            $col++;
+        }
+        $row++;
+    }
+    close ($fin);
+}
+
+sub publications
+{
+    my ($sps, $labels, $lang, $int) = @_;
+
+    my $width = {
+        'title'                   => 100,
+        'first-danish-author'     =>  30,
+        'first-danish-author-uni' =>  15,
+        'research_area'           =>  15,
+        'bfi_research_area'       =>  15,
+        'research_area_details'   =>  15,
+        'doi'                     =>  30,
+        'issn'                    =>  20,
+        'spacer-1'                =>   5,
+        'aau'                     =>   4,
+        'au'                      =>   4,
+        'cbs'                     =>   4,
+        'dtu'                     =>   4,
+        'itu'                     =>   4,
+        'ku'                      =>   4,
+        'ruc'                     =>   4,
+        'sdu'                     =>   4,
+        'spacer-2'                =>   5,
+        'status'                  =>  10,
+        'reason'                  =>  40,
+        'details'                 =>  10,
+        'spacer-3'                =>   5,
+        'classification'          =>  15,
+        'level'                   =>   5,
+        'spacer-4'                =>   5,
+        'ddf-id'                  =>   9,
+        'ddf-url'                 =>  50,
+        'spacer-5'                =>   5,
+        'cris-id'                 =>  40,
+        'cris-url'                => 100,
+    };
+    my $center = {
+        'first-danish-author-uni' => 1,
+        'research_area'           => 1,
+        'bfi_research_area'       => 1,
+        'issn'                    => 1,
+        'aau'                     => 1,
+        'au'                      => 1,
+        'cbs'                     => 1,
+        'dtu'                     => 1,
+        'itu'                     => 1,
+        'ku'                      => 1,
+        'ruc'                     => 1,
+        'sdu'                     => 1,
+        'status'                  => 1,
+        'level'                   => 1,
+        'ddf-id'                  => 1,
+    };
+    my @fields_input = (
+        'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 'bfi_research_area', 'research_area_details',
+        'doi', 'issn', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'status', 'reason', 'details',
+        'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url'
+    );
+    my @fields_official = (
+        'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 
+        'doi', 'issn', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2', 'status',
+        'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5', 'cris-id', 'cris-url'
+    );
+    my @fields_internal = (
+        'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 'bfi_research_area', 'research_area_details',
+        'doi', 'issn', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2', 'status', 'reason', 'details',
+        'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5', 'cris-id', 'cris-url'
+    );
+    my $name = 'publications';
+    &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-publications'));
+    my @sizes = ();
+    if ($int) {
+        foreach my $fld (@fields_internal) {
+            push (@sizes, $width->{$fld});
+        }
+    } else {
+        foreach my $fld (@fields_official) {
+            push (@sizes, $width->{$fld});
+        }
+    }
+    &set_size ($sps, $name, @sizes);
+    my $row = 1;
+    &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, 'scoped-publications'));
+    $row++;
+    my $col = 0;
+    if ($int) {
+        &write ($sps, $name, $row,  $col, 8, 'head', &label ($labels, $lang, 'publication'));
+        $col += 9;
+    } else {
+        &write ($sps, $name, $row,  $col, 6, 'head', &label ($labels, $lang, 'publication'));
+        $col += 7;
+    }
+    &write ($sps, $name, $row,  $col, 8, 'head', &label ($labels, $lang, 'university-affiliation'));
+    $col += 9;
+    if ($int) {
+        &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'oa-indicator'));
+        $col += 4;
+    } else {
+        &write ($sps, $name, $row, $col, 1, 'head', &label ($labels, $lang, 'oa-indicator'));
+        $col += 2;
+    }
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'bfi'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-cris-pub'));
+    $row++;
+    my @fields;
+    if ($int) {
+        @fields = @fields_internal;
+    } else {
+        @fields = @fields_official;
+    }
+    $col = 0;
+    foreach my $fld (@fields) {
+        if ($fld !~ m/^spacer-/) {
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-center', &label ($labels, $lang, $fld));
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'label', &label ($labels, $lang, $fld));
+            }
+        }
+        $col++;
+    }
+    $row++;
+    open (my $fin, "$name.csv");
+    binmode ($fin, 'utf8');
+    my $s = <$fin>;
+    while (<$fin>) {
+        chomp;
+        my $col = 0;
+        my @cols = split ("\t", $_);
+        my $rec = {};
+        foreach my $fld (@fields_input) {
+            $rec->{$fld} = shift (@cols);
+            $rec->{$fld} =~ s/^\s*"//;
+            $rec->{$fld} =~ s/"\s*$//;
+            $rec->{$fld} =~ s/""/"/g;
+        }
+        foreach my $fld (@fields) {
+            if ($fld =~ m/^spacer-/) {
+                $col++;
+                next;
+            }
+            if ($center->{$fld}) {
+                if ($fld eq 'status') {
+                    &write ($sps, $name, $row,  $col, 1, 'text-' . $rec->{$fld}, &label ($labels, $lang, $rec->{$fld}), fix_width => 0);
+                } else {
+                    &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
+                }
+            } else {
+                if (($fld eq 'cris-url') && (length ($rec->{$fld}) > 250)) {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, asString => 1, fix_width => 0);
+                } else {
+                    &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
+                }
+            }
+            $col++;
+        }
+        $row++;
+    }
+    close ($fin);
+}
+
+sub summary
+{
+    my ($sps, $labels, $lang, $name) = @_;
+
+    &worksheet ($sps, $name, &label ($labels, $lang, $name));
+    &set_size ($sps, $name, 40, 10, 10, 10, 16, 16, 5, 12, 12, 12, 5, 12, 12);
+    my $row = 1;
+    &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, $name));
+    $row++;
+    &write ($sps, $name, $row,  1, 5, 'head', &label ($labels, $lang, 'absolute'));
+    &write ($sps, $name, $row,  7, 3, 'head', &label ($labels, $lang, 'relative'));
+    &write ($sps, $name, $row, 11, 2, 'head', &label ($labels, $lang, 'relative-clear'));
+    $row++;
+    &write ($sps, $name, $row,  1, 1, 'label-realised', &label ($labels, $lang, 'realised'));
+    &write ($sps, $name, $row,  2, 1, 'label-unused', &label ($labels, $lang, 'unused'));
+    &write ($sps, $name, $row,  3, 1, 'label-unclear', &label ($labels, $lang, 'unclear'));
+    &write ($sps, $name, $row,  4, 1, 'label-center', &label ($labels, $lang, 'total'));
+    &write ($sps, $name, $row,  5, 1, 'label-center', &label ($labels, $lang, 'total-clear'));
+    &write ($sps, $name, $row,  7, 1, 'label-realised', &label ($labels, $lang, 'realised'));
+    &write ($sps, $name, $row,  8, 1, 'label-unused', &label ($labels, $lang, 'unused'));
+    &write ($sps, $name, $row,  9, 1, 'label-unclear', &label ($labels, $lang, 'unclear'));
+    &write ($sps, $name, $row, 11, 1, 'label-realised', &label ($labels, $lang, 'realised'));
+    &write ($sps, $name, $row, 12, 1, 'label-unused', &label ($labels, $lang, 'unused'));
+    $row++;
+    open (my $fin, "$name.csv");
+    binmode ($fin, 'utf8');
+    my $s = <$fin>;
+    while (<$fin>) {
+        chomp;
+        my @cols = split ("\t", $_);
+        if ($name eq 'universities') {
+            &write ($sps, $name, $row,  0, 1, 'label', &label ($labels, $lang, $cols[0] . '-full'));
+        } else {
+            &write ($sps, $name, $row,  0, 1, 'label', &label ($labels, $lang, $cols[0]));
+        }
+        &write ($sps, $name, $row,  1, 1, 'num', $cols[1]);
+        &write ($sps, $name, $row,  2, 1, 'num', $cols[2]);
+        &write ($sps, $name, $row,  3, 1, 'num', $cols[3]);
+        &write ($sps, $name, $row,  4, 1, 'num', $cols[4]);
+        &write ($sps, $name, $row,  5, 1, 'num', $cols[5]);
+        &write ($sps, $name, $row,  7, 1, 'num-relative', $cols[6] / 100, fix_width => 1);
+        &write ($sps, $name, $row,  8, 1, 'num-relative', $cols[7] / 100, fix_width => 1);
+        &write ($sps, $name, $row,  9, 1, 'num-relative', $cols[8] / 100, fix_width => 1);
+        &write ($sps, $name, $row, 11, 1, 'num-relative', $cols[9] / 100, fix_width => 1);
+        &write ($sps, $name, $row, 12, 1, 'num-relative', $cols[10] / 100, fix_width => 1);
+        $row++;
+    }
+    close ($fin);
+}
+
+sub set_size
+{
+    my ($sps, $ws, @sizes) = @_;
+
+    my $col = 0;
+    foreach my $size (@sizes) {
+        if ($size) {
+            $sps->{'ws'}{$ws}->set_column ($col, $col, $size);
+        }
+        $sps->{'width'}{$ws}{$col} = $size;
+        $col++;
+    }
+}
+
+sub cover
+{
+    my ($sps, $labels, $lang, $int) = @_;
+
+    &worksheet ($sps, 'cover', &label ($labels, $lang, 'cover'));
+    $sps->{'ws'}{'cover'}->set_column (1, 1, 20);
+    $sps->{'ws'}{'cover'}->set_column (2, 2, 20);
+    &set_size ($sps, 'cover', 0, 20, 20);
+    my $row = 0;
+    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 14, 'cover-title', &label ($labels, $lang, 'cover-oa-indicator'));
+    $row++;
+    &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-indicator-year'));
+    &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year + 1);
+    &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-submission-year'));
+    &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year);
+    &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-version'));
+    my $ver;
+    if ($lang eq 'en') {
+        $ver = 'English';
+    } else {
+        $ver = 'Dansk';
+    }
+    if ($int) {
+        $ver .= ' (internal)';
+    }
+    &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $ver);
+    &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-compilation-date'));
+    &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', &date ());
+    &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, 'cover-text'));
+    $row++;
+    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-pri'));
+    $row++;
+    for (my $i = 1; $i < 6; $i++) {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-$i"));
+        $row++;
+    }
+    if ($int) {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+        $row++;
+        &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-sec'));
+        $row++;
+        for (my $i = 1; $i < 3; $i++) {
+            &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-sec-$i"));
+            $row++;
+        }
+    }
+    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+}
+
+sub write
+{
+    my ($sps, $ws, $row, $col, $width, $format, $data, %opt) = @_;
+
+    $data =~ s/<\/?(em|sub|sup|i)\/?>//g;
+    $data =~ s/<sup [^>]+>//g;
+    if (!defined ($sps->{'row-height'}{$ws}{$row})) {
+        $sps->{'row-height'}{$ws}{$row} = 10;
+    }
+    if (!defined ($sps->{'width'}{$ws}{$col})) {
+        $sps->{'width'}{$ws}{$col} = 10;
+    }
+    if (!$opt{'fix_width'}) {
+        my $wi = 0;
+        for (my $i = $col; $i < ($col + $width); $i++) {
+            if ($sps->{'width'}{$ws}{$i}) {
+                $wi += $sps->{'width'}{$ws}{$i};
+            } else {
+                $wi += 10;
+            }
+        }
+        if ($sps->{'format-size'}{$format} == 11) {
+            $wi = $wi * 1.21;
+        }
+        my $lines = int (((length ($data) - 1) / $wi) + 1);
+        if (($sps->{'format-size'}{$format} * $lines) > $sps->{'row-height'}{$ws}{$row}) {
+            $sps->{'row-height'}{$ws}{$row} = ($sps->{'format-size'}{$format} * $lines);
+            $sps->{'ws'}{$ws}->set_row ($row, $sps->{'row-height'}{$ws}{$row} + 4);
+            print ("$row: wi: $wi, lines: $lines, height: $sps->{'row-height'}{$ws}{$row}, len: " . length ($data) . ", data: $data\n");
+        }
+    }
+    if ($width > 1) {
+        $sps->{'ws'}{$ws}->merge_range ($row, $col, $row, $col + $width - 1, $data, $sps->{'format'}{$format})
+    } else {
+        if ($opt{'asString'}) {
+            $sps->{'ws'}{$ws}->write_string ($row, $col, $data, $sps->{'format'}{$format});
+        } else {
+            $sps->{'ws'}{$ws}->write ($row, $col, $data, $sps->{'format'}{$format});
+        }
+    }
+}
+
+sub spreadsheet
+{
+    my ($file) = @_;
+
+    my $sps = {};
+#   $sps->{'wb'} = new Spreadsheet::WriteExcel ($file);
+    $sps->{'wb'} = new Excel::Writer::XLSX ($file);
+    &formats ($sps);
+    return ($sps);
+}
+
+sub worksheet
+{
+    my ($sps, $name, $label) = @_;
+
+    if (!defined ($label)) {
+        $label = $name;
+        $label =~ s/^([a-z])/uc ($1)/ge;
+        $label =~ s/[-_\.\s]+([a-z])/uc (" $1")/ge;
+    }
+    $sps->{'ws'}{$name} = $sps->{'wb'}->add_worksheet ($label);
+    return ($sps->{'ws'}{$name});
+}
+
+sub formats
+{
+    my ($sps) = @_;
+
+    &format ($sps, 'cover-title',        align => 'left',   size => 18, bold => 1);
+    &format ($sps, 'cover-label',        align => 'left',   size => 12, bold => 1, italic => 1);
+    &format ($sps, 'cover-label-merged', align => 'left',   size => 12, bold => 1);
+    &format ($sps, 'cover-text',         align => 'left',   size => 12, bold => 0);
+    &format ($sps, 'cover-text-merged',  align => 'left',   size => 12, bold => 0);
+    &format ($sps, 'cover-text-right',   align => 'right',  size => 12, bold => 0);
+    &format ($sps, 'title',              align => 'left',   size => 14, bold => 1);
+    &format ($sps, 'label',              align => 'left',   size => 11, bold => 1, bg_color => '#cccccc');
+    &format ($sps, 'label-right',        align => 'right',  size => 11, bold => 1, bg_color => '#cccccc');
+    &format ($sps, 'label-center',       align => 'center', size => 11, bold => 1, bg_color => '#cccccc');
+    &format ($sps, 'label-realised',     align => 'center', size => 11, bold => 1, bg_color => 'green');
+    &format ($sps, 'label-unused',       align => 'center', size => 11, bold => 1, bg_color => 'yellow');
+    &format ($sps, 'label-unclear',      align => 'center', size => 11, bold => 1, bg_color => 'red');
+    &format ($sps, 'text-realized',      align => 'center', size => 11, bold => 0, bg_color => 'green');
+    &format ($sps, 'text-unused',        align => 'center', size => 11, bold => 0, bg_color => 'yellow');
+    &format ($sps, 'text-unclear',       align => 'center', size => 11, bold => 0, bg_color => 'red');
+    &format ($sps, 'text',               align => 'left',   size => 11, bold => 0);
+    &format ($sps, 'text-right',         align => 'right',  size => 11, bold => 0);
+    &format ($sps, 'text-center',        align => 'center', size => 11, bold => 0);
+    &format ($sps, 'num',                align => 'right',  size => 11, bold => 0);
+    &format ($sps, 'num-center',         align => 'center', size => 11, bold => 0);
+    &format ($sps, 'num-relative',       align => 'right',  size => 11, bold => 0, num_format => '0.0000%');
+    &format ($sps, 'head',               align => 'center', size => 12, bold => 1, bg_color => '#cccccc', bottom => 1);
+}
+
+sub format
+{
+    my ($sps, $name, %options) = @_;
+
+    if (!exists ($options{'valign'})) {
+        $options{'valign'} = 'top';
+    }
+#   $options{'text_wrap'} = 1;
+    $sps->{'format'}{$name} = $sps->{'wb'}->add_format (%options);
+    $sps->{'format'}{$name}->set_align ('vjustify');
+    $sps->{'format-size'}{$name} = $options{'size'};
+}
+
+sub create_run
+{
+    my ($year, $run_type, $db) = @_;
+
+    chdir ('/var/lib/oa-indicator/runs');
+    my $dir = $year . '-' . $run_type . '-' . $db->run ();
+    if (-e $dir) {
+        my $n = '001';
+        while (-e "$dir-$n.tar.gz") {
+            $n = sprintf ('%03d', $n + 1);
+        }
+        system ("tar cf $dir-$n.tar --remove-files $dir; gzip -9 $dir-$n.tar");
+        if (-e $dir) {
+            die ("fatal: could not archive /var/lib/oa-indicator/runs/$dir\n");
+        }
+    }
+    mkdir ($dir, 0775);
+    if (-e "$year-$run_type") {
+        unlink ("$year-$run_type");
+    }
+    system ("ln -s $dir $year-$run_type");
+    chdir ($dir);
+}
+
+sub params
+{
+    my ($oai) = @_;
+
+    my ($year, $run_type) = @ARGV;
+    if (!$oai->valid_year ($year)) {
+        if ($year) {
+            &usage ($oai, 'invalid year: ' . $year);
+        } else {
+            &usage ($oai);
+        }
+    }
+    if (!$oai->run_type ($run_type)) {
+        if ($run_type) {
+            &usage ($oai, 'invalid run type: ' . $run_type);
+        } else {
+            &usage ($oai);
+        }
+    }
+    return ($year, $run_type);
+}
+
+sub labels
+{
+    my ($file) = @_;
+    
+    my $labels = {};
+    open (my $fin, $file);
+    binmode ($fin, 'utf8');
+    my $lineno = 0;
+    while (<$fin>) {
+        chomp;
+        $lineno++;
+        if (m/^#/) {
+            next;
+        }
+        if (m/^\s*$/) {
+            next;
+        }
+        my ($name, $lang, $label) = split (' ', $_, 3);
+        $name = lc ($name);
+        $lang = lc ($lang);
+        if ($lang !~ m/^(en|da)$/) {
+            die ("fatal: unsupported language '$lang' in label file: $file, at line $lineno");
+        }
+        while ($label =~ s/\\\s*$//) {
+            my $s = <$fin>;
+            chomp ($s);
+            $s =~ s/^\s+//;
+            $label .= $s;
+        }
+        $label =~ s/^\s+//;
+        $label =~ s/\s+$//;
+        $label =~ s/\s+/ /;
+        if (exists ($labels->{$lang}{$name})) {
+            if ($labels->{$lang}{$name} ne $label) {
+                die ("fatal: duplicate label '$name' at line $lineno\n");
+            }
+        } else {
+            $labels->{$lang}{$name} = $label;
+        }
+    }
+    close ($fin);
+    return ($labels);
+}
+
+sub label
+{
+    my ($labels, $lang, $name) = @_;
+
+    if (exists ($labels->{$lang}{$name})) {
+        return ($labels->{$lang}{$name});
+    } else {
+        die ("fatal: label '$name' not found for lamguage '$lang'\n");
+    }
+}
+
+sub date
+{
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
+    return (sprintf ('%02d-%02d-%04d', $day, $mon + 1, 1900 + $year));
+}
+
+sub usage
+{
+    my ($oai, $msg) = @_;
+
+    if ($msg) {
+        warn ("\n$msg\n");
+    }
+    warn ('usage: ao-indicator-spreadsheets <year> <' . join (' | ', $oai->data_types ()) . ">\n\n");
+    warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
+    exit (1);
+}
+

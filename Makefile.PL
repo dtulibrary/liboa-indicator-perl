@@ -22,6 +22,7 @@ install::
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/ft
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/log
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/tmp
+	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/runs
 	@mkdir -p $(DESTDIR)/var/run/oa-indicator
 	@install -D -m 775 bin/oa-indicator $(DESTDIR)/usr/bin/oa-indicator
 	@for file in sbin/*; \
@@ -34,6 +35,7 @@ install::
         done
 	@install -D -m 664 etc/apache.conf $(DESTDIR)/etc/apache2/conf-enabled/oa-indicator.conf
 	@install -D -m 664 etc/whitelist.tab $(DESTDIR)/etc/oa-indicator/whitelist.tab
+	@install -D -m 664 etc/labels.tab $(DESTDIR)/etc/oa-indicator/labels.tab
 	@cd etc; \
         for file in html/*; \
         do \

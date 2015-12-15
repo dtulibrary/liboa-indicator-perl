@@ -203,40 +203,72 @@ sub comm_help
 sub comm_national
 {
     my ($self, $db) = @_;
+    my $ret = {};
 
     my ($rs, $rc);
     foreach my $class (qw(realized unclear unused)) {
         $rs = $db->select ('count(distinct(dedupkey)) as c', 'records', "scoped=1 and screened=1 and pub_class='$class'");
         $rc = $db->next ($rs);
-        $self->{'result'}{'response'}{'body'}{$class} = $rc->{'c'};
+        $ret->{$class} = $rc->{'c'};
     }
+    $ret->{'total'} = $ret->{'realized'} + $ret->{'unclear'} + $ret->{'unused'};
+    $ret->{'total_clear'} = $ret->{'realized'} + $ret->{'unused'};
+    foreach my $class (qw(realized unclear unused)) {
+        $ret->{'relative'}{$class} = $ret->{$class} / $ret->{'total'} * 100;
+    }
+    foreach my $class (qw(realized unused)) {
+        $ret->{'relative_clear'}{$class} = $ret->{$class} / $ret->{'total_clear'} * 100;
+    }
+    $self->{'result'}{'response'}{'body'} = $ret;
     $self->respond ();
 }
 
 sub comm_research_area
 {
     my ($self, $db) = @_;
+    my $ret = {};
 
     my ($rs, $rc);
-    foreach my $class (qw(realized unclear unused)) {
-        foreach my $area (qw(sci soc hum med)) {
-            $rs = $db->select ('count(distinct(dedupkey)) as c', 'records', "scoped=1 and screened=1 and pub_class='$class' and pub_research_area='$area'");
+    foreach my $area (qw(sci soc hum med)) {
+        foreach my $class (qw(realized unclear unused)) {
+            $rs = $db->select ('count(distinct(dedupkey)) as c', 'records', "scoped=1 and screened=1 and pub_research_area='$area' and pub_class='$class'");
             $rc = $db->next ($rs);
-            $self->{'result'}{'response'}{'body'}{$class}{$area} = $rc->{'c'};
+            $ret->{$area}{$class} = $rc->{'c'};
+        }
+        $ret->{$area}{'total'} = $ret->{$area}{'realized'} + $ret->{$area}{'unclear'} + $ret->{$area}{'unused'};
+        $ret->{$area}{'total_clear'} = $ret->{$area}{'realized'} + $ret->{$area}{'unused'};
+        foreach my $class (qw(realized unclear unused)) {
+            $ret->{$area}{'relative'}{$class} = $ret->{$area}{$class} / $ret->{$area}{'total'} * 100;
+        }
+        foreach my $class (qw(realized unused)) {
+            $ret->{$area}{'relative_clear'}{$class} = $ret->{$area}{$class} / $ret->{$area}{'total_clear'} * 100;
         }
     }
+    $self->{'result'}{'response'}{'body'} = $ret;
     $self->respond ();
 }
 
 sub comm_universities
 {
     my ($self, $db) = @_;
+    my $ret = {};
 
     my $rs = $db->select ('class,source,count(*) as c', 'records', 'scoped=1 and screened=1', 'group by class,source');
     my $rc;
     while ($rc = $db->next ($rs)) {
-        $self->{'result'}{'response'}{'body'}{$rc->{'class'}}{$rc->{'source'}} = $rc->{'c'};
+        $ret->{$rc->{'source'}}{$rc->{'class'}} = $rc->{'c'};
     }
+    foreach my $source (keys (%{$ret})) {
+        $ret->{$source}{'total'} = $ret->{$source}{'realized'} + $ret->{$source}{'unclear'} + $ret->{$source}{'unused'};
+        $ret->{$source}{'total_clear'} = $ret->{$source}{'realized'} + $ret->{$source}{'unused'};
+        foreach my $class (qw(realized unclear unused)) {
+            $ret->{$source}{'relative'}{$class} = $ret->{$source}{$class} / $ret->{$source}{'total'} * 100;
+        }
+        foreach my $class (qw(realized unused)) {
+            $ret->{$source}{'relative_clear'}{$class} = $ret->{$source}{$class} / $ret->{$source}{'total_clear'} * 100;
+        }
+    }
+    $self->{'result'}{'response'}{'body'} = $ret;
     $self->respond ();
 }
 
@@ -276,7 +308,7 @@ sub comm_records
         } else {
             $rc->{'duplicates'} = '';
         }
-        delete ($rc->{'dedupkey'});
+        $rc->{'ddf_link'} = 'http://forskningsdatabasen.dk/en/catalog/' . $rc->{'dedupkey'};
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
     }
     $self->respond ();
@@ -287,9 +319,9 @@ sub comm_publications
     my ($self, $db) = @_;
 
     my $duplicates = $self->duplicates ($db, merge => 1);
-    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,class,bfi_class,bfi_level,source_id,dedupkey',
+    my $rs = $db->select ('title,first_author,source,research_area,pub_research_area,bfi_research_area,doi,issn,eissn,class,pub_class,pub_class_reasons,bfi_class,bfi_level,source_id,dedupkey',
                           'records', 'scoped=1 and screened=1', 'order by title');
-    $self->{'result'}{'response'}{'body'}{'record'} = [];
+    $self->{'result'}{'response'}{'body'}{'publication'} = [];
     my $rc;
     my $done = {};
     while ($rc = $db->next ($rs)) {
@@ -300,11 +332,19 @@ sub comm_publications
             $done->{$rc->{'dedupkey'}} = 1;
             $rc->{'first_author'} = $duplicates->{$rc->{'dedupkey'}}{'first_author'};
             $rc->{'first_author_uni'} = $duplicates->{$rc->{'dedupkey'}}{'first_author_uni'};
-            $rc->{'research_area'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'research_area'}})));
+            my @list;
+            foreach my $mra (sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'research_area'}}))) {
+                if ($duplicates->{$rc->{'dedupkey'}}{'research_area'}{$mra} == 1) {
+                    push (@list, $mra);
+                } else {
+                    push (@list, $mra . ' x ' . $duplicates->{$rc->{'dedupkey'}}{'research_area'}{$mra});
+                }
+            }
+            $rc->{'research_area'} = join (', ', @list);
             $rc->{'doi'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'doi'}})));
             $rc->{'issn'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'issn'}})));
             $rc->{'source_id'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'source_id'}}));
-            $rc->{'class'} = $duplicates->{$rc->{'dedupkey'}}{'class'};
+            $rc->{'class'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'class'}}));
             $rc->{'bfi_class'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'bfi_class'}})));
             $rc->{'bfi_level'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'bfi_level'}})));
             foreach my $src (qw(aau au cbs dtu itu ku ruc sdu)) {
@@ -335,7 +375,8 @@ sub comm_publications
                 $rc->{'bfi_level'} = '';
             }
         }
-        push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
+        $rc->{'ddf_link'} = 'http://forskningsdatabasen.dk/en/catalog/' . $rc->{'dedupkey'};
+        push (@{$self->{'result'}{'response'}{'body'}{'publication'}}, $rc);
     }
     $self->respond ();
 }
@@ -345,8 +386,9 @@ sub comm_screened
     my ($self, $db) = @_;
 
     my $duplicates = $self->duplicates ($db, allRecords => 1);
-    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,bfi_class,bfi_level,source_id,dedupkey',
-                          'records', 'scoped=1 and screened_year=1 and screened_issn=0', 'order by title');
+    my $rs = $db->select ('title,first_author,source,research_area,doi,type,level,review,issn,eissn,scoped_type,scoped_review,scoped_level,screened_issn,' .
+                          'bfi_class,bfi_level,source_id,dedupkey',
+                          'records', 'scoped=0 or (screened_year=1 and screened_issn=0)', 'order by title');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
     my $rc;
     while ($rc = $db->next ($rs)) {
@@ -360,14 +402,22 @@ sub comm_screened
                 $rc->{'issn'} = substr ($rc->{'eissn'}, 0, 4) . '-' . uc (substr ($rc->{'eissn'}, 4));
             }
         } else {
-            if ($rc->{'issn'}) {
-                $rc->{'issn'} .= ', ' . $rc->{'eissn'};
-            } else {
-                $rc->{'issn'} = $rc->{'eissn'};
+            if ($rc->{'eissn'} =~ m/[0-9Xx]/) {
+                if ($rc->{'issn'}) {
+                    $rc->{'issn'} .= ', ' . $rc->{'eissn'};
+                } else {
+                    $rc->{'issn'} = $rc->{'eissn'};
+                }
             }
         }
         delete ($rc->{'eissn'});
-        $rc->{'reason'} = 'NO ISSN';
+        foreach my $fld (qw(scoped_type scoped_review scoped_level screened_issn)) {
+            if ($rc->{$fld}) {
+                $rc->{$fld} = '';
+            } else {
+                $rc->{$fld} = 'X';
+            }
+        }
         if ($rc->{'bfi_level'} == 0) {
             $rc->{'bfi_level'} = '';
         }
@@ -383,7 +433,7 @@ sub comm_screened
         } else {
             $rc->{'duplicates'} = '';
         }
-        delete ($rc->{'dedupkey'});
+        $rc->{'ddf_link'} = 'http://forskningsdatabasen.dk/en/catalog/' . $rc->{'dedupkey'};
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
     }
     $self->respond ();
@@ -394,7 +444,7 @@ sub comm_extra
     my ($self, $db) = @_;
 
     my $duplicates = $self->duplicates ($db, allRecords => 1);
-    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,pubyear,year,eissn,bfi_class,bfi_level,source_id,dedupkey',
+    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,pubyear,year,bfi_class,bfi_level,source_id,dedupkey',
                           'records', 'scoped=1 and screened_year=0 and screened_issn=1', 'order by title');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
     my $rc;
@@ -409,10 +459,12 @@ sub comm_extra
                 $rc->{'issn'} = substr ($rc->{'eissn'}, 0, 4) . '-' . uc (substr ($rc->{'eissn'}, 4));
             }
         } else {
-            if ($rc->{'issn'}) {
-                $rc->{'issn'} .= ', ' . $rc->{'eissn'};
-            } else {
-                $rc->{'issn'} = $rc->{'eissn'};
+            if ($rc->{'eissn'} =~ m/[0-9Xx]/) {
+                if ($rc->{'issn'}) {
+                    $rc->{'issn'} .= ', ' . $rc->{'eissn'};
+                } else {
+                    $rc->{'issn'} = $rc->{'eissn'};
+                }
             }
         }
         delete ($rc->{'eissn'});
@@ -431,7 +483,7 @@ sub comm_extra
         } else {
             $rc->{'duplicates'} = '';
         }
-        delete ($rc->{'dedupkey'});
+        $rc->{'ddf_link'} = 'http://forskningsdatabasen.dk/en/catalog/' . $rc->{'dedupkey'};
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
     }
     $self->respond ();
@@ -582,7 +634,7 @@ sub comm_publication
             $rc->{'doi'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'doi'}})));
             $rc->{'issn'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'issn'}})));
             $rc->{'source_id'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'source_id'}}));
-            $rc->{'class'} = $duplicates->{$rc->{'dedupkey'}}{'class'};
+            $rc->{'class'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'class'}}));
             $rc->{'bfi_class'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'bfi_class'}})));
             $rc->{'bfi_level'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'bfi_level'}})));
             foreach my $src (qw(aau au cbs dtu itu ku ruc sdu)) {
@@ -695,18 +747,10 @@ sub duplicates
             } else {
                 $rec->{'source_id'} = [$rc->{'source'} . ':' . $rc->{'source_id'}];
             }
-            if ($rc->{'class'} eq 'realized') {
-                $rec->{'class'} = 'realized';
+            if ($rec->{'class'}) {
+                push (@{$rec->{'class'}}, $rc->{'source'} . ':' . $rc->{'class'});
             } else {
-                if ($rc->{'class'} eq 'unused') {
-                    if ($rec->{'class'} ne 'realized') {
-                        $rec->{'class'} = 'unused';
-                    }
-                } else {
-                    if (!$rec->{'class'}) {
-                        $rec->{'class'} = 'unclear';
-                    }
-                }
+                $rec->{'class'} = [$rc->{'source'} . ':' . $rc->{'class'}];
             }
             if ($rc->{'bfi_class'}) {
                 $rec->{'bfi_class'}{$rc->{'bfi_class'}} = 1;
@@ -822,59 +866,82 @@ sub respond_csv_encode
 
     my $result = '';
     if ($self->{'comm'} eq 'national') {
-        my @cols = ();
-        foreach my $class (qw(realized unused unclear)) {
-            push (@cols, uc (substr ($class, 0, 1)) . substr ($class, 1));
+        my @cols = ('');
+        foreach my $class (qw(realized unused unclear total total-clear relative-realized relative-unused relative-unclear
+                              relative-clear-realized relative-clear-unused)) {
+            my $s = $class;
+            $s =~ s/-/ /g;
+            $s =~ s/^([a-z])/uc ($1)/ge;
+            $s =~ s/( [a-z])/uc ($1)/ge;
+            push (@cols, $s);
         }
         $result .= join ("\t", @cols) . "\n";
-        @cols = (); 
+        @cols = ('all'); 
         foreach my $class (qw(realized unused unclear)) {
             push (@cols, $self->{'result'}{'response'}{'body'}{$class});
+        }
+        push (@cols, $self->{'result'}{'response'}{'body'}{'total'});
+        push (@cols, $self->{'result'}{'response'}{'body'}{'total_clear'});
+        foreach my $class (qw(realized unused unclear)) {
+            push (@cols, $self->{'result'}{'response'}{'body'}{'relative'}{$class});
+        }
+        foreach my $class (qw(realized unused)) {
+            push (@cols, $self->{'result'}{'response'}{'body'}{'relative_clear'}{$class});
         }
         $result .= join ("\t", @cols) . "\n";
         return ($result);
     }
     if ($self->{'comm'} eq 'research_area') {
-        my $research_area = {
-               hum => 'Humanities (HUM)',
-               soc => 'Social sciences (SOC)',
-               sci => 'Science (SCI)',
-               med => 'Medicine (MED)',
-        };
         my @cols = ('');
-        foreach my $class (qw(realized unused unclear)) {
-            push (@cols, uc (substr ($class, 0, 1)) . substr ($class, 1));
+        foreach my $class (qw(realized unused unclear total total-clear relative-realized relative-unused relative-unclear
+                              relative-clear-realized relative-clear-unused)) {
+            my $s = $class;
+            $s =~ s/-/ /g;
+            $s =~ s/^([a-z])/uc ($1)/ge;
+            $s =~ s/( [a-z])/uc ($1)/ge;
+            push (@cols, $s);
         }
         $result .= join ("\t", @cols) . "\n";
         foreach my $ra (qw(hum soc sci med)) {
-            @cols = ($research_area->{$ra});
+            @cols = ($ra);
             foreach my $class (qw(realized unused unclear)) {
-                push (@cols, $self->{'result'}{'response'}{'body'}{$class}{$ra});
+                push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{$class});
+            }
+            push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'total'});
+            push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'total_clear'});
+            foreach my $class (qw(realized unused unclear)) {
+                push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'relative'}{$class});
+            }
+            foreach my $class (qw(realized unused)) {
+                push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'relative_clear'}{$class});
             }
             $result .= join ("\t", @cols) . "\n";
         }
         return ($result);
     }
     if ($self->{'comm'} eq 'universities') {
-        my $universities = {
-            aau => 'Aalborg Universitet (AAU)',
-            au  => "\xC5rhus Universitet (AU)",
-            cbs => 'Copenhagen Business School (CBS)',
-            dtu => 'Danmarks Tekniske Universitet (DTU)',
-            itu => 'IT Universitetet (ITU)',
-            ku  => "K\xF8benhavns Universitet (KU)",
-            ruc => 'Roskilde Universitet (RUC)',
-            sdu => 'Syddansk Universitet (SDU)',
-        };
         my @cols = ('');
-        foreach my $class (qw(realized unused unclear)) {
-            push (@cols, uc (substr ($class, 0, 1)) . substr ($class, 1));
+        foreach my $class (qw(realized unused unclear total total-clear relative-realized relative-unused relative-unclear
+                              relative-clear-realized relative-clear-unused)) {
+            my $s = $class;
+            $s =~ s/-/ /g;
+            $s =~ s/^([a-z])/uc ($1)/ge;
+            $s =~ s/( [a-z])/uc ($1)/ge;
+            push (@cols, $s);
         }
         $result .= join ("\t", @cols) . "\n";
         foreach my $uni (qw(aau au cbs dtu itu ku ruc sdu)) {
-            @cols = ($universities->{$uni});
+            @cols = ($uni);
             foreach my $class (qw(realized unused unclear)) {
-                push (@cols, $self->{'result'}{'response'}{'body'}{$class}{$uni});
+                push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{$class});
+            }
+            push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'total'});
+            push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'total_clear'});
+            foreach my $class (qw(realized unused unclear)) {
+                push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'relative'}{$class});
+            }
+            foreach my $class (qw(realized unused)) {
+                push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'relative_clear'}{$class});
             }
             $result .= join ("\t", @cols) . "\n";
         }
@@ -885,7 +952,7 @@ sub respond_csv_encode
         my $fields = {
             title         => 'Title',
             first_author  => 'First (Local) Author',
-            source        => 'Uni',
+            source        => 'University',
             research_area => 'MRA',
             doi           => 'DOI',
             issn          => 'ISSN',
@@ -893,21 +960,21 @@ sub respond_csv_encode
             class_reasons => 'Reason',
             bfi_class     => 'Classification',
             bfi_level     => 'Level',
-            source_id     => 'ID',
-            link1         => 'OA Indicator Result Detail Record',
-            link2         => 'OA Indicator Record',
+            dedupkey      => 'DDF ID',
+            ddf_link      => 'DDF Link',
+            source_id     => 'CRIS ID',
             cris_link     => 'University CRIS Record',
             duplicates    => 'Duplicates',
         };
         my @cols = ();
-        foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level source_id link1 link2 cris_link duplicates)) {
+        foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level source_id link1 link2 cris_link duplicates)) {
+            foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -919,9 +986,11 @@ sub respond_csv_encode
         my $csv = new Text::CSV ({binary => 1, sep_char => "\t"});
         my $fields = {
             title            => 'Title',
-            first_author     => 'First (Danish) Author',
-            first_author_uni => 'FA uni',
-            research_area    => 'MRA',
+            first_author     => 'First Danish Author',
+            first_author_uni => 'University of first danish author',
+            pub_research_area=> 'Main Research Area',
+            bfi_research_area=> 'BFI Research Area',
+            research_area    => 'Research Area details',
             doi              => 'DOI',
             issn             => 'ISSN',
             source_aau       => 'AAU',
@@ -932,22 +1001,25 @@ sub respond_csv_encode
             source_ku        => 'KU',
             source_ruc       => 'RUC',
             source_sdu       => 'SDU',
-            class            => 'Status',
+            pub_class        => 'Status',
+            pub_class_reasons=> 'Status Reason',
+            class            => 'Status Details',
             bfi_class        => 'Classification',
             bfi_level        => 'Level',
+            dedupkey         => 'DDF ID',
+            ddf_link         => 'DDF Link',
             source_id        => 'IDs',
-            link1            => 'OA Indicator Result Detail Record',
             cris_link        => 'University CRIS Records',
         };
         my @cols = ();
-        foreach my $fld (qw(title first_author first_author_uni research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu class bfi_class bfi_level source_id link1 cris_link)) {
+        foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
-        foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
+        foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'publication'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author first_author_uni research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu class bfi_class bfi_level source_id link1 cris_link)) {
+            foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -963,24 +1035,31 @@ sub respond_csv_encode
             source        => 'Uni',
             research_area => 'MRA',
             doi           => 'DOI',
+            type          => 'doc_type',
+            review        => 'doc_review',
+            level         => 'doc_level',
             issn          => 'ISSN',
-            reason        => 'Reason',
+            scoped_type   => 'Scoped Type',
+            scoped_review => 'Scoped Review',
+            scoped_level  => 'Scoped Level',
+            screened_issn => 'Screened ISSN',
             bfi_class     => 'Classification',
             bfi_level     => 'Level',
-            source_id     => 'ID',
-            link1         => 'OA Indicator Record',
-            cris_link     => 'University CRIS Record',
+            dedupkey      => 'DDF-ID',
+            ddf_link      => 'DDF-Link',
+            source_id     => 'CRIS-ID',
+            cris_link     => 'CRIS-Link',
             duplicates    => 'Duplicates',
         };
         my @cols = ();
-        foreach my $fld (qw(title first_author source research_area doi issn reason bfi_class bfi_level source_id link1 cris_link duplicates)) {
+        foreach my $fld (qw(title first_author source research_area doi type review level issn scoped_type scoped_review scoped_level screened_issn bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author source research_area doi issn reason bfi_class bfi_level source_id link1 cris_link duplicates)) {
+            foreach my $fld (qw(title first_author source research_area doi type review level issn scoped_type scoped_review scoped_level screened_issn bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -1001,20 +1080,21 @@ sub respond_csv_encode
             year          => 'Report Year',
             bfi_class     => 'Classification',
             bfi_level     => 'Level',
-            source_id     => 'ID',
-            link1         => 'OA Indicator Record',
-            cris_link     => 'University CRIS Record',
+            dedupkey      => 'DDF-ID',
+            ddf_link      => 'DDF-Link',
+            source_id     => 'CRIS-ID',
+            cris_link     => 'CRIS-Link',
             duplicates    => 'Duplicates',
         };
         my @cols = ();
-        foreach my $fld (qw(title first_author source research_area doi issn pubyear year bfi_class bfi_level source_id link1 cris_link duplicates)) {
+        foreach my $fld (qw(title first_author source research_area doi issn pubyear year bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author source research_area doi issn pubyear year bfi_class bfi_level source_id link1 cris_link duplicates)) {
+            foreach my $fld (qw(title first_author source research_area doi issn pubyear year bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
