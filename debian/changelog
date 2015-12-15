@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.00-04) unstable; urgency=low
+
+  * A version with first spreadsheet, not yet fully integrated with the
+    rest of the system. This will come shortly.
+    
+    GIT revision: 6945c5a32d05212780d229724249b1ed89d932c7
+
+ -- franck <franck@cvt.dk>  Tue, 15 Dec 2015 19:10:31 +0100
+
 liboa-indicator-perl (1.00-03) unstable; urgency=low
 
   * First version with outside review of the output. This will lead to
