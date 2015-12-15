@@ -24,7 +24,7 @@ sub process
     my $records = {};
     my $publications = {};
     my $rec;
-    my $rs = $self->{'db'}->select ('id,doaj_issn,bfi_level,romeo_color,fulltext_link,fulltext_link_oa,fulltext_downloaded,fulltext_verified,dedupkey,research_area',
+    my $rs = $self->{'db'}->select ('id,doaj_issn,bfi_level,romeo_color,fulltext_link,fulltext_link_oa,fulltext_downloaded,fulltext_verified,dedupkey,research_area,bfi_research_area',
                                     'records',
                                     'scoped = 1 and screened = 1');
     while ($rec = $self->{'db'}->next ($rs)) {
