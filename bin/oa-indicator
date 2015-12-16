@@ -90,33 +90,55 @@ if ($comm eq 'load') {
     }
     my $db = new OA::Indicator::DB ();
     $db->open ($year, $run_type);
-    my $logdir = '/var/lib/oa-indicator/log/' . $db->id;
-    mkdir ($logdir, 0775);
-    system ("chmod 02775 $logdir");
-    $oai->log_file ("$logdir/load.log");
+    my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
+    if (-e $rundir) {
+        warn ("warning: run directory '$rundir' already exists, archiving it.\n");
+        my $n = '001';
+        while (-e "$rundir-$n.tar.gz") {
+            $n = sprintf ('%03d', $n + 1);
+        }
+        system ("tar cf $rundir-$n.tar --remove-files $rundir; gzip -9 $rundir-$n.tar");
+        if (-e $rundir) {
+            die ("fatal: could not archive run directory: $rundir\n");
+        }
+    }
+    mkdir ($rundir, 0775);
+    system ("chmod 02775 $rundir");
+    my $link = $rundir;
+    $link =~ s/\.[0-9]+$//;
+    if (-e $link) {
+        unlink ($link);
+    }
+    system ("ln -s $rundir $link");
+    $oai->log_file ("$rundir/load.log");
     $oai->log ('i', 'new data load');
     $oai->log ('i', 'loading bfi');
     if (system ("/usr/sbin/oa-indicator-load $year $run_type bfi")) {
-        $oai->log ('f', "failed to load bfi: see $logdir/load_bfi.log");
+        $oai->log ('f', "failed to load bfi: see $rundir/load_bfi.log");
         system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading bfi'");
     }
+    $oai->log ('i', 'loading doaj');
     if (system ("/usr/sbin/oa-indicator-load $year $run_type doaj")) {
-        $oai->log ('f', "failed to load doaj: see $logdir/load_doaj.log");
+        $oai->log ('f', "failed to load doaj: see $rundir/load_doaj.log");
         system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading doaj'");
     }
+    $oai->log ('i', 'loading mxd');
     if (system ("/usr/sbin/oa-indicator-load $year $run_type mxd")) {
-        $oai->log ('f', "failed to load doaj: see $logdir/load_mxd.log");
+        $oai->log ('f', "failed to load doaj: see $rundir/load_mxd.log");
         system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading mxd'");
     }
+    $oai->log ('i', 'loading romeo');
     if (system ("/usr/sbin/oa-indicator-load $year $run_type romeo")) {
-        $oai->log ('f', "failed to load doaj: see $logdir/load_romeo.log");
+        $oai->log ('f', "failed to load doaj: see $rundir/load_romeo.log");
         system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading romeo'");
     }
+    $oai->log ('i', 'loading bib');
     if (system ("/usr/sbin/oa-indicator-load $year $run_type bib")) {
-        $oai->log ('f', "failed to load doaj: see $logdir/load_bib.log");
+        $oai->log ('f', "failed to load doaj: see $rundir/load_bib.log");
         system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading bib'");
     }
     system ("/usr/sbin/oa-indicator-load $year $run_type end 1 success");
+    $oai->log ('i', 'done');
     exit (0);
 }
 if ($comm eq 'segment') {
@@ -141,8 +163,9 @@ if ($comm eq 'segment') {
     if (!$db->segment_validate ($name)) {
         &usage ($oai, "fatal: invalid segment: $name, valid segments are: " . join (' | ', $db->segments));
     }
-    $oai->log_file ("/var/lib/oa-indicator/$year/$name.log");
-    $oai->log_main ('i', "starting segment $name, see /var/lib/oa-indicator/$year/$name.log for details");
+    my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
+    $oai->log_file ("$rundir/segment-$name.log");
+    $oai->log_main ('i', "starting segment $name, see $rundir/segment-$name.log for details");
     if ($name eq 'scope') {
         require OA::Indicator::Segments::Scope;
         $db->segment_start ('scope');

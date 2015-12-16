@@ -13,7 +13,7 @@ use Excel::Writer::XLSX;
 #my ($year, $run_type) = &params ($oai);
 #my $db = new OA::Indicator::DB ();
 #$db->open ($year, $run_type);
-#&create_run ($year, $run_type, $db);
+#&start_run ($db);
 #foreach my $type (qw(national universities research_area records publications)) {
 #    system ("wget -S -o $type.log -O $type.csv 'http://devel.oai.cvt.dk/oa-indicator/ws/$type.csv/$year/$run_type/latest'");
 #}
@@ -443,7 +443,7 @@ sub publications
         'classification'          =>  15,
         'level'                   =>   5,
         'spacer-4'                =>   5,
-        'ddf-id'                  =>   9,
+        'ddf-id'                  =>  10,
         'ddf-url'                 =>  50,
         'spacer-5'                =>   5,
         'cris-id'                 =>  40,
@@ -812,28 +812,15 @@ sub format
     $sps->{'format-size'}{$name} = $options{'size'};
 }
 
-sub create_run
+sub start_run
 {
-    my ($year, $run_type, $db) = @_;
+    my ($db) = @_;
 
-    chdir ('/var/lib/oa-indicator/runs');
-    my $dir = $year . '-' . $run_type . '-' . $db->run ();
-    if (-e $dir) {
-        my $n = '001';
-        while (-e "$dir-$n.tar.gz") {
-            $n = sprintf ('%03d', $n + 1);
-        }
-        system ("tar cf $dir-$n.tar --remove-files $dir; gzip -9 $dir-$n.tar");
-        if (-e $dir) {
-            die ("fatal: could not archive /var/lib/oa-indicator/runs/$dir\n");
-        }
+    my $rundir '/var/lib/oa-indicator/runs/' . $db->id;
+    if (!-e $rundir) {
+        die ("fatal: rundir does not exists, somethings wrong: $rundir");
     }
-    mkdir ($dir, 0775);
-    if (-e "$year-$run_type") {
-        unlink ("$year-$run_type");
-    }
-    system ("ln -s $dir $year-$run_type");
-    chdir ($dir);
+    chdir ($rundir);
 }
 
 sub params

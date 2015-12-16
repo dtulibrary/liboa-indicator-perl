@@ -41,25 +41,36 @@ if ($data_type eq 'end') {
     exit (0);
 }
 my $db = $oaiDB->open ($year, $run_type);
-my $logdir = '/var/lib/oa-indicator/log/' . $oaiDB->id;
-$oai->log_file ("$logdir/load_$data_type.log");
-$oai->log_main ('i', "loading $data_type records, see $logdir/load_$data_type.log for details");
+my $rundir = '/var/lib/oa-indicator/runs/' . $oaiDB->id;
+$oai->log_file ("$rundir/load-$data_type.log");
+$oai->log_main ('i', "loading $data_type records, see $rundir/load-$data_type.log for details");
 my $handler;
 if ($data_type eq 'bfi') {
     require OA::Indicator::DB::BFI;
     $handler = new OA::Indicator::DB::BFI ($db, $oai);
+    system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
+    system ("cp /var/lib/oa-indicator/$year/$data_type/$data_type.log $rundir/harvest-$data_type-ds2.log");
 } elsif ($data_type eq 'bib') {
     require OA::Indicator::DB::Bib;
     $handler = new OA::Indicator::DB::Bib ($db, $oai);
+    system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
+    foreach my $uni (qw(aau au cbs dtu itu ku ruc sdu)) {
+        system ("cp /var/lib/oa-indicator/$year/$data_type/$uni.log $rundir/harvest-$data_type-$uni-ds2.log");
+    }
 } elsif ($data_type eq 'doaj') {
     require OA::Indicator::DB::DOAJ;
     $handler = new OA::Indicator::DB::DOAJ ($db, $oai);
+    system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
+    system ("cp /var/lib/oa-indicator/$year/$data_type/$data_type.log $rundir/harvest-$data_type-ds2.log");
 } elsif ($data_type eq 'mxd') {
     require OA::Indicator::DB::MXD;
     $handler = new OA::Indicator::DB::MXD ($db, $oai);
+    system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
 } elsif ($data_type eq 'romeo') {
     require OA::Indicator::DB::Romeo;
     $handler = new OA::Indicator::DB::Romeo ($db, $oai);
+    system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
+    system ("cp /var/lib/oa-indicator/$year/$data_type/$data_type.log $rundir/harvest-$data_type-ds2.log");
 }
 $handler->create ();
 $handler->load ($year);
