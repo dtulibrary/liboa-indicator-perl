@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-05) unstable; urgency=low
+
+  * Small change to debian packaging and logging changes.
+    
+    GIT revision: 1e9df2f478f37d7673f7d06a5561120dd87e538a
+
+ -- franck <franck@cvt.dk>  Wed, 16 Dec 2015 14:48:56 +0100
+
 liboa-indicator-perl (1.00-04) unstable; urgency=low
 
   * A version with first spreadsheet, not yet fully integrated with the
