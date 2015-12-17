@@ -27,7 +27,7 @@ if (-e $dir) {
 }
 mkdir ($dir, 0775);
 system ("chmod 2775 $dir");
-my $mxd = new OA::Indicator::MXD ();
+my $mxd = new OA::Indicator::MXD ($oai);
 $oai->log_file ("$dir/harvest.log");
 $oai->log_main ('i', "harvesting MXD records, see $dir/harvest.log for details");
 my @sources = qw(aau au cbs dtu itu ku ruc sdu);

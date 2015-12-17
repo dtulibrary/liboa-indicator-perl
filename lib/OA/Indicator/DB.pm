@@ -26,7 +26,7 @@ sub validate_year
 
     $year =~ s/[^0-9]//g;
     if ($year !~ m/^[0-9]{4}$/) {
-        die ("fatal: argument should be 4 digits");
+        die ("fatal: year should be 4 digits");
     }
     if (($year < 2000) || ($year > 2030)) {
         die ("fatal: invalid year: $year, valid years are 2000-2030");

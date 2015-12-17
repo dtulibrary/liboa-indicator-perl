@@ -6,9 +6,10 @@ use OA::Indicator::XML;
 
 sub new
 {
-    my ($class) = @_;
+    my ($class, $oai) = @_;
     my $self = {};
 
+    $self->{'oai'} = $oai;
     $self->{'whitelist'} = [];
     open (my $fh, '/etc/oa-indicator/whitelist.tab');
     while (<$fh>) {
@@ -138,6 +139,9 @@ sub fulltext
             }
         }
         my $url = $rec->[1];
+        if ($url =~ m/^\s*$/) {
+            next;
+        }
         if ($url =~ m/\/\/([^\/]+)/) {
             my $host = $1;
             my $white = 0;
@@ -151,7 +155,7 @@ sub fulltext
                 next;
             }
         } else {
-            warn ("could not extra hostname from URL: $url (" . $self->id () . "\n");
+            $self->{'oai'}->log ('e', "could not extra hostname from URL: $url (" . $self->id () . ")");
             next;
         }
         push (@ret, $rec);

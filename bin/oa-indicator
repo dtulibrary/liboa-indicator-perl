@@ -50,7 +50,8 @@ if ($comm eq 'harvest') {
             if (&confirm ($oai->data_type ($type), $year)) {
                 &archive_source ($year, $type);
             } else {
-                die ($oai->data_type ($type) . " re-harvest cancelled\n");
+                $oai->log_main ('f', $oai->data_type ($type) . " re-harvest cancelled");
+                exit (1);
             }
         }
         system ("/usr/sbin/oa-indicator-harvest-$type $year");
@@ -59,7 +60,7 @@ if ($comm eq 'harvest') {
             if (&confirm ($oai->data_type ($type), $year)) {
                 &archive_source ($year, $type);
             } else {
-                die ($oai->data_type ($type) . " re-harvest cancelled\n");
+                $oai->log_main ('f', $oai->data_type ($type) . " re-harvest cancelled");
             }
         }
         system ("/usr/sbin/oa-indicator-harvest-$type $year");
@@ -92,14 +93,15 @@ if ($comm eq 'load') {
     $db->open ($year, $run_type);
     my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
     if (-e $rundir) {
-        warn ("warning: run directory '$rundir' already exists, archiving it.\n");
+        $oai->log_main ('w', "run directory '$rundir' already exists, archiving it.");
         my $n = '001';
         while (-e "$rundir-$n.tar.gz") {
             $n = sprintf ('%03d', $n + 1);
         }
         system ("tar cf $rundir-$n.tar --remove-files $rundir; gzip -9 $rundir-$n.tar");
         if (-e $rundir) {
-            die ("fatal: could not archive run directory: $rundir\n");
+            $oai->log_main ('f', "could not archive run directory: $rundir");
+            exit (1);
         }
     }
     mkdir ($rundir, 0775);
@@ -210,7 +212,7 @@ if ($comm eq 'segment') {
         }
         exit (0);
     }
-    die ("un-implemented segment: $name\n");
+    $oai->log_main ('f', "un-implemented segment: $name");
 }
 if ($comm eq 'close') {
     my ($year, $run_type, $name) = @ARGV;

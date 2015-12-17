@@ -242,7 +242,8 @@ sub file_harvest
             print ($fou $content);
             close ($fou);
         } else {
-            die ("error creating file '$tmpfile': $!");
+            $self->{'oai'}->log ('f', "error creating file '$tmpfile': $!");
+            exit (1);
         }
         if ($rec->{'mime'} eq 'application/pdf') {
             open (my $fin, "/usr/bin/pdfinfo $tmpfile |");
@@ -286,11 +287,13 @@ sub file_harvest
         my $dir = '/var/lib/oa-indicator/ft/' . substr ($rec->{'md5'}, 0, 2);
         if (!-e $dir) {
             if (!mkdir ($dir, 0775)) {
-                die ("error creating directory '$dir': $!");
+                $self->{'oai'}->log ('f', "error creating directory '$dir': $!");
+                exit (1);
             }
         }
         if (!rename ($tmpfile, "$dir/$rec->{'md5'}.dat")) {
-            die ("rename error: '$tmpfile' -> '$dir/$rec->{'md5'}.dat' ($!)");
+            $self->{'oai'}->log ('f', "rename error: '$tmpfile' -> '$dir/$rec->{'md5'}.dat' ($!)");
+            exit (1);
         }
     } else {
         $rec->{'errors_consecutive'}++;
