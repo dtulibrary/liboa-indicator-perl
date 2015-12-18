@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-10) unstable; urgency=low
+
+  * Fixed opening of database for spreadsheets and logging.
+    
+    GIT revision: 51fba5e3627b0276c51850171de2dff1a444262f
+
+ -- franck <franck@cvt.dk>  Fri, 18 Dec 2015 09:44:22 +0100
+
 liboa-indicator-perl (1.00-09) unstable; urgency=low
 
   * Added all different types of spreadsheets.
