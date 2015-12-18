@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-09) unstable; urgency=low
+
+  * Added all different types of spreadsheets.
+    
+    GIT revision: 2c911523c5228d67ca660ecff1cd6042e7c00c64
+
+ -- franck <franck@cvt.dk>  Fri, 18 Dec 2015 09:27:05 +0100
+
 liboa-indicator-perl (1.00-08) unstable; urgency=low
 
   * Fixed more log messages.
