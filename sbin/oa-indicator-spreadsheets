@@ -887,8 +887,8 @@ sub start_run
     }
     $oai->log_file ("$rundir/spreadsheets.log");
     foreach my $dir ('spreadsheets', 'spreadsheets/eng', 'spreadsheets/dan', 'spreadsheets/int') {
-        if (!-d $dir) {
-            mkdir ($dir, 0775);
+        if (!-d "$rundir/$dir") {
+            mkdir ("$rundir/$dir", 0775);
         }
     }
     chdir ("$rundir/spreadsheets");
