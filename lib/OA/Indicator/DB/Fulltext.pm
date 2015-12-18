@@ -64,11 +64,11 @@ sub request
     my ($self, $id, $url, $size, $mime, $filename) = @_;
 
     if ($url =~ m/^[\s\t\r\n]*$/) {
-        $self->{'oai'}->log ('w', "skipping request with empty URL: $id");
+        $self->{'oai'}->log ('w', "skipping request with empty URL: %s", $id);
         return (0);
     }
     if ($url !~ m/^https?:/i) {
-        $self->{'oai'}->log ('w', "skipping request with unsupported URL protocol: $id : $url");
+        $self->{'oai'}->log ('w', "skipping request with unsupported URL protocol: %s : %s", $id, $url);
         return (0);
     }
     my $db = $self->{'db'};
@@ -109,7 +109,7 @@ sub harvest
         my $rc;
         if ($rc = $db->next ($rs)) {
             if (($rc->{'success'}) && (($rc->{'harvested_last'} + $self->{'cachetime'}) >= time)) {
-                $self->{'oai'}->log ('i', "skipping harvest of cached URL: $rec->{'url'}");
+                $self->{'oai'}->log ('i', "skipping harvest of cached URL: %s", $rec->{'url'});
                 $count->{'cache'}++;
                 $rec->{'pending'} = 0;
                 $rec->{'status'} = 'ok';
@@ -128,7 +128,7 @@ sub harvest
             $queue->{$host} = [[$rec, $rc]];
         }
     }
-    $self->{'oai'}->log ('i', "$count->{'url'} URL, $count->{'cache'} URL cached, $count->{'harvest'} URL to harvest from $count->{'hosts'} hosts");
+    $self->{'oai'}->log ('i', "%d URL, %d URL cached, %d URL to harvest from %d hosts", $count->{'url'}, $count->{'cache'}, $count->{'harvest'}, $count->{'hosts'});
     my $match = 1;
     while ($match) {
         $match = 0;
@@ -136,7 +136,7 @@ sub harvest
             $match = 1;
             my $entry = shift (@{$queue->{$host}});
             if ($#{$queue->{$host}} == -1) {
-                 $self->{'oai'}->log ('i', "done harvesting host: $host");
+                 $self->{'oai'}->log ('i', "done harvesting host: %s", $host);
                 delete ($queue->{$host});
             }
             my ($rec, $rc) = @{$entry};
@@ -155,8 +155,7 @@ sub harvest
                 $db->update ('fulltext', 'url', $rc);
             }
             $count->{'done'}++;
-            $self->{'oai'}->log ('i', "done %d of %d URL: %s - %s", $count->{'done'}, $count->{'harvest'}, $rc->{'http_code'},
-                                 $rec->{'url'});
+            $self->{'oai'}->log ('i', "done %d of %d URL: %s - %s", $count->{'done'}, $count->{'harvest'}, $rc->{'http_code'}, $rec->{'url'});
         }
     }
 }
@@ -186,7 +185,7 @@ sub file_harvest
             } else {
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'client_aborted - unknown';
-                $self->{'oai'}->log ('e', "unknown Client-Aborted header while harvesting '$req->{'url'}': $s");
+                $self->{'oai'}->log ('e', "unknown Client-Aborted header while harvesting '%s': %s", $req->{'url'}, $s);
             }
         }
         $s = $rs->header ('X-Died');
@@ -202,7 +201,7 @@ sub file_harvest
             } else {
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'unknown error';
-                $self->{'oai'}->log ('e', "unknown X-Died header while harvesting '$req->{'url'}': $s");
+                $self->{'oai'}->log ('e', "unknown X-Died header while harvesting '%s': %s", $req->{'url'}, $s);
             }
         }
     } else {
@@ -217,7 +216,7 @@ sub file_harvest
             if ($rec->{'size'} > length ($content)) {
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'short file - based on Content-Length';
-                $self->{'oai'}->log ('e', "error for '$req->{'url'}': got " . length ($content) . " bytes instead of the $rec->{'size'} in Content-Length");
+                $self->{'oai'}->log ('e', "error for '%s': got %d bytes instead of the %d in Content-Length", $req->{'url'}, length ($content), $rec->{'size'});
             }
         } else {
             $rec->{'size'} = length ($content);
@@ -243,7 +242,7 @@ sub file_harvest
             print ($fou $content);
             close ($fou);
         } else {
-            $self->{'oai'}->log ('f', "error creating file '$tmpfile': $!");
+            $self->{'oai'}->log ('f', "error creating file '%s': %s", $tmpfile, $!);
             exit (1);
         }
         if ($rec->{'mime'} eq 'application/pdf') {
@@ -266,18 +265,19 @@ sub file_harvest
             if (!$rec->{'pdf_pages'}) {
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'PDF error';
-                $self->{'oai'}->log ('e', "PDF error for '$req->{'url'}': \n" . join ('', @lines));
+                $self->{'oai'}->log ('e', "PDF error for '%s':\n%s", $req->{'url'}, join ('', @lines));
             }
         }
     }
     if ($rec->{'success'}) {
         if (($req->{'size'}) && ($req->{'size'} > $rec->{'size'})) {
             if ($rec->{'pdf_pages'}) {
-                $self->{'oai'}->log ('w', "error for '$req->{'url'}': got $rec->{'size'} bytes instead of the $req->{'size'} in request, but PDF is valid");
+                $self->{'oai'}->log ('w', "error for '%s': got %d bytes instead of the %d in request, but PDF is valid",
+                                     $req->{'url'}, $rec->{'size'}, $req->{'size'});
             } else {
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'short file -  based on request size';
-                $self->{'oai'}->log ('e', "error for '$req->{'url'}': got $rec->{'size'} bytes instead of the $req->{'size'} in request");
+                $self->{'oai'}->log ('e', "error for '%s': got %d bytes instead of the %d in request", $req->{'url'}, $rec->{'size'}, $req->{'size'});
             }
         }
     }
@@ -288,12 +288,12 @@ sub file_harvest
         my $dir = '/var/lib/oa-indicator/ft/' . substr ($rec->{'md5'}, 0, 2);
         if (!-e $dir) {
             if (!mkdir ($dir, 0775)) {
-                $self->{'oai'}->log ('f', "error creating directory '$dir': $!");
+                $self->{'oai'}->log ('f', "error creating directory '%s': %s", $dir, $!);
                 exit (1);
             }
         }
         if (!rename ($tmpfile, "$dir/$rec->{'md5'}.dat")) {
-            $self->{'oai'}->log ('f', "rename error: '$tmpfile' -> '$dir/$rec->{'md5'}.dat' ($!)");
+            $self->{'oai'}->log ('f', "rename error: '%s' -> '%s/%s.dat' (%s)", $tmpfile, $dir, $rec->{'md5'}, $!);
             exit (1);
         }
     } else {
@@ -310,7 +310,7 @@ sub host
     if ($url =~ m|//([^/\?\:]+)|) {
         return ($1);
     } else {
-        $self->{'oai'}->log ('w', "could not extract hostname from: $url");
+        $self->{'oai'}->log ('w', "could not extract hostname from: %s", $url);
         return ('undefined');
     }
 }
