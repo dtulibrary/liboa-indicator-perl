@@ -21,8 +21,8 @@ if ($run_type !~ m/^(devel|test|prod)$/) {
     &usage ($oai, "invalid run-type: $run_type");
 }
 my $db = new OA::Indicator::DB ();
-$db->open ($year, $run_type);
-&start_run ($db);
+$db->reuse ($year, $run_type);
+&start_run ($oai, $db);
 foreach my $type (qw(national universities research_area records publications screened extra)) {
     foreach my $format (qw(csv xml json)) {
         $oai->log ('i', 'harvesting %s.%s', $type, $format);
@@ -41,6 +41,7 @@ foreach my $type (qw(eng dan int)) {
     }
     my $sheet;
 #   full
+    $oai->log ('i', 'creating %s %s', $type, 'full');
     $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_full.xlsx");
     &cover ($sheet, $labels, $lang, 'full', $int);
     &summary ($sheet, $labels, $lang, 'national');
@@ -54,12 +55,14 @@ foreach my $type (qw(eng dan int)) {
     }
     $sheet->{'wb'}->close ();
 #   summary
+    $oai->log ('i', 'creating %s %s', $type, 'summary');
     $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_summary.xlsx");
     &cover ($sheet, $labels, $lang, 'summary', $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
 #   publications
+    $oai->log ('i', 'creating %s %s', $type, 'publications');
     $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_publications.xlsx");
     &cover ($sheet, $labels, $lang, 'publications', $int);
     &summary ($sheet, $labels, $lang, 'national');
@@ -68,6 +71,7 @@ foreach my $type (qw(eng dan int)) {
     &publications ($sheet, $labels, $lang, $int);
     $sheet->{'wb'}->close ();
 #   records
+    $oai->log ('i', 'creating %s %s', $type, 'records');
     $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_records.xlsx");
     &cover ($sheet, $labels, $lang, 'records', $int);
     &summary ($sheet, $labels, $lang, 'national');
@@ -76,6 +80,7 @@ foreach my $type (qw(eng dan int)) {
     &records ($sheet, $labels, $lang, $int);
 #   extra
     if ($int) {
+        $oai->log ('i', 'creating %s %s', $type, 'extra');
         $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_extra.xlsx");
         &cover ($sheet, $labels, $lang, 'extra', $int);
         &summary ($sheet, $labels, $lang, 'national');
@@ -874,12 +879,13 @@ sub format
 
 sub start_run
 {
-    my ($db) = @_;
+    my ($oai, $db) = @_;
 
     my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
     if (!-e $rundir) {
         die ("fatal: rundir does not exists, somethings wrong: $rundir");
     }
+    $oai->log_file ("$rundir/spreadsheets.log");
     foreach my $dir ('spreadsheets', 'spreadsheets/eng', 'spreadsheets/dan', 'spreadsheets/int') {
         if (!-d $dir) {
             mkdir ($dir, 0775);
