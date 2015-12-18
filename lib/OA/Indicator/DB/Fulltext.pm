@@ -155,7 +155,8 @@ sub harvest
                 $db->update ('fulltext', 'url', $rc);
             }
             $count->{'done'}++;
-            $self->{'oai'}->log ('i', "done $count->{'done'} of $count->{'harvest'} URL: $rc->{'http_code'} - $rec->{'url'}");
+            $self->{'oai'}->log ('i', "done %d of %d URL: %s - %s", $count->{'done'}, $count->{'harvest'}, $rc->{'http_code'},
+                                 $rec->{'url'});
         }
     }
 }
