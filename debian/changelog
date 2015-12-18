@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-11) unstable; urgency=low
+
+  * Fixed creation of spreadsheet directories.
+    
+    GIT revision: 398efc1b39d1101972996e01e8f5a4341c701e17
+
+ -- franck <franck@cvt.dk>  Fri, 18 Dec 2015 09:53:23 +0100
+
 liboa-indicator-perl (1.00-10) unstable; urgency=low
 
   * Fixed opening of database for spreadsheets and logging.
