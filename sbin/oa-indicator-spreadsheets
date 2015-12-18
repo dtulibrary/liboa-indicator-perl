@@ -4,36 +4,88 @@ binmode (STDOUT, 'utf8');
 use strict;
 use warnings;
 use Fatal qw(open chdir mkdir unlink);
-#use OA::Indicator;
-#use OA::Indicator::DB;
+use OA::Indicator;
+use OA::Indicator::DB;
 use Spreadsheet::WriteExcel;
 use Excel::Writer::XLSX;
 
-#my $oai = new OA::Indicator (verbose => 1);
-#my ($year, $run_type) = &params ($oai);
-#my $db = new OA::Indicator::DB ();
-#$db->open ($year, $run_type);
-#&start_run ($db);
-#foreach my $type (qw(national universities research_area records publications)) {
-#    system ("wget -S -o $type.log -O $type.csv 'http://devel.oai.cvt.dk/oa-indicator/ws/$type.csv/$year/$run_type/latest'");
-#}
-#my $labels = &labels ('/etc/oa-indicator/labels.tab');
-my $labels = &labels ('etc/labels.tab');
-my $year = 2014;
-#my $oaeng = &spreadsheet ('OA-Indicator_2014_en.xls');
-my $oaeng = &spreadsheet ('OA-Indicator_2014_en.xlsx');
-#my $oadan = &spreadsheet ('OA-Indicator_2014_da.xls');
-&cover ($oaeng, $labels, 'en', 'int');
-&summary ($oaeng, $labels, 'en', 'national');
-&summary ($oaeng, $labels, 'en', 'research_area');
-&summary ($oaeng, $labels, 'en', 'universities');
-&publications ($oaeng, $labels, 'en', 'int');
-&records ($oaeng, $labels, 'en', 'int');
-&screened ($oaeng, $labels, 'en');
-&extra ($oaeng, $labels, 'en');
-$oaeng->{'wb'}->close ();
-
-
+my $oai = new OA::Indicator (verbose => 1);
+my ($year, $run_type) = &params ($oai);
+if (!$oai->valid_year ($year)) {
+    &usage ($oai);
+}
+if (!-e "/var/lib/oa-indicator/$year") {
+    die ("no data for year: $year (/var/lib/oa-indicator/$year)\n");
+}
+if ($run_type !~ m/^(devel|test|prod)$/) {
+    &usage ($oai, "invalid run-type: $run_type");
+}
+my $db = new OA::Indicator::DB ();
+$db->open ($year, $run_type);
+&start_run ($db);
+foreach my $type (qw(national universities research_area records publications screened extra)) {
+    foreach my $format (qw(csv xml json)) {
+        $oai->log ('i', 'harvesting %s.%s', $type, $format);
+        system ("wget -S -o $type.$format.log -O $type.$format 'http://oa-indicator.cvt.dk/oa-indicator/ws/$type.$format/$year/$run_type/latest'");
+    }
+}
+my $labels = &labels ('/etc/oa-indicator/labels.tab');
+foreach my $type (qw(eng dan int)) {
+    my $lang = substr ($type, 0, 2);
+    my $int;
+    if ($type eq 'int') {
+        $int = 1;
+        $lang = 'en';
+    } else {
+        $int = 0;
+    }
+    my $sheet;
+#   full
+    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_full.xlsx");
+    &cover ($sheet, $labels, $lang, 'full', $int);
+    &summary ($sheet, $labels, $lang, 'national');
+    &summary ($sheet, $labels, $lang, 'research_area');
+    &summary ($sheet, $labels, $lang, 'universities');
+    &publications ($sheet, $labels, $lang, $int);
+    &records ($sheet, $labels, $lang, $int);
+    if ($int) {
+        &screened ($sheet, $labels, $lang);
+        &extra ($sheet, $labels, $lang);
+    }
+    $sheet->{'wb'}->close ();
+#   summary
+    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_summary.xlsx");
+    &cover ($sheet, $labels, $lang, 'summary', $int);
+    &summary ($sheet, $labels, $lang, 'national');
+    &summary ($sheet, $labels, $lang, 'research_area');
+    &summary ($sheet, $labels, $lang, 'universities');
+#   publications
+    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_publications.xlsx");
+    &cover ($sheet, $labels, $lang, 'publications', $int);
+    &summary ($sheet, $labels, $lang, 'national');
+    &summary ($sheet, $labels, $lang, 'research_area');
+    &summary ($sheet, $labels, $lang, 'universities');
+    &publications ($sheet, $labels, $lang, $int);
+    $sheet->{'wb'}->close ();
+#   records
+    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_records.xlsx");
+    &cover ($sheet, $labels, $lang, 'records', $int);
+    &summary ($sheet, $labels, $lang, 'national');
+    &summary ($sheet, $labels, $lang, 'research_area');
+    &summary ($sheet, $labels, $lang, 'universities');
+    &records ($sheet, $labels, $lang, $int);
+#   extra
+    if ($int) {
+        $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_extra.xlsx");
+        &cover ($sheet, $labels, $lang, 'extra', $int);
+        &summary ($sheet, $labels, $lang, 'national');
+        &summary ($sheet, $labels, $lang, 'research_area');
+        &summary ($sheet, $labels, $lang, 'universities');
+        &screened ($sheet, $labels, $lang);
+        &extra ($sheet, $labels, $lang);
+    }
+    $sheet->{'wb'}->close ();
+}
 exit (0);
 
 sub extra
@@ -643,7 +695,7 @@ sub set_size
 
 sub cover
 {
-    my ($sps, $labels, $lang, $int) = @_;
+    my ($sps, $labels, $lang, $type, $int) = @_;
 
     &worksheet ($sps, 'cover', &label ($labels, $lang, 'cover'));
     $sps->{'ws'}{'cover'}->set_column (1, 1, 20);
@@ -687,11 +739,19 @@ sub cover
     $row++;
     &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-pri'));
     $row++;
-    for (my $i = 1; $i < 6; $i++) {
+    for (my $i = 1; $i < 4; $i++) {
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-$i"));
         $row++;
     }
-    if ($int) {
+    if (($type eq 'full') || ($type eq 'publications')) {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-4"));
+        $row++;
+    }
+    if (($type eq 'full') || ($type eq 'records')) {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-4"));
+        $row++;
+    }
+    if (($int) && (($type eq 'full') || ($type eq 'extra'))) {
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
         $row++;
         &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-sec'));
@@ -816,11 +876,16 @@ sub start_run
 {
     my ($db) = @_;
 
-    my $rundir '/var/lib/oa-indicator/runs/' . $db->id;
+    my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
     if (!-e $rundir) {
         die ("fatal: rundir does not exists, somethings wrong: $rundir");
     }
-    chdir ($rundir);
+    foreach my $dir ('spreadsheets', 'spreadsheets/eng', 'spreadsheets/dan', 'spreadsheets/int') {
+        if (!-d $dir) {
+            mkdir ($dir, 0775);
+        }
+    }
+    chdir ("$rundir/spreadsheets");
 }
 
 sub params
