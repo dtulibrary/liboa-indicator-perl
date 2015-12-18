@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-07) unstable; urgency=low
+
+  * Fixed logging of URL which made a mess with printf.
+    
+    GIT revision: 3d83bde0e5be9b9c86a5ec4dde128d5945300971
+
+ -- franck <franck@cvt.dk>  Fri, 18 Dec 2015 03:20:11 +0100
+
 liboa-indicator-perl (1.00-06) unstable; urgency=low
 
   * Fixed logging and ddf-id width in spreadsheets
