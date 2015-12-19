@@ -26,7 +26,8 @@ $db->reuse ($year, $run_type);
 foreach my $type (qw(national universities research_area records publications screened extra)) {
     foreach my $format (qw(csv xml json)) {
         $oai->log ('i', 'harvesting %s.%s', $type, $format);
-        system ("wget -S -o $type.$format.log -O $type.$format 'http://oa-indicator.cvt.dk/oa-indicator/ws/$type.$format/$year/$run_type/latest'");
+        system ("wget -S -o cache/$type.$format.log -O cache/$type.$format " .
+                "'http://localhost/oa-indicator/ws/$type.$format/$year/$run_type/latest?template=1&nocache=1'");
     }
 }
 my $labels = &labels ('/etc/oa-indicator/labels.tab');
@@ -42,7 +43,7 @@ foreach my $type (qw(eng dan int)) {
     my $sheet;
 #   full
     $oai->log ('i', 'creating %s %s', $type, 'full');
-    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_full.xlsx");
+    $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_full.xlsx");
     &cover ($sheet, $labels, $lang, 'full', $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
@@ -56,14 +57,14 @@ foreach my $type (qw(eng dan int)) {
     $sheet->{'wb'}->close ();
 #   summary
     $oai->log ('i', 'creating %s %s', $type, 'summary');
-    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_summary.xlsx");
+    $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_summary.xlsx");
     &cover ($sheet, $labels, $lang, 'summary', $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
 #   publications
     $oai->log ('i', 'creating %s %s', $type, 'publications');
-    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_publications.xlsx");
+    $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_publications.xlsx");
     &cover ($sheet, $labels, $lang, 'publications', $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
@@ -72,7 +73,7 @@ foreach my $type (qw(eng dan int)) {
     $sheet->{'wb'}->close ();
 #   records
     $oai->log ('i', 'creating %s %s', $type, 'records');
-    $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_records.xlsx");
+    $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_records.xlsx");
     &cover ($sheet, $labels, $lang, 'records', $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
@@ -81,7 +82,7 @@ foreach my $type (qw(eng dan int)) {
 #   extra
     if ($int) {
         $oai->log ('i', 'creating %s %s', $type, 'extra');
-        $sheet = &spreadsheet ("$type/OA-Indicator_${year}_${type}_extra.xlsx");
+        $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_extra.xlsx");
         &cover ($sheet, $labels, $lang, 'extra', $int);
         &summary ($sheet, $labels, $lang, 'national');
         &summary ($sheet, $labels, $lang, 'research_area');
@@ -91,6 +92,7 @@ foreach my $type (qw(eng dan int)) {
     }
     $sheet->{'wb'}->close ();
 }
+$oai->log ('i', 'done');
 exit (0);
 
 sub extra
@@ -164,7 +166,7 @@ sub extra
         $col++;
     }
     $row++;
-    open (my $fin, "$name.csv");
+    open (my $fin, "cache/$name.csv");
     binmode ($fin, 'utf8');
     my $s = <$fin>;
     while (<$fin>) {
@@ -293,7 +295,7 @@ sub screened
         $col++;
     }
     $row++;
-    open (my $fin, "$name.csv");
+    open (my $fin, "cache/$name.csv");
     binmode ($fin, 'utf8');
     my $s = <$fin>;
     while (<$fin>) {
@@ -427,7 +429,7 @@ sub records
         $col++;
     }
     $row++;
-    open (my $fin, "$name.csv");
+    open (my $fin, "cache/$name.csv");
     binmode ($fin, 'utf8');
     my $s = <$fin>;
     while (<$fin>) {
@@ -595,7 +597,7 @@ sub publications
         $col++;
     }
     $row++;
-    open (my $fin, "$name.csv");
+    open (my $fin, "cache/$name.csv");
     binmode ($fin, 'utf8');
     my $s = <$fin>;
     while (<$fin>) {
@@ -658,7 +660,7 @@ sub summary
     &write ($sps, $name, $row, 11, 1, 'label-realised', &label ($labels, $lang, 'realised'));
     &write ($sps, $name, $row, 12, 1, 'label-unused', &label ($labels, $lang, 'unused'));
     $row++;
-    open (my $fin, "$name.csv");
+    open (my $fin, "cache/$name.csv");
     binmode ($fin, 'utf8');
     my $s = <$fin>;
     while (<$fin>) {
@@ -797,7 +799,7 @@ sub write
         if (($sps->{'format-size'}{$format} * $lines) > $sps->{'row-height'}{$ws}{$row}) {
             $sps->{'row-height'}{$ws}{$row} = ($sps->{'format-size'}{$format} * $lines);
             $sps->{'ws'}{$ws}->set_row ($row, $sps->{'row-height'}{$ws}{$row} + 4);
-            print ("$row: wi: $wi, lines: $lines, height: $sps->{'row-height'}{$ws}{$row}, len: " . length ($data) . ", data: $data\n");
+#           print ("$row: wi: $wi, lines: $lines, height: $sps->{'row-height'}{$ws}{$row}, len: " . length ($data) . ", data: $data\n");
         }
     }
     if ($width > 1) {
@@ -886,12 +888,12 @@ sub start_run
         die ("fatal: rundir does not exists, somethings wrong: $rundir");
     }
     $oai->log_file ("$rundir/spreadsheets.log");
-    foreach my $dir ('spreadsheets', 'spreadsheets/eng', 'spreadsheets/dan', 'spreadsheets/int') {
+    foreach my $dir ('cache', 'spreadsheets', 'spreadsheets/eng', 'spreadsheets/dan', 'spreadsheets/int') {
         if (!-d "$rundir/$dir") {
             mkdir ("$rundir/$dir", 0775);
         }
     }
-    chdir ("$rundir/spreadsheets");
+    chdir ("$rundir");
 }
 
 sub params

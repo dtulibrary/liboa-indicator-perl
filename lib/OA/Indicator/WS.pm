@@ -23,7 +23,16 @@ sub process
     my $v;
 
     $self->{'start'} = time;
-    $self->{'result'} = {request => {datestamp => $self->date ()}, response => {}};
+    if ($ENV{'QUERY_STRING'} =~ m/template=1/) {
+        $self->{'template'} = 1;
+    } else {
+        $self->{'template'} = 0;
+    }
+    if ($args->{'template'}) {
+        $self->{'result'} = {request => {datestamp => 'resquestDatestamp'}, response => {}};
+    } else {
+        $self->{'result'} = {request => {datestamp => $self->date ($self->{'start'})}, response => {}};
+    }
     $self->{'args'} = [];
     if (defined ($ENV{'PATH_INFO'})) {
         ($v, $self->{'comm'}, $self->{'year'}, $self->{'type'}, $self->{'run'}, @{$self->{'args'}}) = split ('/', $ENV{'PATH_INFO'});
@@ -50,6 +59,9 @@ sub process
             $self->{'format'} = 'xml';
         }
         $self->{'result'}{'request'}{'format'} = $self->{'format'} . ' (default)';
+    }
+    if ($ENV{'QUERY_STRING'} !~ m/nocache=1/) {
+        $self->cache ();
     }
     if ($self->{'comm'} eq 'help') {
         $self->comm_help ();
@@ -831,6 +843,7 @@ sub oai_link
     }
     die ("fatal: cris_link - unsupported source: $source");
 }
+
 sub respond
 {
     my ($self) = @_;
@@ -854,10 +867,55 @@ sub respond
         $result .= $self->respond_xml_encode ('', $self->{'result'});
         $result .= '</oa_indicator>';
     }
-    $result =~ s/responseDatestamp/$self->date ()/e;
-    $result =~ s/responseElapse/sprintf ('%0.6f', time - $self->{'start'})/e;
+    if (!$args->{'template'}) {
+        $result =~ s/responseDatestamp/$self->date (time)/e;
+        $result =~ s/responseElapse/sprintf ('%0.6f', time - $self->{'start'})/e;
+    }
     print ($result);
     exit (0);
+}
+
+sub cache
+{
+    my ($self, $file) = @_;
+    my $result;
+
+    my $dbkey = $self->{'year'} . '-' . $self->{'type'} . '-' . $self->{'run'};
+    my $db;
+    if (exists ($self->{'cache'}{$dbkey}{'db'})) {
+        $db = $self->{'cache'}{$dbkey}{'db'};
+    } else {
+        $self->{'cache'}{$dbkey}{'db'} = $db = $self->{'db'}->reuse ($self->{'year'}, $self->{'type'}, $self->{'run'});
+    }
+    my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
+    if (-e "$rundir/cache/$self->{'comm'}.$self->{'format'}") {
+        my $fin;
+        if (!open ($fin, "$rundir/cache/$self->{'comm'}.$self->{'format'}")) {
+            return;
+        }
+        my $result = join ('', <$fin>);
+        close ($fin);
+        if ($self->{'format'} =~ m/(json|xml)/) {
+            $result =~ s/requestDatestamp/$self->date ($self->{'start'})/e;
+            $result =~ s/responseDatestamp/$self->date (time)/e;
+            $result =~ s/responseElapse/sprintf ('%0.6f', time - $self->{'start'})/e;
+        }
+        if ($self->{'format'} eq 'json') {
+            print ("Content-Type: application/json\n\n");
+            print ($result);
+            exit (0);
+        }
+        if ($self->{'format'} eq 'csv') {
+            print ("Content-Type: text/csv\n\n");
+            print ($result);
+            exit (0);
+        }
+        if ($self->{'format'} eq 'xml') {
+            print ("Content-Type: text/xml\n\n");
+            print ($result);
+            exit (0);
+        }
+    }
 }
 
 sub respond_csv_encode
@@ -1436,7 +1494,8 @@ sub xml_enc
 
 sub date
 {
-    my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
+    my ($time) = @_;
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime ($time);
     
     return (sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
 }
