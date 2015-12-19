@@ -28,7 +28,7 @@ sub process
     } else {
         $self->{'template'} = 0;
     }
-    if ($args->{'template'}) {
+    if ($self->{'template'}) {
         $self->{'result'} = {request => {datestamp => 'resquestDatestamp'}, response => {}};
     } else {
         $self->{'result'} = {request => {datestamp => $self->date ($self->{'start'})}, response => {}};
@@ -867,7 +867,7 @@ sub respond
         $result .= $self->respond_xml_encode ('', $self->{'result'});
         $result .= '</oa_indicator>';
     }
-    if (!$args->{'template'}) {
+    if (!$self->{'template'}) {
         $result =~ s/responseDatestamp/$self->date (time)/e;
         $result =~ s/responseElapse/sprintf ('%0.6f', time - $self->{'start'})/e;
     }
