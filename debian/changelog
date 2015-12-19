@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-13) unstable; urgency=low
+
+  * Fixed last fix, because I'm stupid!
+    
+    GIT revision: 3cabfb0a68b41378001c3a8c8d1dcfe6ef326bb8
+
+ -- franck <franck@cvt.dk>  Sun, 20 Dec 2015 00:28:34 +0100
+
 liboa-indicator-perl (1.00-12) unstable; urgency=low
 
   * Fixed Apache config and added caching to WS.
