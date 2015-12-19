@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-12) unstable; urgency=low
+
+  * Fixed Apache config and added caching to WS.
+    
+    GIT revision: 97508a34568556310ee3ce71186330c19147f15d
+
+ -- franck <franck@cvt.dk>  Sat, 19 Dec 2015 20:13:04 +0100
+
 liboa-indicator-perl (1.00-11) unstable; urgency=low
 
   * Fixed creation of spreadsheet directories.
