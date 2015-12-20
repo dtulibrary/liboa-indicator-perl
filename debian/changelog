@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-14) unstable; urgency=low
+
+  * Fixed use of "latest" run while caching.
+    
+    GIT revision: 5622226c7408294ebbb6677d8988698758423b8a
+
+ -- franck <franck@cvt.dk>  Sun, 20 Dec 2015 11:59:28 +0100
+
 liboa-indicator-perl (1.00-13) unstable; urgency=low
 
   * Fixed last fix, because I'm stupid!
