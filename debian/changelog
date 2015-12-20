@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.00-15) unstable; urgency=low
+
+  * Fixed web-service error with empty run.
+    
+    GIT revision: bfdad7cd8c6f6eccce17541971976e42db784b90
+
+ -- franck <franck@cvt.dk>  Sun, 20 Dec 2015 18:00:18 +0100
+
 liboa-indicator-perl (1.00-14) unstable; urgency=low
 
   * Fixed use of "latest" run while caching.
