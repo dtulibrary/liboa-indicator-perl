@@ -237,7 +237,7 @@ sub reuse
     my $rec;
     while ($rec = $db->next ($rs)) {
         if ($rec->{'id'}) {
-            if ((!defined ($run)) or ($run == $rec->{'run'})) {
+            if ((!$run) || ($run == $rec->{'run'})) {
                 $self->{'id'} = $rec->{'id'};
                 $self->{'run'} = $rec->{'run'};
                 last;
