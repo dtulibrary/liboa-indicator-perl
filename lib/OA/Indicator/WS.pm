@@ -880,6 +880,9 @@ sub cache
     my ($self, $file) = @_;
     my $result;
 
+    if ((!$self->{'run'}) || ($self->{'run'} eq 'latest')) {
+        $self->{'run'} = '';
+    }
     my $dbkey = $self->{'year'} . '-' . $self->{'type'} . '-' . $self->{'run'};
     my $db;
     if (exists ($self->{'cache'}{$dbkey}{'db'})) {
