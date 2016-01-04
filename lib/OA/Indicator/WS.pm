@@ -29,7 +29,7 @@ sub process
         $self->{'template'} = 0;
     }
     if ($self->{'template'}) {
-        $self->{'result'} = {request => {datestamp => 'resquestDatestamp'}, response => {}};
+        $self->{'result'} = {request => {datestamp => 'requestDatestamp'}, response => {}};
     } else {
         $self->{'result'} = {request => {datestamp => $self->date ($self->{'start'})}, response => {}};
     }
@@ -628,11 +628,10 @@ sub comm_publication
     $self->{'result'}{'response'}{'body'}{'record'} = $rc;
 
 
-    my $duplicates = $self->duplicates ($db, merge => 1);
-    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,class,bfi_class,bfi_level,source_id,dedupkey',
-                          'records', 'scoped=1 and screened=1');
+    $duplicates = $self->duplicates ($db, merge => 1);
+    $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,class,bfi_class,bfi_level,source_id,dedupkey',
+                       'records', 'scoped=1 and screened=1');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
-    my $rc;
     my $done = {};
     while ($rc = $db->next ($rs)) {
         if ($done->{$rc->{'dedupkey'}}) {
@@ -890,7 +889,7 @@ sub cache
     } else {
         $self->{'cache'}{$dbkey}{'db'} = $db = $self->{'db'}->reuse ($self->{'year'}, $self->{'type'}, $self->{'run'});
     }
-    my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
+    my $rundir = '/var/lib/oa-indicator/runs/' . $self->{'db'}->id;
     if (-e "$rundir/cache/$self->{'comm'}.$self->{'format'}") {
         my $fin;
         if (!open ($fin, "$rundir/cache/$self->{'comm'}.$self->{'format'}")) {
@@ -1497,7 +1496,7 @@ sub xml_enc
 
 sub date
 {
-    my ($time) = @_;
+    my ($self, $time) = @_;
     my ($sec, $min, $hour, $day, $mon, $year) = localtime ($time);
     
     return (sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
