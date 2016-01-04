@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-00) unstable; urgency=low
+
+  * First cadidate for be production version for 2014 run.
+    
+    GIT revision: d2a4dc3c467ee07d220c48c09b812e040b9b9e48
+
+ -- franck <franck@cvt.dk>  Mon, 04 Jan 2016 10:01:50 +0100
+
 liboa-indicator-perl (1.00-15) unstable; urgency=low
 
   * Fixed web-service error with empty run.
