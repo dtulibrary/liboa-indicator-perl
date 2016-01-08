@@ -357,7 +357,7 @@ sub comm_publications
             $rc->{'issn'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'issn'}})));
             $rc->{'source_id'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'source_id'}}));
             $rc->{'class'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'class'}}));
-            $rc->{'class_reason'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'class_reason'}}));
+            $rc->{'class_reasons'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'class_reasons'}}));
             $rc->{'bfi_class'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'bfi_class'}})));
             $rc->{'bfi_level'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'bfi_level'}})));
             foreach my $src (qw(aau au cbs dtu itu ku ruc sdu)) {
@@ -384,7 +384,7 @@ sub comm_publications
             $rc->{'cris_link'} = $self->cris_link ($rc->{'source'}, $rc->{'source_id'});
             $rc->{'source_id'} = $rc->{'source'} . ':' . $rc->{'source_id'};
             $rc->{'class'} = '';
-            $rc->{'class_reason'} = '';
+            $rc->{'class_reasons'} = '';
             delete ($rc->{'source'});
             if ($rc->{'bfi_level'} == 0) {
                 $rc->{'bfi_level'} = '';
@@ -721,7 +721,7 @@ sub duplicates
     }
     my $rs;
     if ($opt{'merge'}) {
-        $rs = $db->select ('dedupkey,source_id,first_author,first_author_pos,research_area,doi,issn,eissn,source,class,class_reason,bfi_class,bfi_level', 'records',
+        $rs = $db->select ('dedupkey,source_id,first_author,first_author_pos,research_area,doi,issn,eissn,source,class,class_reasons,bfi_class,bfi_level', 'records',
                            $where, 'order by dedupkey');
     } else {
         $rs = $db->select ('dedupkey,source_id', 'records', $where, 'order by dedupkey');
@@ -766,10 +766,10 @@ sub duplicates
             } else {
                 $rec->{'class'} = [$rc->{'source'} . ':' . $rc->{'class'}];
             }
-            if ($rec->{'class_reason'}) {
-                push (@{$rec->{'class_reason'}}, $rc->{'source'} . ':' . $rc->{'class_reason'});
+            if ($rec->{'class_reasons'}) {
+                push (@{$rec->{'class_reasons'}}, $rc->{'source'} . ':' . $rc->{'class_reasons'});
             } else {
-                $rec->{'class_reason'} = [$rc->{'source'} . ':' . $rc->{'class_reason'}];
+                $rec->{'class_reasons'} = [$rc->{'source'} . ':' . $rc->{'class_reasons'}];
             }
             if ($rc->{'bfi_class'}) {
                 $rec->{'bfi_class'}{$rc->{'bfi_class'}} = 1;
@@ -1072,7 +1072,7 @@ sub respond_csv_encode
             pub_class        => 'Status',
             pub_class_reasons=> 'Status Reason',
             class            => 'Record class',
-            class_reason     => 'Record reason',
+            class_reasons     => 'Record reason',
             bfi_class        => 'Classification',
             bfi_level        => 'Level',
             dedupkey         => 'DDF ID',
@@ -1081,14 +1081,14 @@ sub respond_csv_encode
             cris_link        => 'University CRIS Records',
         };
         my @cols = ();
-        foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class class_reason bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
+        foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'publication'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class class_reason bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
+            foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
