@@ -383,6 +383,7 @@ sub comm_publications
             $rc->{'source_' . $rc->{'source'}} = 'X';
             $rc->{'cris_link'} = $self->cris_link ($rc->{'source'}, $rc->{'source_id'});
             $rc->{'source_id'} = $rc->{'source'} . ':' . $rc->{'source_id'};
+            $rc->{'class'} = '';
             $rc->{'class_reason'} = '';
             delete ($rc->{'source'});
             if ($rc->{'bfi_level'} == 0) {
@@ -720,7 +721,7 @@ sub duplicates
     }
     my $rs;
     if ($opt{'merge'}) {
-        $rs = $db->select ('dedupkey,source_id,first_author,first_author_pos,research_area,doi,issn,eissn,source,class,bfi_class,bfi_level', 'records',
+        $rs = $db->select ('dedupkey,source_id,first_author,first_author_pos,research_area,doi,issn,eissn,source,class,class_reason,bfi_class,bfi_level', 'records',
                            $where, 'order by dedupkey');
     } else {
         $rs = $db->select ('dedupkey,source_id', 'records', $where, 'order by dedupkey');

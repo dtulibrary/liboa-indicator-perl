@@ -568,8 +568,8 @@ sub publications
     &write ($sps, $name, $row,  $col, 8, 'head', &label ($labels, $lang, 'university-affiliation'));
     $col += 9;
     if ($int) {
-        &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'oa-indicator'));
-        $col += 4;
+        &write ($sps, $name, $row, $col, 4, 'head', &label ($labels, $lang, 'oa-indicator'));
+        $col += 5;
     } else {
         &write ($sps, $name, $row, $col, 1, 'head', &label ($labels, $lang, 'oa-indicator'));
         $col += 2;
