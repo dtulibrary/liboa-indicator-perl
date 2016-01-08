@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-03) unstable; urgency=low
+
+  * Fixed a typo in column name.
+    
+    GIT revision: e71117d5174054ccfbd406b88eb502f0b9b43f21
+
+ -- franck <franck@cvt.dk>  Fri, 08 Jan 2016 10:22:15 +0100
+
 liboa-indicator-perl (1.01-02) unstable; urgency=low
 
   * Getting record level reasons correct this time I hope.
