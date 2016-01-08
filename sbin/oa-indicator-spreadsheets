@@ -498,6 +498,7 @@ sub publications
         'status'                  =>  10,
         'reason'                  =>  40,
         'details'                 =>  10,
+        'details-reason'          =>  40,
         'spacer-3'                =>   5,
         'classification'          =>  15,
         'level'                   =>   5,
@@ -527,7 +528,7 @@ sub publications
     };
     my @fields_input = (
         'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 'bfi_research_area', 'research_area_details',
-        'doi', 'issn', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'status', 'reason', 'details',
+        'doi', 'issn', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'status', 'reason', 'details', 'details-reason',
         'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url'
     );
     my @fields_official = (
@@ -537,7 +538,7 @@ sub publications
     );
     my @fields_internal = (
         'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 'bfi_research_area', 'research_area_details',
-        'doi', 'issn', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2', 'status', 'reason', 'details',
+        'doi', 'issn', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2', 'status', 'reason', 'details', 'details-reason',
         'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5', 'cris-id', 'cris-url'
     );
     my $name = 'publications';
@@ -744,7 +745,11 @@ sub cover
     $row++;
     &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
     $row++;
-    &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-pri'));
+    if ($int) {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-pri-int'));
+    } else {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-pri'));
+    }
     $row++;
     for (my $i = 1; $i < 4; $i++) {
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-$i"));
@@ -755,7 +760,7 @@ sub cover
         $row++;
     }
     if (($type eq 'full') || ($type eq 'records')) {
-        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-4"));
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-5"));
         $row++;
     }
     if (($int) && (($type eq 'full') || ($type eq 'extra'))) {
@@ -986,7 +991,7 @@ sub usage
     if ($msg) {
         warn ("\n$msg\n");
     }
-    warn ('usage: ao-indicator-spreadsheets <year> <' . join (' | ', $oai->data_types ()) . ">\n\n");
+    warn ('usage: ao-indicator-spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
 }

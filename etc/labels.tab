@@ -12,10 +12,12 @@ cover-compilation-date         en Compilation date:
 cover-compilation-date         da Kørselsdato:
 cover-text                     en This is the dataset of the annual Open Access calculation for Danish research publications within \
                                   the scope of the Open Access Indicator.
-cover-text                     da Dette er datasæt for den årlige kørsel af den Danske Open Access Indikator for for \
-                                  skningspublikationer indenfor genstandsfeltet
-cover-pri                      en Primary Tabs:
-cover-pri                      da Primære faner:
+cover-text                     da Dette er datasæt for den årlige kørsel af den Danske Open Access Indikator for for\
+                                  sknforingspublikationer indenfor genstandsfeltet
+cover-pri                      en Tabs:
+cover-pri                      da Faner:
+cover-pri-int                  en Primary Tabs:
+cover-pri-int                  da Primære faner:
 cover-pri-1                    en "National": Aggregated number for Open Access status of publications nationally
 cover-pri-1                    da "Nationalt": Summering for publikationer på nationalt niveau 
 cover-pri-2                    en "Main Research Areas":  Aggregated numbers for Open Access status of publications per Main Research Area
@@ -50,7 +52,7 @@ realized                       da Realiseret
 unused                         en Unused
 unused                         da Uudnyttet
 unclear                        en Unclear
-unclear                        da Uklart
+unclear                        da Uklar
 total                          en Total
 total                          da Total
 total-clear                    en Total wo/unclear
@@ -61,7 +63,7 @@ relative-clear                 en Relative (wo/unclear)
 relative-clear                 da Relativt (uden uklart)
 
 research_area                  en Main Research Area
-research_area                  da Hovedforskningsområder
+research_area                  da Hovedforskningsområde
 
 hum                            en Humanities (HUM)
 hum                            da Humaniora (HUM)
@@ -102,7 +104,7 @@ first-danish-author            da Første danske forfatter
 first-danish-author-uni        en University of first danish author
 first-danish-author-uni        da Første danske forfatters universitet
 research_area                  en Main Research Area
-research_area                  da Hovedforskningsområder
+research_area                  da Hovedforskningsområde
 bfi_research_area              en BFI Research Area
 bfi_research_area              da BFI Research Area
 research_area_details          en Research Area Details
@@ -135,8 +137,10 @@ status                         en Status
 status                         da Status
 reason                         en Reason
 reason                         da Reason
-details                        en Details
-details                        da Details
+details                        en Record Status
+details                        da Record Status
+details-reason                 en Record Reason
+details-reason                 da Record Reason
 bfi                            en BFI
 bfi                            da BFI
 classification                 en Classification
@@ -159,16 +163,16 @@ monografier-på-forlag          da Monografier på forlag
 tidsskriftartikler             en Journal article
 tidsskriftartikler             da Tidsskriftartikler
 
-in-ddf                         en In Danish National Research Database (DDF)
+in-ddf                         en In the Danish National Research Database (DDF)
 in-ddf                         da I Den Danske Forskningsdatabase  (DDF)
 ddf-id                         en ID
 ddf-id                         da ID
 ddf-url                        en URL
 ddf-url                        da URL
-in-cris-pub                    en In university(/universities) CRIS
-in-cris-pub                    da I universitetets(/universiteternes) CRIS
-cris-id                        en ID(s)
-cris-id                        da ID(er)
+in-cris-pub                    en In university CRIS
+in-cris-pub                    da I universitetets CRIS
+cris-id                        en ID
+cris-id                        da ID
 cris-url                       en URL
 cris-url                       da URL
 
