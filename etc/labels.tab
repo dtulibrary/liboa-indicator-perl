@@ -2,13 +2,13 @@ cover                          en Cover
 cover                          da Forside
 cover-oa-indicator             en Danish Open Access Indicator
 cover-oa-indicator             da Dansk Open Access Indikator
-cover-indicator-year           en Indicator year:
+cover-indicator-year           en Indicator Year:
 cover-indicator-year           da Indikatorstatistikår:
-cover-submission-year          en Submission year:
+cover-submission-year          en Submission Year:
 cover-submission-year          da Indberetningsår:
 cover-version                  en Version:
 cover-version                  da Version:
-cover-compilation-date         en Compilation date:
+cover-compilation-date         en Compilation Date:
 cover-compilation-date         da Kørselsdato:
 cover-text                     en This is the dataset of the annual Open Access calculation for Danish research publications within \
                                   the scope of the Open Access Indicator.
@@ -17,7 +17,7 @@ cover-text                     da Dette er datasæt for den årlige kørsel af d
 cover-pri                      en Tabs:
 cover-pri                      da Faner:
 cover-pri-int                  en Primary Tabs:
-cover-pri-int                  da Primære faner:
+cover-pri-int                  da Primære Faner:
 cover-pri-1                    en "National": Aggregated number for Open Access status of publications nationally
 cover-pri-1                    da "Nationalt": Summering for publikationer på nationalt niveau 
 cover-pri-2                    en "Main Research Areas":  Aggregated numbers for Open Access status of publications per Main Research Area
@@ -34,10 +34,10 @@ cover-pri-5                    da "Genstandsfelt - Poster": Komplet liste af pub
 
 cover-sec                      en Secondary Tabs:
 cover-sec                      da Secondary Tabs:
-cover-sec-1                    en "Descoped records": Records screened off as part of the scoping
-cover-sec-1                    da "Descoped records": Records screened off as part of the scoping
-cover-sec-2                    en "Supplement BFI records": Records from BFI not in scope, but with in-scope duplicates 
-cover-sec-2                    da "Supplement BFI records": Records from BFI not in scope, but with in-scope duplicates 
+cover-sec-1                    en "Descoped Records": Records screened off as part of the scoping
+cover-sec-1                    da "Descoped Records": Records screened off as part of the scoping
+cover-sec-2                    en "Supplement BFI Records": Records from BFI not in scope, but with in-scope duplicates 
+cover-sec-2                    da "Supplement BFI Records": Records from BFI not in scope, but with in-scope duplicates 
 
 national                       en National
 national                       da Nationalt
@@ -55,22 +55,22 @@ unclear                        en Unclear
 unclear                        da Uklar
 total                          en Total
 total                          da Total
-total-clear                    en Total wo/unclear
-total-clear                    da Total uden uklart
+total-clear                    en Total wo/Unclear
+total-clear                    da Total Uden Uklart
 relative                       en Relative
 relative                       da Relativt
-relative-clear                 en Relative (wo/unclear)
-relative-clear                 da Relativt (uden uklart)
+relative-clear                 en Relative (wo/Unclear)
+relative-clear                 da Relativt (Uden Uklart)
 
 research_area                  en Main Research Area
 research_area                  da Hovedforskningsområde
 
 hum                            en Humanities (HUM)
 hum                            da Humaniora (HUM)
-soc                            en Social sciences (SOC)
+soc                            en Social Sciences (SOC)
 soc                            da Socialvidenskab (SOC)
 sci                            en Science (SCI)
-sci                            da Naturvidenskab/teknik (SCI)
+sci                            da Naturvidenskab/Teknik (SCI)
 med                            en Medicine (MED)
 med                            da Medicin (MED)
 
@@ -93,16 +93,16 @@ ruc-full                       da Roskilde Universitet (RUC)
 sdu-full                       en University of Southern Denmark (SDU)
 sdu-full                       da Syddansk Universitet (SDU)
 
-scoped-publications            en Scoped publications
+scoped-publications            en Scoped Publications
 scoped-publications            da Genstandsfelt - Publikationer
 publication                    en Publication
 publication                    da Publikation
 title                          en Title
 title                          da Titel
 first-danish-author            en First Danish Author
-first-danish-author            da Første danske forfatter
-first-danish-author-uni        en University of first danish author
-first-danish-author-uni        da Første danske forfatters universitet
+first-danish-author            da Første Danske Forfatter
+first-danish-author-uni        en University Of First Danish Author
+first-danish-author-uni        da Første Danske Forfatters Universitet
 research_area                  en Main Research Area
 research_area                  da Hovedforskningsområde
 bfi_research_area              en BFI Research Area
@@ -114,7 +114,7 @@ doi                            da DOI
 issn                           en ISSN
 issn                           da ISSN
 university-affiliation         en University Affiliation
-university-affiliation         da Universitets affiliation
+university-affiliation         da Universitets Affiliation
 aau                            en AAU
 aau                            da AAU
 au                             en AU
@@ -163,29 +163,29 @@ monografier-på-forlag          da Monografier på forlag
 tidsskriftartikler             en Journal article
 tidsskriftartikler             da Tidsskriftartikler
 
-in-ddf                         en In the Danish National Research Database (DDF)
-in-ddf                         da I Den Danske Forskningsdatabase  (DDF)
+in-ddf                         en In The Danish National Research Database (DDF)
+in-ddf                         da I Den Danske Forskningsdatabase (DDF)
 ddf-id                         en ID
 ddf-id                         da ID
 ddf-url                        en URL
 ddf-url                        da URL
-in-cris-pub                    en In university CRIS
-in-cris-pub                    da I universitetets CRIS
+in-cris-pub                    en In University CRIS
+in-cris-pub                    da I Universitetets CRIS
 cris-id                        en ID
 cris-id                        da ID
 cris-url                       en URL
 cris-url                       da URL
 
 scoped-records                 en Scoped Records
-scoped-records                 da Genstandsfelt - poster
+scoped-records                 da Genstandsfelt - Poster
 first-local-author             en First Local Author
-first-local-author             da Første lokale forfatter
+first-local-author             da Første Lokale Forfatter
 university                     en University
 university                     da Universitet
-duplicate-records              en Duplicate records
-duplicate-records              da Dublet post(er)
-duplicates                     en Duplicate records
-duplicates                     da Dublet post(er)
+duplicate-records              en Duplicate Records
+duplicate-records              da Dublet Post(er)
+duplicates                     en Duplicate Records
+duplicates                     da Dublet Post(er)
 
 descoped-records               en Descoped Records
 descoped-records               da Descoped Records
@@ -207,13 +207,13 @@ wrong-level                    en Level not "sci"
 wrong-level                    da Level not "sci"
 no-issn                        en No ISSN
 no-issn                        da No ISSN
-in-cris                        en In university CRIS
-in-cris                        da In university CRIS
+in-cris                        en In University CRIS
+in-cris                        da In University CRIS
 
-extra                          en Supplement BFI records
-extra                          da Supplement BFI records
-extra-records                  en Supplement BFI records - not in scope due to wrong Submission Year, but with in-scope duplicate records
-extra-records                  da Supplement BFI records - not in scope due to wrong Submission Year, but with in-scope duplicate records
+extra                          en Supplement BFI Records
+extra                          da Supplement BFI Records
+extra-records                  en Supplement BFI Records - not in scope due to wrong Submission Year, but with in-scope duplicate records
+extra-records                  da Supplement BFI Records - not in scope due to wrong Submission Year, but with in-scope duplicate records
 year-pub                       en Pub. Year
 year-pub                       da Pub. Year
 year-ary                       en Sub. Year

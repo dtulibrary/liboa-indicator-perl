@@ -52,7 +52,7 @@ foreach my $type (qw(eng dan int)) {
     &records ($sheet, $labels, $lang, $int);
     if ($int) {
         &screened ($sheet, $labels, $lang);
-        &extra ($sheet, $labels, $lang);
+#       &extra ($sheet, $labels, $lang);
     }
     $sheet->{'wb'}->close ();
 #   summary
@@ -88,7 +88,7 @@ foreach my $type (qw(eng dan int)) {
         &summary ($sheet, $labels, $lang, 'research_area');
         &summary ($sheet, $labels, $lang, 'universities');
         &screened ($sheet, $labels, $lang);
-        &extra ($sheet, $labels, $lang);
+#       &extra ($sheet, $labels, $lang);
     }
     $sheet->{'wb'}->close ();
 }
@@ -768,7 +768,8 @@ sub cover
         $row++;
         &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-sec'));
         $row++;
-        for (my $i = 1; $i < 3; $i++) {
+#       Changed limit from 3 to 2 in order to remove the extra sheet for now
+        for (my $i = 1; $i < 2; $i++) {
             &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-sec-$i"));
             $row++;
         }
