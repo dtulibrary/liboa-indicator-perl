@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.01-05) unstable; urgency=low
+
+  * Fixed bug which caused class_reason and pub_class_reason to be
+    inversed.
+    
+    GIT revision: 6b0112ac8ae1e4764ba3939df19af17cf5624730
+
+ -- franck <franck@cvt.dk>  Sat, 09 Jan 2016 14:32:13 +0100
+
 liboa-indicator-perl (1.01-04) unstable; urgency=low
 
   * Small changes to many label text and removed the extra spreadsheet.
