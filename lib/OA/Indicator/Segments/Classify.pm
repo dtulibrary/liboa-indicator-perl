@@ -173,7 +173,7 @@ sub process
         foreach my $id (keys (%{$publications->{$dkey}})) {
             if ($publications->{$dkey}{$id}{'pub_class'} ne $class) {
                 $publications->{$dkey}{$id}{'pub_class'} = $class;
-                $publications->{$dkey}{$id}{'class_reasons'} = $class_reasons;
+                $publications->{$dkey}{$id}{'pub_class_reasons'} = $class_reasons;
             }
             $self->{'db'}->update ('records', 'id', $publications->{$dkey}{$id});
         }
