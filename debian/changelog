@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-04) unstable; urgency=low
+
+  * Small changes to many label text and removed the extra spreadsheet.
+    
+    GIT revision: a19c5e98d6e9e7519b84b9d01c4ba6e85370b4da
+
+ -- franck <franck@cvt.dk>  Sat, 09 Jan 2016 08:49:14 +0100
+
 liboa-indicator-perl (1.01-03) unstable; urgency=low
 
   * Fixed a typo in column name.
