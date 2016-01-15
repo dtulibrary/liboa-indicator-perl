@@ -215,7 +215,7 @@ if ($comm eq 'segment') {
     $oai->log_main ('f', "un-implemented segment: $name");
 }
 if ($comm eq 'close') {
-    my ($year, $run_type, $name) = @ARGV;
+    my ($year, $run_type) = @ARGV;
     if ($year) {
         if (!$oai->valid_year ($year)) {
             &usage ($oai, 'invalid year: ' . $year);
@@ -234,6 +234,56 @@ if ($comm eq 'close') {
     $db->open ($year, $run_type);
 #   FIX add real success checks
     $db->close (1);
+    exit (0);
+}
+if ($comm eq 'spreadsheets') {
+    my ($year, $run_type) = @ARGV;
+    if ($year) {
+        if (!$oai->valid_year ($year)) {
+            &usage ($oai, 'invalid year: ' . $year);
+        }
+    } else {
+        &usage ($oai);
+    }
+    if ($run_type) {
+        if ($run_type !~ m/^(devel|test|prod)$/) {
+            &usage ($oai, 'invalid run type: ' . $run_type);
+        }
+    } else {
+        &usage ($oai);
+    }
+    my $db = new OA::Indicator::DB ();
+    $db->reuse ($year, $run_type);
+    system ("/usr/sbin/oa-indicator-spreadsheets $year $run_type");
+    exit (0);
+}
+if ($comm eq 'release') {
+    my ($year, $run_type, $run, $type) = @ARGV;
+    if ($year) {
+        if (!$oai->valid_year ($year)) {
+            &usage ($oai, 'invalid year: ' . $year);
+        }
+    } else {
+        &usage ($oai);
+    }
+    if ($run_type) {
+        if ($run_type !~ m/^(devel|test|prod)$/) {
+            &usage ($oai, 'invalid run type: ' . $run_type);
+        }
+    } else {
+        &usage ($oai);
+    }
+    if ($run eq 'latest') {
+        $run = '';
+    }
+    my $db = new OA::Indicator::DB ();
+    $db->reuse ($year, $run_type, $run);
+    if ($type eq '0') {
+        $type = -1;
+    } else {
+        $type = 0;
+    }
+    $db->release ($year, $run_type, $run, $type);
     exit (0);
 }
 &usage ($oai, "unknown command: $comm");
@@ -284,10 +334,12 @@ sub usage
     if ($msg) {
         warn ("\n$msg\n");
     }
-    warn ('usage: ao-indicator harvest <year> <' . join (' | ', $oai->data_types ()) . ">\n");
-    warn ('       ao-indicator load    <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
-    warn ('       ao-indicator segment <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', $oai->segments ()) . ">\n");
-    warn ('       ao-indicator close   <year> <' . join (' | ', $oai->run_types ()) . ">\n\n");
+    warn ('usage: ao-indicator harvest      <year> <' . join (' | ', $oai->data_types ()) . ">\n");
+    warn ('       ao-indicator load         <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
+    warn ('       ao-indicator segment      <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', $oai->segments ()) . ">\n");
+    warn ('       ao-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n\n");
+    warn ('       ao-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n\n");
+    warn ('       ao-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [1 | 0]\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
 }
