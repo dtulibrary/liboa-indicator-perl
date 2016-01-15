@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-09) unstable; urgency=low
+
+  * A more optimised WS status.
+    
+    GIT revision: c01ea9ed70047727573995333c2bf17675512af4
+
+ -- franck <franck@cvt.dk>  Fri, 15 Jan 2016 16:31:28 +0100
+
 liboa-indicator-perl (1.01-08) unstable; urgency=low
 
   * Fixed a typo in runs field name.
