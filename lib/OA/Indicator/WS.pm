@@ -60,9 +60,6 @@ sub process
         }
         $self->{'result'}{'request'}{'format'} = $self->{'format'} . ' (default)';
     }
-    if ($ENV{'QUERY_STRING'} !~ m/nocache=1/) {
-        $self->cache ();
-    }
     if ($self->{'comm'} eq 'help') {
         $self->comm_help ();
     }
@@ -72,6 +69,9 @@ sub process
     if ($self->{'format'} !~ m/^(html|json|xml|csv)$/) {
         $self->{'format'} = 'xml';
         $self->error ('unsupported format: ' . $self->{'format'} . '. Supported formats are: json, xml and html');
+    }
+    if ($self->{'comm'} eq 'status') {
+        $self->comm_status ();
     }
     $self->{'result'}{'request'}{'year'} = $self->{'year'};
     if ((!defined ($self->{'year'})) || ($self->{'year'} =~ m/^\s*$/)) {
@@ -150,6 +150,9 @@ sub process
             }
         }
     }
+    if ($ENV{'QUERY_STRING'} !~ m/nocache=1/) {
+        $self->cache ();
+    }
     $self->{'dbkey'} = $self->{'year'} . '-' . $self->{'type'} . '-' . $self->{'run'};
     my $db;
     if (exists ($self->{'cache'}{$self->{'dbkey'}}{'db'})) {
@@ -190,6 +193,21 @@ sub process
 }
 
 sub comm_index
+{
+    my ($self) = @_;
+
+    $self->{'result'}{'response'}{'body'}{'title'} = 'OA-Indicator';
+    foreach my $year ($self->{'db'}->run_years ()) {
+        foreach my $type ($self->{'db'}->run_types ($year)) {
+            foreach my $run ($self->{'db'}->run_runs ($year, $type)) {
+                $self->{'result'}{'response'}{'body'}{'years'}{$year}{'types'}{$type}{'runs'}{$run} = $self->{'db'}->run_info ($year, $type, $run);
+            }
+        }
+    }
+    $self->respond ();
+}
+
+sub comm_status
 {
     my ($self) = @_;
 
