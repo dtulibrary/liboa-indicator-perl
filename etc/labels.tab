@@ -12,8 +12,8 @@ cover-compilation-date         en Compilation Date:
 cover-compilation-date         da Kørselsdato:
 cover-text                     en This is the dataset of the annual Open Access calculation for Danish research publications within \
                                   the scope of the Open Access Indicator.
-cover-text                     da Dette er datasæt for den årlige kørsel af den Danske Open Access Indikator for for\
-                                  sknforingspublikationer indenfor genstandsfeltet
+cover-text                     da Dette er datasæt for den årlige kørsel af den Danske Open Access Indikator for \
+                                  forskningspublikationer indenfor genstandsfeltet
 cover-pri                      en Tabs:
 cover-pri                      da Faner:
 cover-pri-int                  en Primary Tabs:
@@ -25,15 +25,15 @@ cover-pri-2                    da "Hovedforskningsområder": Summering for publi
 cover-pri-3                    en "Universities":  Aggregated numbers for Open Access status of publications per University
 cover-pri-3                    da "Universiteter": Summeringer for publikationer - fordelt på universiteter
 cover-pri-4                    en "Scoped Publications": Complete set of publications in-scope ; the foundation for this calculation
-cover-pri-4                    da "Genstandsfeltet - Publikationer": Komplet liste af publikationer i genstandsfeltet \
+cover-pri-4                    da "Genstandsfelt - Publikationer": Komplet liste af publikationer i genstandsfeltet \
                                   (reduceret genstandsfelt)
 cover-pri-5                    en "Scoped Records": Complete set of metadata records in-scope; the foundation for the publications of \
                                   this calculation
 cover-pri-5                    da "Genstandsfelt - Poster": Komplet liste af publikationsposter i genstandsfeltet, som indsamlet fra \
                                   universiteterne (ureduceret genstandsfelt)
 
-cover-sec                      en Secondary Tabs:
-cover-sec                      da Secondary Tabs:
+cover-sec                      en Secondary Tab:
+cover-sec                      da Secondary Tab:
 cover-sec-1                    en "Descoped Records": Records screened off as part of the scoping
 cover-sec-1                    da "Descoped Records": Records screened off as part of the scoping
 cover-sec-2                    en "Supplement BFI Records": Records from BFI not in scope, but with in-scope duplicates 
@@ -53,6 +53,8 @@ unused                         en Unused
 unused                         da Uudnyttet
 unclear                        en Unclear
 unclear                        da Uklar
+unclear-header                 en Unclear
+unclear-header                 da Uklart
 total                          en Total
 total                          da Total
 total-clear                    en Total wo/Unclear
@@ -62,7 +64,7 @@ relative                       da Relativt
 relative-clear                 en Relative (wo/Unclear)
 relative-clear                 da Relativt (Uden Uklart)
 
-research_area                  en Main Research Area
+research_area                  en Main Research Areas
 research_area                  da Hovedforskningsområde
 
 hum                            en Humanities (HUM)
@@ -103,7 +105,7 @@ first-danish-author            en First Danish Author
 first-danish-author            da Første Danske Forfatter
 first-danish-author-uni        en University Of First Danish Author
 first-danish-author-uni        da Første Danske Forfatters Universitet
-research_area                  en Main Research Area
+research_area                  en Main Research Areas
 research_area                  da Hovedforskningsområde
 bfi_research_area              en BFI Research Area
 bfi_research_area              da BFI Research Area

@@ -652,12 +652,12 @@ sub summary
     $row++;
     &write ($sps, $name, $row,  1, 1, 'label-realised', &label ($labels, $lang, 'realised'));
     &write ($sps, $name, $row,  2, 1, 'label-unused', &label ($labels, $lang, 'unused'));
-    &write ($sps, $name, $row,  3, 1, 'label-unclear', &label ($labels, $lang, 'unclear'));
+    &write ($sps, $name, $row,  3, 1, 'label-unclear', &label ($labels, $lang, 'unclear-header'));
     &write ($sps, $name, $row,  4, 1, 'label-center', &label ($labels, $lang, 'total'));
     &write ($sps, $name, $row,  5, 1, 'label-center', &label ($labels, $lang, 'total-clear'));
     &write ($sps, $name, $row,  7, 1, 'label-realised', &label ($labels, $lang, 'realised'));
     &write ($sps, $name, $row,  8, 1, 'label-unused', &label ($labels, $lang, 'unused'));
-    &write ($sps, $name, $row,  9, 1, 'label-unclear', &label ($labels, $lang, 'unclear'));
+    &write ($sps, $name, $row,  9, 1, 'label-unclear', &label ($labels, $lang, 'unclear-header'));
     &write ($sps, $name, $row, 11, 1, 'label-realised', &label ($labels, $lang, 'realised'));
     &write ($sps, $name, $row, 12, 1, 'label-unused', &label ($labels, $lang, 'unused'));
     $row++;
