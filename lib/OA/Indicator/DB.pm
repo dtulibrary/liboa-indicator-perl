@@ -225,7 +225,7 @@ sub close
         $rec->{'errors'} = join ("\t", @errors);
     }
     if (($rec->{'success'}) && ($self->{'type'} ne 'prod')) {
-        $rec->{'release'} = 1;
+        $rec->{'released'} = 1;
     }
     $db->update ('runs', 'id', $rec);
 }
@@ -265,9 +265,9 @@ sub release
     }
     my $rec = {id => $self->{'id'}};
     if ($release < 0) {
-        $rec->{'release'} = 0;
+        $rec->{'released'} = 0;
     } else {
-        $rec->{'release'} = 1;
+        $rec->{'released'} = 1;
     }
     $db->update ('runs', 'id', $rec);
 }
