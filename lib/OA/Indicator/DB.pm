@@ -61,6 +61,7 @@ sub create
                    start           integer,
                    end             integer,
                    success         integer,
+                   released        integer,
                    errors          text
                )');
     $db->sql ('create index if not exists runs_year on runs (year)');
@@ -78,7 +79,7 @@ sub create
     $db->sql ('create index if not exists segments_run on segments (run)');
     $self->{'run'} = $self->new_run ($self->{'year'}, $self->{'type'});
     $self->{'id'} = $self->{'year'} . '.' . $self->{'type'} . '.' . sprintf ('%03d', $self->{'run'});
-    $db->insert ('runs', {id => $self->{'id'}, year => $self->{'year'}, type => $self->{'type'}, run => $self->{'run'}, description => $desc, start => time, end => 0});
+    $db->insert ('runs', {id => $self->{'id'}, year => $self->{'year'}, type => $self->{'type'}, run => $self->{'run'}, description => $desc, start => time, end => 0, released => 0});
     $self->{'db'} = new DB::SQLite ("$self->{'root'}/run_$self->{'id'}.sqlite3", DieError => 1, cacheUpdates => 1000);
     return ($self->{'db'});
 }
@@ -223,6 +224,9 @@ sub close
         }
         $rec->{'errors'} = join ("\t", @errors);
     }
+    if (($rec->{'success'}) && ($self->{'type'} ne 'prod')) {
+        $rec->{'release'} = 1;
+    }
     $db->update ('runs', 'id', $rec);
 }
 
@@ -249,6 +253,23 @@ sub reuse
     }
     $self->{'db'} = new DB::SQLite ("$self->{'root'}/run_$self->{'id'}.sqlite3", DieError => 1);
     return ($self->{'db'});
+}
+
+sub release
+{
+    my ($self, $release) = @_;
+    my $db = $self->{'rundb'};
+
+    if (!exists ($self->{'id'})) {
+        die ("fatal: cannot call release without calling reuse first");
+    }
+    my $rec = {id => $self->{'id'}};
+    if ($release < 0) {
+        $rec->{'release'} = 0;
+    } else {
+        $rec->{'release'} = 1;
+    }
+    $db->update ('runs', 'id', $rec);
 }
 
 sub new_run
@@ -369,7 +390,7 @@ sub run_info
     my $db = $self->{'rundb'};
 
     my $id = $year . '.' . $type . '.' . sprintf ('%03d', $run);
-    my $rs = $db->select ('description,start,end,success,errors', 'runs', "id='$id'");
+    my $rs = $db->select ('description,start,end,success,released,errors', 'runs', "id='$id'");
     my $rec;
     if ($rec = $db->next ($rs)) {
         return ($rec);
