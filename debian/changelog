@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-07) unstable; urgency=low
+
+  * Fixed caching of database which was caching the wrong object.
+    
+    GIT revision: 04128339aa6ba795e95f00732789c27951dd58ee
+
+ -- franck <franck@cvt.dk>  Fri, 15 Jan 2016 15:03:05 +0100
+
 liboa-indicator-perl (1.01-06) unstable; urgency=low
 
   * Finalised spreadsheets processing, added release for prod runs, fixed
