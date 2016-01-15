@@ -211,11 +211,36 @@ sub comm_status
 {
     my ($self) = @_;
 
+    my $succ = 1;
+    my $last = {};
+    if ($ENV{'QUERY_STRING'} =~ m/really-all=1/) {
+        $succ = $last = 0;
+    } elsif ($ENV{'QUERY_STRING'} =~ m/all=1/) {
+        $last = 0;
+    }
     $self->{'result'}{'response'}{'body'}{'title'} = 'OA-Indicator';
+    if ($last) {
+        foreach my $year ($self->{'db'}->run_years ()) {
+            foreach my $type ($self->{'db'}->run_types ($year)) {
+                foreach my $run ($self->{'db'}->run_runs ($year, $type)) {
+                    if ((!exists ($last->{$year}{$type})) || ($run > $last->{$year}{$type})) {
+                        $last->{$year}{$type} = $run;
+                    }
+                }
+            }
+        }
+    }
     foreach my $year ($self->{'db'}->run_years ()) {
         foreach my $type ($self->{'db'}->run_types ($year)) {
             foreach my $run ($self->{'db'}->run_runs ($year, $type)) {
-                $self->{'result'}{'response'}{'body'}{'years'}{$year}{'types'}{$type}{'runs'}{$run} = $self->{'db'}->run_info ($year, $type, $run);
+                my $rec = $self->{'db'}->run_info ($year, $type, $run);
+                if (($succ) && (($rec->{'success'} != 1) || ($rec->{'released'} != 1))) {
+                    next;
+                }
+                if (($last) && ($run != $last->{$year}{$type})) {
+                    next;
+                }
+                $self->{'result'}{'response'}{'body'}{'years'}{$year}{'types'}{$type}{'runs'}{$run} = $rec;
             }
         }
     }
