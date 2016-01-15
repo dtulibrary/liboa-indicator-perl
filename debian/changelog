@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.01-06) unstable; urgency=low
+
+  * Finalised spreadsheets processing, added release for prod runs, fixed
+    WS caching
+    
+    GIT revision: 46e050dd468df80ada53bd56d7627d74ad9f8c21
+
+ -- franck <franck@cvt.dk>  Fri, 15 Jan 2016 13:18:51 +0100
+
 liboa-indicator-perl (1.01-05) unstable; urgency=low
 
   * Fixed bug which caused class_reason and pub_class_reason to be
