@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-11) unstable; urgency=low
+
+  * Added a command line status about runs.
+    
+    GIT revision: 1bc7c791bee666d031f9bb172b83b08cdbd4defb
+
+ -- franck <franck@cvt.dk>  Sat, 16 Jan 2016 12:34:17 +0100
+
 liboa-indicator-perl (1.01-10) unstable; urgency=low
 
   * Fixed the release function
