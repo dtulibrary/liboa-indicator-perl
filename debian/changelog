@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-12) unstable; urgency=low
+
+  * Changed year and type for status to be optional as they should be.
+    
+    GIT revision: 1340131c669466acddc9f1f8a6d3ec1f4ee7b1c2
+
+ -- franck <franck@cvt.dk>  Sat, 16 Jan 2016 12:45:18 +0100
+
 liboa-indicator-perl (1.01-11) unstable; urgency=low
 
   * Added a command line status about runs.
