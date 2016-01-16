@@ -278,12 +278,53 @@ if ($comm eq 'release') {
     }
     my $db = new OA::Indicator::DB ();
     $db->reuse ($year, $run_type, $run);
-    if (($type)) && ($type eq 'reset')) {
+    if (($type) && ($type eq 'reset')) {
         $type = 0;
     } else {
         $type = 1;
     }
     $db->release ($type);
+    exit (0);
+}
+if ($comm eq 'status') {
+    my ($year, $run_type) = @ARGV;
+    if ($year) {
+        if (!$oai->valid_year ($year)) {
+            &usage ($oai, 'invalid year: ' . $year);
+        }
+    } else {
+        &usage ($oai);
+    }
+    if ($run_type) {
+        if ($run_type !~ m/^(devel|test|prod)$/) {
+            &usage ($oai, 'invalid run type: ' . $run_type);
+        }
+    } else {
+        &usage ($oai);
+    }
+    my $db = new OA::Indicator::DB ();
+    foreach my $y ($db->run_years ()) {
+        if (($year) && ($y != $year)) {
+            next;
+        }
+        print ("$y\n");
+        foreach my $t ($db->run_types ($y)) {
+            if (($run_type) && ($t ne $run_type)) {
+                next;
+            }
+            print ("  $t\n");
+            my $head = 1;
+            foreach my $run ($db->run_runs ($y, $t)) {
+                my $rec = $db->run_info ($y, $t, $run);
+                if ($head) {
+                    $head = 0;
+                    printf("    %3s %-19s %-19s %3s %3s %-10s %s\n", 'run', 'start', 'end', 'suc', 'rel', 'errors', 'description');
+                }
+                printf("    %3d %19s %19s %3d %3d %10s %s\n", $run, &date ($rec->{'start'}), &date ($rec->{'end'}),
+                       $rec->{'success'}, $rec->{'released'}, $rec->{'errors'}, $rec->{'description'});
+            }
+        }
+    }
     exit (0);
 }
 &usage ($oai, "unknown command: $comm");
@@ -327,6 +368,14 @@ sub archive_source
     }
 }
 
+sub date
+{
+    my ($time) = @_;
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime ($time);
+
+    return (sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
+}
+
 sub usage
 {
     my ($oai, $msg) = @_;
@@ -340,6 +389,7 @@ sub usage
     warn ('       ao-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n");
     warn ('       ao-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n");
     warn ('       ao-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
+    warn ('       ao-indicator status       [year] [' . join (' | ', $oai->run_types ()) . "]\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
 }
