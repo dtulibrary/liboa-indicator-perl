@@ -1,1 +1,5 @@
 debian/changelog.bck
+*.csv
+arch/
+ff
+ff.*

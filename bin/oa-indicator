@@ -278,12 +278,12 @@ if ($comm eq 'release') {
     }
     my $db = new OA::Indicator::DB ();
     $db->reuse ($year, $run_type, $run);
-    if ($type eq '0') {
-        $type = -1;
-    } else {
+    if (($type)) && ($type eq 'reset')) {
         $type = 0;
+    } else {
+        $type = 1;
     }
-    $db->release ($year, $run_type, $run, $type);
+    $db->release ($type);
     exit (0);
 }
 &usage ($oai, "unknown command: $comm");
@@ -337,9 +337,9 @@ sub usage
     warn ('usage: ao-indicator harvest      <year> <' . join (' | ', $oai->data_types ()) . ">\n");
     warn ('       ao-indicator load         <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
     warn ('       ao-indicator segment      <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', $oai->segments ()) . ">\n");
-    warn ('       ao-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n\n");
-    warn ('       ao-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n\n");
-    warn ('       ao-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [1 | 0]\n\n");
+    warn ('       ao-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n");
+    warn ('       ao-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n");
+    warn ('       ao-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
 }

@@ -264,11 +264,7 @@ sub release
         die ("fatal: cannot call release without calling reuse first");
     }
     my $rec = {id => $self->{'id'}};
-    if ($release < 0) {
-        $rec->{'released'} = 0;
-    } else {
-        $rec->{'released'} = 1;
-    }
+    $rec->{'released'} = $release;
     $db->update ('runs', 'id', $rec);
 }
 
