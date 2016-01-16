@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-10) unstable; urgency=low
+
+  * Fixed the release function
+    
+    GIT revision: 0d05cf0c091b84e267f716d17f4acb403b5082a2
+
+ -- franck <franck@cvt.dk>  Sat, 16 Jan 2016 12:09:12 +0100
+
 liboa-indicator-perl (1.01-09) unstable; urgency=low
 
   * A more optimised WS status.
