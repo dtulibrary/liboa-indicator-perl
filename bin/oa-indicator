@@ -292,15 +292,11 @@ if ($comm eq 'status') {
         if (!$oai->valid_year ($year)) {
             &usage ($oai, 'invalid year: ' . $year);
         }
-    } else {
-        &usage ($oai);
     }
     if ($run_type) {
         if ($run_type !~ m/^(devel|test|prod)$/) {
             &usage ($oai, 'invalid run type: ' . $run_type);
         }
-    } else {
-        &usage ($oai);
     }
     my $db = new OA::Indicator::DB ();
     foreach my $y ($db->run_years ()) {
