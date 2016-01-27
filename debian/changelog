@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-13) unstable; urgency=low
+
+  * Fixed a label as requested by Soren
+    
+    GIT revision: 3d246cb9a4bc35a6aa66694a2e7faafbf1d74a59
+
+ -- franck <franck@cvt.dk>  Wed, 27 Jan 2016 19:51:06 +0100
+
 liboa-indicator-perl (1.01-12) unstable; urgency=low
 
   * Changed year and type for status to be optional as they should be.
