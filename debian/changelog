@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-14) unstable; urgency=low
+
+  * Changed selection of fulltext from MXD record.
+    
+    GIT revision: afc36e4d51e8ff1f2dbe238547b1c1939c9d0786
+
+ -- franck <franck@cvt.dk>  Thu, 04 Feb 2016 23:15:46 +0100
+
 liboa-indicator-perl (1.01-13) unstable; urgency=low
 
   * Fixed a label as requested by Soren
