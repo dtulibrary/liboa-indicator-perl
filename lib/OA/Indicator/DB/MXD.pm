@@ -439,8 +439,19 @@ sub fulltext_exists
     if (!exists ($self->{'fulltext-cache'}{$id})) {
         my $rs = $self->{'db'}->select ('*', 'mxdft', "dads_id='$id'");
         my $rec;
-        if ($rec = $self->{'db'}->next ($rs)) {
-            $self->{'fulltext-cache'}{$id} = $rec;
+        my $main = 0;
+        my $files = {};
+        while ($rec = $self->{'db'}->next ($rs)) {
+            $files->{$rec->{'id'}} = $rec;
+            if ((!$main) ||
+                (($rec->{'mime'} eq 'application/pdf') && ($files->{$main}{'mime'} ne 'application/pdf')) ||
+                (($rec->{'mime'} eq 'application/pdf') && ($rec->{'size'} > $files->{$main}{'size'}))) {
+                $main = $rec->{'id'};
+            }
+
+        }
+        if ($main) {
+            $self->{'fulltext-cache'}{$id} = $files->{$main};
         } else {
             $self->{'fulltext-cache'}{$id} = {};
         }

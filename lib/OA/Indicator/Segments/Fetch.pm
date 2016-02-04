@@ -73,7 +73,6 @@ sub update
 {
     my ($self, $rec) = @_;
 
-
     $self->{'db'}->update ('records', 'id', $rec);
 }
 
