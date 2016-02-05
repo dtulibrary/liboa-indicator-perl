@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use DB::SQLite;
+
+our $db;
+if (!defined ($db)) {
+    $db = new DB::SQLite ('/var/lib/oa-indicator/db/fulltext.sqlite3', DieError => 1);
+}
+my ($v, $year, $dsid) = split ('/', $ENV{'PATH_INFO'});
+my $rs = $db->select ('f.mime as mime,f.size as size,f.md5 as md5', 'fulltext as f, fulltext_requests as r', "f.url=r.url and dsid='$dsid'");
+my $rc;
+if ($rc = $db->next ($rs)) {
+    print ("Content-Type: $rc->{'mime'}\n");
+    print ("Content-Length: $rc->{'size'}\n\n");
+    my $file = '/var/lib/oa-indicator/ft/' . substr ($rc->{'md5'}, 0, 2) . '/' . $rc->{'md5'} . '.dat';
+    system ("cat $file");
+} else {
+    print ("Status: 404\n\n");
+}
+exit (0);
+
