@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.01-15) unstable; urgency=low
+
+  * Added new service for fulltext
+    
+    GIT revision: 54c1e4a042efb4caf6e0e172cef54da5b411f666
+
+ -- franck <franck@cvt.dk>  Fri, 05 Feb 2016 10:42:04 +0100
+
 liboa-indicator-perl (1.01-14) unstable; urgency=low
 
   * Changed selection of fulltext from MXD record.
