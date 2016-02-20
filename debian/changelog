@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.01-16) unstable; urgency=low
+
+  * Fixed ft service to actually work and extended caching period for
+    fulltext harvest to 100 days
+    
+    GIT revision: 5ada329eda2906c32947775473f4a6435ecf37da
+
+ -- franck <franck@cvt.dk>  Sat, 20 Feb 2016 18:29:56 +0100
+
 liboa-indicator-perl (1.01-15) unstable; urgency=low
 
   * Added new service for fulltext
