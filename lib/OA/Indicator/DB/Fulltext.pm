@@ -13,6 +13,7 @@ sub new
 {
     my ($class, $oai) = @_;
     my $self = {cachetime => (3600 * 24 * 31)};
+    $self->{'cachetime'} = (3600 * 24 * 100);
 
     $self->{'oai'} = $oai;
     $self->{'db'} = new DB::SQLite ("/var/lib/oa-indicator/db/fulltext.sqlite3", DieError => 1);

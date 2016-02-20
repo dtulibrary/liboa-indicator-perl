@@ -12,10 +12,23 @@ my ($v, $year, $dsid) = split ('/', $ENV{'PATH_INFO'});
 my $rs = $db->select ('f.mime as mime,f.size as size,f.md5 as md5', 'fulltext as f, fulltext_requests as r', "f.url=r.url and dsid='$dsid'");
 my $rc;
 if ($rc = $db->next ($rs)) {
-    print ("Content-Type: $rc->{'mime'}\n");
-    print ("Content-Length: $rc->{'size'}\n\n");
     my $file = '/var/lib/oa-indicator/ft/' . substr ($rc->{'md5'}, 0, 2) . '/' . $rc->{'md5'} . '.dat';
-    system ("cat $file");
+    if (-e $file) {
+        if (open (my $fin, $file)) {
+            print ("Content-Type: $rc->{'mime'}\n");
+            print ("Content-Length: $rc->{'size'}\n\n");
+            while (<$fin>) {
+                print;
+            }
+            close ($fin);
+        } else {
+            print ("Status: 404\n\n");
+            warn ("error opening file for $dsid: $file ($!)");
+        }
+    } else {
+        print ("Status: 404\n\n");
+        warn ("file not found for $dsid: $file");
+    }
 } else {
     print ("Status: 404\n\n");
 }
