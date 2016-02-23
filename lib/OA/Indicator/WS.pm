@@ -934,13 +934,8 @@ sub cache
         $self->{'run'} = '';
     }
     my $dbkey = $self->{'year'} . '-' . $self->{'type'} . '-' . $self->{'run'};
-    my $db;
-    if (exists ($self->{'cache'}{$dbkey}{'db'})) {
-        $db = $self->{'cache'}{$dbkey}{'db'};
-    } else {
-        $self->{'cache'}{$dbkey}{'db'} = $db = new OA::Indicator::DB;
-        $db->reuse ($self->{'year'}, $self->{'type'}, $self->{'run'});
-    }
+    my $db = new OA::Indicator::DB;
+    $db->reuse ($self->{'year'}, $self->{'type'}, $self->{'run'});
     my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
     if (-e "$rundir/cache/$self->{'comm'}.$self->{'format'}") {
         my $fin;
