@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.02-01) unstable; urgency=low
+
+  * Removed DB caching in the cache method, was not compatible with the
+    general caching.
+    
+    GIT revision: c955fa493588a7c10a6c1a89509c19df82332860
+
+ -- franck <franck@cvt.dk>  Tue, 23 Feb 2016 14:09:57 +0100
+
 liboa-indicator-perl (1.02-00) unstable; urgency=low
 
   * Did a fix to publication MRA and added nagios status script
