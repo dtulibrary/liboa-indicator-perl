@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.02-00) unstable; urgency=low
+
+  * Did a fix to publication MRA and added nagios status script
+    
+    GIT revision: c7e8ac689fdb519a115eb8872d8876b6b3a03223
+
+ -- franck <franck@cvt.dk>  Tue, 23 Feb 2016 09:50:24 +0100
+
 liboa-indicator-perl (1.01-16) unstable; urgency=low
 
   * Fixed ft service to actually work and extended caching period for
