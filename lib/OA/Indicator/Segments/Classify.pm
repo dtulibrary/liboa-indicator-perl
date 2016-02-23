@@ -34,15 +34,20 @@ sub process
     }
     foreach my $dkey (keys (%{$publications})) {
         my $bfi_research_area = '';
+        my $bfi_research_area_error = 0;
         my $mra = {hum => 0, med => 0, sci => 0, soc => 0};
         foreach my $id (keys (%{$publications->{$dkey}})) {
             if ($publications->{$dkey}{$id}{'bfi_research_area'}) {
-                $bfi_research_area = $publications->{$dkey}{$id}{'bfi_research_area'};
+                if (($bfi_research_area) && ($bfi_research_area ne $publications->{$dkey}{$id}{'bfi_research_area'})) {
+                    $bfi_research_area_error = 1;
+                } else {
+                    $bfi_research_area = $publications->{$dkey}{$id}{'bfi_research_area'};
+                }
             }
             $mra->{$publications->{$dkey}{$id}{'research_area'}}++;
         }
         my $pub_research_area;
-        if ($bfi_research_area) {
+        if (($bfi_research_area) && (!$bfi_research_area_error)) {
             $pub_research_area = $bfi_research_area;
         } else {
             my @mra = sort {$mra->{$a} <=> $mra->{$b}} keys (%{$mra});
