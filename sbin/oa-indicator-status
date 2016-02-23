@@ -1,0 +1,188 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use OA::Indicator;
+use OA::Indicator::DB;
+
+my $args = {};
+while ((@ARGV) && ($ARGV[0] =~ m/^-/)) {
+    my $arg = shift (@ARGV);
+    if (($arg eq '-r') || ($arg eq '--reset')) {
+        $args->{'reset'} = 1;
+        next;
+    }
+    die ("usage: oa-indicator-status [-r | --reset]\n");
+}
+if (@ARGV) {
+    die ("usage: oa-indicator-status [-r | --reset]\n");
+}
+my $data = {};
+my $statusfile = '/var/lib/oa-indicator/status.dat';
+if ((!$args->{'reset'}) && (-e $statusfile)) {
+    if (!open (FIN, $statusfile)) {
+        &log ('f', "failed to open data file: $statusfile ($!)");
+        &status ('f', 'internal error');
+    }
+    while (<FIN>) {
+        chomp;
+        my ($year, $type, $md5, $file) = split ("\t");
+        $data->{$year}{$type}{$file} = $md5;
+    }
+    close (FIN);
+}
+my $done = {};
+my $db = new OA::Indicator::DB ();
+foreach my $year ($db->run_years ()) {
+    foreach my $type ($db->run_types ($year)) {
+        if ($type eq 'prod') {
+            system ("wget -O /tmp/national.$$.csv -o /dev/null 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
+            if (!-s "/tmp/national.$$.csv") {
+                &log ('f', "failed to harvest 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
+                &status ('f', "web service error for year $year");
+            }
+            my $lines = 0;
+            if (open (FIN, "/tmp/national.$$.csv")) {
+                while (<FIN>) {
+                    $lines++;
+                }
+                close (FIN);
+            }
+            if ($lines != 2) {
+                &log ('f', "harvested $lines lines from 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
+                &status ('f', "web service error for year $year");
+            }
+            my ($md5) = split (' ', `/usr/bin/md5sum /tmp/national.$$.csv`);
+            unlink ("/tmp/national.$$.csv");
+            if (exists ($data->{$year}{'service'}{'national.csv'})) {
+                if ($data->{$year}{'service'}{'national.csv'} ne $md5) {
+                    &log ('f', "data has changed for http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
+                    &status ('f', "web service error for year $year - data changed");
+                }
+            }
+            $done->{$year}{'service'}{'national.csv'} = $md5;
+            open (FIN, "find /var/lib/oa-indicator/runs/$year.prod/spreadsheets/ -type f | xargs md5sum |");
+            while (<FIN>) {
+                chomp;
+                my ($md5, $file) = split (' ', $_, 2);
+                $file =~ s/.*\///;
+                if (exists ($data->{$year}{'spreadsheet'}{$file})) {
+                    if ($data->{$year}{'spreadsheet'}{$file} ne $md5) {
+                        close (FIN);
+                        &log ('f', "data has changed for spreadsheet $file");
+                        &status ('f', "spreadsheet error for year $year/$file - data changed");
+                    }
+                }
+                $done->{$year}{'spreadsheet'}{$file} = $md5;
+            }
+            close (FIN);
+            last;
+        }
+    }
+}
+foreach my $year (keys (%{$data})) {
+    if (!exists ($done->{$year})) {
+        &log ('f', "missing data for year $year");
+        &status ('f', "missing data for year $year");
+    }
+    foreach my $type (keys (%{$data->{$year}})) {
+        if (!exists ($done->{$year}{$type})) {
+            &log ('f', "missing data for year $year, type $type");
+            &status ('f', "missing data for year $year, type $type");
+        }
+        foreach my $file (keys (%{$data->{$year}{$type}})) {
+            if (!exists ($done->{$year}{$type}{$file})) {
+                &log ('f', "missing data for year $year, type $type, file $file");
+                &status ('f', "missing data for year $year, type $type, file $file");
+            }
+        }
+    }
+}
+my $upd = 0;
+my @years = ();
+foreach my $year (sort (keys (%{$done}))) {
+    push (@years, $year);
+    if (!exists ($data->{$year})) {
+        $upd = 1;
+    }
+    foreach my $type (keys (%{$done->{$year}})) {
+        if (!exists ($data->{$year}{$type})) {
+            $upd = 1;
+            last;
+        }
+        foreach my $file (keys (%{$done->{$year}{$type}})) {
+            if (!exists ($data->{$year}{$type}{$file})) {
+                $upd = 1;
+                last;
+            }
+            if ($data->{$year}{$type}{$file} ne $done->{$year}{$type}{$file}) {
+                $upd = 1;
+                last;
+            }
+        }
+    }
+}
+if ($upd) {
+    my $i = 6;
+    while ($i) {
+        if (-e "$statusfile.$i") {
+            unlink ("$statusfile.$i");
+        }
+        my $ii = $i - 1;
+        if (-e "$statusfile.$ii") {
+            rename ("$statusfile.$ii", "$statusfile.$i");
+        }
+        $i--;
+    }
+    if (-e $statusfile) {
+        rename ($statusfile, "$statusfile.1");
+    }
+    if (!open (FOU, "> $statusfile")) {
+        &log ('f', "failed to open data file for output: $statusfile ($!)");
+        &status ('f', 'internal error');
+    }
+    foreach my $year (sort (keys (%{$done}))) {
+        foreach my $type (sort (keys (%{$done->{$year}}))) {
+            foreach my $file (sort (keys (%{$done->{$year}{$type}}))) {
+                print (FOU join ("\t", $year, $type, $done->{$year}{$type}{$file}, $file), "\n");
+            }
+        }
+    }
+    close (FOU);
+}
+&log ('i', 'valid data for years: ' . join (', ', @years));
+&status ('i', 'valid data for years: ' . join (', ', @years));
+
+sub log
+{
+    my ($level, $msg) = @_;
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
+
+    my $log = '/var/log/oa-indicator/status.log';
+    if (!open (FAP, ">> $log")) {
+        &status ('f', "failed to open log file: $log ($!)");
+    }
+    printf (FAP "%04d-%02d-%02d %02d:%02d:%02d %s %s\n", 1900 + $year, $mon + 1, $day, $hour, $min, $sec, $level, $msg);
+    close (FAP);
+}
+
+sub status
+{
+    my ($type, $msg) = @_;
+
+    if ($type eq 'i') {
+        print ("OK- $msg\n");
+        exit (0);
+    }
+    if ($type eq 'w') {
+        print ("WARNING- $msg\n");
+        exit (1);
+    }
+    if ($type eq 'f') {
+        print ("CRITICAL- $msg\n");
+        exit (2);
+    }
+    print ("CRITICAL- unknown type: $type - $msg\n");
+    exit (2);
+}
+
