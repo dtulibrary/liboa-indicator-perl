@@ -19,6 +19,9 @@ case "$1" in
                 ln -s /san/oa-indicator /var/lib/oa-indicator
             fi
         fi
+        chown nagios:nagios /usr/sbin/oa-indicator-status
+        touch /var/log/oa-indicator/status.log
+        chown nagios /var/log/oa-indicator/status.log
     ;;
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;

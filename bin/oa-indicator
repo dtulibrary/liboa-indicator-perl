@@ -273,7 +273,7 @@ if ($comm eq 'release') {
     } else {
         &usage ($oai);
     }
-    if ($run eq 'latest') {
+    if ((!$run) || ($run eq 'latest')) {
         $run = '';
     }
     my $db = new OA::Indicator::DB ();
