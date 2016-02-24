@@ -18,7 +18,7 @@ if (@ARGV) {
     die ("usage: oa-indicator-status [-r | --reset]\n");
 }
 my $data = {};
-my $statusfile = '/var/lib/oa-indicator/status.dat';
+my $statusfile = '/var/lib/oa-indicator/nagios/status.dat';
 if ((!$args->{'reset'}) && (-e $statusfile)) {
     if (!open (FIN, $statusfile)) {
         &log ('f', "failed to open data file: $statusfile ($!)");

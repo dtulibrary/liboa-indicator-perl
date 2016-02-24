@@ -21,8 +21,9 @@ install::
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/db
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/ft
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/log
-	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/tmp
+	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/nagios
 	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/runs
+	@mkdir -p $(DESTDIR)/var/lib/oa-indicator/tmp
 	@mkdir -p $(DESTDIR)/var/run/oa-indicator
 	@install -D -m 775 bin/oa-indicator $(DESTDIR)/usr/bin/oa-indicator
 	@for file in sbin/*; \
