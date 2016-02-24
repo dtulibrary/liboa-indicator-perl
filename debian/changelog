@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.02-04) unstable; urgency=low
+
+  * Hopefully the last nagios related change.
+    
+    GIT revision: fa74e1e49e07a07dc8756ac1a3f9b3fc0914b9a0
+
+ -- franck <franck@cvt.dk>  Wed, 24 Feb 2016 15:31:31 +0100
+
 liboa-indicator-perl (1.02-03) unstable; urgency=low
 
   * Still trying to get nagios to work...
