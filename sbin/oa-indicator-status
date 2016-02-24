@@ -36,7 +36,7 @@ my $db = new OA::Indicator::DB ();
 foreach my $year ($db->run_years ()) {
     foreach my $type ($db->run_types ($year)) {
         if ($type eq 'prod') {
-            system ("wget -O /tmp/national.$$.csv -o /dev/null 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
+            system ("/usr/bin/wget -O /tmp/national.$$.csv -o /dev/null 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
             if (!-s "/tmp/national.$$.csv") {
                 &log ('f', "failed to harvest 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
                 &status ('f', "web service error for year $year");
@@ -61,7 +61,7 @@ foreach my $year ($db->run_years ()) {
                 }
             }
             $done->{$year}{'service'}{'national.csv'} = $md5;
-            open (FIN, "find /var/lib/oa-indicator/runs/$year.prod/spreadsheets/ -type f | xargs md5sum |");
+            open (FIN, "/usr/bin/find /var/lib/oa-indicator/runs/$year.prod/spreadsheets/ -type f | /usr/bin/xargs /usr/bin/md5sum |");
             while (<FIN>) {
                 chomp;
                 my ($md5, $file) = split (' ', $_, 2);
@@ -171,18 +171,18 @@ sub status
     my ($type, $msg) = @_;
 
     if ($type eq 'i') {
-        print ("OK- $msg\n");
+        print ("OA-Indicator OK - $msg\n");
         exit (0);
     }
     if ($type eq 'w') {
-        print ("WARNING- $msg\n");
+        print ("OA-Indicator WARNING - $msg\n");
         exit (1);
     }
     if ($type eq 'f') {
-        print ("CRITICAL- $msg\n");
+        print ("OA-Indicator CRITICAL - $msg\n");
         exit (2);
     }
-    print ("CRITICAL- unknown type: $type - $msg\n");
+    print ("OA-Indicator CRITICAL - unknown type: $type - $msg\n");
     exit (2);
 }
 
