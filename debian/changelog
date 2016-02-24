@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.02-03) unstable; urgency=low
+
+  * Still trying to get nagios to work...
+    
+    GIT revision: cea8d2b84c3d7abd719636e7e09678f6e634918f
+
+ -- franck <franck@cvt.dk>  Wed, 24 Feb 2016 14:28:15 +0100
+
 liboa-indicator-perl (1.02-02) unstable; urgency=low
 
   * Polish of debian packaging for nagios
