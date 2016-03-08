@@ -69,12 +69,12 @@ research_area                  da Hovedforskningsområder
 
 hum                            en Humanities (HUM)
 hum                            da Humaniora (HUM)
-soc                            en Social Sciences (SOC)
-soc                            da Socialvidenskab (SOC)
-sci                            en Science (SCI)
-sci                            da Naturvidenskab/Teknik (SCI)
+soc                            en Social Science (SOC)
+soc                            da Samfundsvidenskab (SOC)
+sci                            en Science / Technology (SCI)
+sci                            da Teknik/naturvidenskab (SCI)
 med                            en Medicine (MED)
-med                            da Medicin (MED)
+med                            da Sundhedsvidenskab (MED)
 
 universities                   en Universities
 universities                   da Universiteter
