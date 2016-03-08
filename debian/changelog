@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.02-05) unstable; urgency=low
+
+  * Change of MRA labels requested to match UI
+    
+    GIT revision: ab5fbb9af6fef12c38737d76455af9cb215d546f
+
+ -- franck <franck@cvt.dk>  Tue, 08 Mar 2016 18:26:53 +0100
+
 liboa-indicator-perl (1.02-04) unstable; urgency=low
 
   * Hopefully the last nagios related change.
