@@ -5,7 +5,6 @@ use warnings;
 use Time::HiRes qw(time);
 use JSON::XS;
 use Text::CSV;
-use CGI;
 use OA::Indicator::DB;
 
 sub new
@@ -98,15 +97,15 @@ sub process
     if ($self->{'run'} eq 'latest') {
         $self->{'run'} = '';
     }
-    my $cgi = new CGI;
-    if (!($self->{'types'} = $cgi->param ('types'))) {
+    my $param = $self->cgi_params ();
+    if (!($self->{'types'} = $self->cgi_params ('types'))) {
         if (($self->{'type'}) && ($self->{'type'} ne 'prod')) {
             $self->{'types'} = 'prod,' . $self->{'type'};
         } else {
             $self->{'types'} = 'prod';
         }
     }
-    if (!defined ($self->{'success'} = $cgi->param ('success'))) {
+    if (!defined ($self->{'success'} = $self->cgi_params ('success'))) {
         $self->{'success'} = 1;
     }
     $self->{'result'}{'request'}{'types'} = $self->{'types'};
@@ -190,6 +189,29 @@ sub process
     if ($self->{'comm'} eq 'recordMXDraw') {
         $self->comm_recordMXDraw ($db, $self->{'args'}->[0]);
     }
+}
+
+sub cgi_params
+{
+    my ($self, $key) = @_;
+    if (!defined ($key)) {
+        my $params = {};
+
+        foreach my $par (split ('&', $ENV{'QUERY_STRING'})) {
+            my ($name, $value) = split ('=', $par, 2);
+            $name =~ s/\+/ /g;
+            $name =~ s/%([0-9a-f][0-9a-f])/pack ("C", hex ($1))/gie;
+            $value =~ s/\+/ /g;
+            $value =~ s/%([0-9a-f][0-9a-f])/pack ("C", hex ($1))/gie;
+            $params->{$name} = $value;
+        }
+        $self->{'cgi_params'} = $params;
+        return;
+    }
+    if (!defined ($self->{'cgi_params'})) {
+        die ('cgi_params: call $self->cgi_params (), first');
+    }
+    return ($self->{'cgi_params'}{$key});
 }
 
 sub comm_index
