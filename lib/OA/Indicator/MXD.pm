@@ -23,42 +23,39 @@ sub new
     close ($fh);
     $self->{'primary_fields'} = [qw(source_id year type level review research_area jno pno jtitle jtitle_alt doi title_main title_sub pubyear)];
     $self->{'xpath'} = {
-        source_id            => '/mxd:ddf_doc/@rec_id',
-        year                 => '/mxd:ddf_doc/@doc_year',
-        type                 => '/mxd:ddf_doc/@doc_type',
-        level                => '/mxd:ddf_doc/@doc_level',
-        review               => '/mxd:ddf_doc/@doc_review',
-        research_area        => '/mxd:ddf_doc/mxd:description/mxd:research_area/@area_code',
-        jno                  => '/mxd:ddf_doc/mxd:publication/@bfi_serial_no',
-        pno                  => '/mxd:ddf_doc/mxd:publication/@bfi_publisher_no',
-        jtitle               => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title',
-        jtitle_alt           => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title_alternative',
-        doi                  => '//mxd:doi',
-        title_main           => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:main',
-        title_sub            => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:sub',
-        pubyear              => '/mxd:ddf_doc/mxd:publication/*/mxd:year',
-        do                   => '/mxd:ddf_doc/mxd:publication/mxd:digital_object',
-        do_role              => '@role',
-        do_access            => '@access',
-        do_size              => 'mxd:file/@size',
-        do_mime              => 'mxd:file/@mime_type',
-        do_file              => 'mxd:file/@filename',
-        do_uri               => 'mxd:uri',
-        inet                 => '/mxd:ddf_doc/mxd:publication/mxd:inetpub',
-        inet_text            => 'mxd:text',
-        inet_uri             => 'mxd:uri',
-        inet_access          => 'mxd:uri/@access',
-        pissn                => '//mxd:issn[@type="pri"]',
-        eissn                => '//mxd:issn[@type="ele"]',
-        person               => '/mxd:ddf_doc/mxd:person',
-        person_role          => '@pers_role',
-        person_first         => 'mxd:name/mxd:first',
-        person_last          => 'mxd:name/mxd:last',
-        person_id            => 'mxd:id',
-        person_id_type       => '@id_type',
-        person_id_source     => '@id_source',
-        person_id_id         => '.',
-        person_email         => 'mxd:email',
+        source_id                  => '/mxd:ddf_doc/@rec_id',
+        year                       => '/mxd:ddf_doc/@doc_year',
+        type                       => '/mxd:ddf_doc/@doc_type',
+        level                      => '/mxd:ddf_doc/@doc_level',
+        review                     => '/mxd:ddf_doc/@doc_review',
+        research_area              => '/mxd:ddf_doc/mxd:description/mxd:research_area/@area_code',
+        jno                        => '/mxd:ddf_doc/mxd:publication/@bfi_serial_no',
+        pno                        => '/mxd:ddf_doc/mxd:publication/@bfi_publisher_no',
+        jtitle                     => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title',
+        jtitle_alt                 => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title_alternative',
+        doi                        => '//mxd:doi',
+        title_main                 => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:main',
+        title_sub                  => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:sub',
+        pubyear                    => '/mxd:ddf_doc/mxd:publication/*/mxd:year',
+        oa_link                    => '/mxd:ddf_doc/mxd:oa_link',
+        oa_link_version            => '@version',
+        oa_link_type               => '@type',
+        oa_link_public_access      => '@public_access',
+        oa_link_license            => '@license',
+        oa_link_embargo_start      => '@embargo_start',
+        oa_link_embargo_end        => '@embargo_end',
+        oa_link_url                => '@url',
+        pissn                      => '//mxd:issn[@type="pri"]',
+        eissn                      => '//mxd:issn[@type="ele"]',
+        person                     => '/mxd:ddf_doc/mxd:person',
+        person_role                => '@pers_role',
+        person_first               => 'mxd:name/mxd:first',
+        person_last                => 'mxd:name/mxd:last',
+        person_id                  => 'mxd:id',
+        person_id_type             => '@id_type',
+        person_id_source           => '@id_source',
+        person_id_id               => '.',
+        person_email               => 'mxd:email',
     };
     $self->{'xml'} = new OA::Indicator::XML (mxd => 'http://mx.forskningsdatabasen.dk/ns/documents/1.3');
     return (bless ($self, $class));
@@ -104,59 +101,23 @@ sub primary
 
 sub fulltext_fields
 {
-    return (qw(type uri access text role size mime filename));
+    return (qw(version type public_access license embargo_start embargo_end url));
 }
 
 sub fulltext
 {
     my ($self) = @_;
-    my @ret = ();
 
-    foreach my $obj ($self->{'xml'}->node ($self->{'xpath'}{'do'})) {
-        my $rec = ['digital_object'];
-        foreach my $f (qw(do_uri do_access blank do_role do_size do_mime do_file)) {
-            if ($f eq 'blank') {
-                push (@{$rec}, '');
-            } else {
-                my $s;
-                if ($s = $self->{'xml'}->field ($self->{'xpath'}{$f}, $obj)) {
-                    push (@{$rec}, $s);
-                } else {
-                    push (@{$rec}, '');
-                }
-            }
-        }
-        push (@ret, $rec);
-    }
-    foreach my $obj ($self->{'xml'}->node ($self->{'xpath'}{'inet'})) {
-        my $rec = ['inetpub'];
-        foreach my $f (qw(inet_uri inet_access inet_text)) {
+    my @ret = ();
+    foreach my $obj ($self->{'xml'}->node ($self->{'xpath'}{'oa_link'})) {
+        my $rec = [];
+        foreach my $f ($self->fulltext_fields ()) {
             my $s;
-            if ($s = $self->{'xml'}->field ($self->{'xpath'}{$f}, $obj)) {
+            if ($s = $self->{'xml'}->field ($self->{'xpath'}{'oa_link_' . $f}, $obj)) {
                 push (@{$rec}, $s);
             } else {
                 push (@{$rec}, '');
             }
-        }
-        my $url = $rec->[1];
-        if ($url =~ m/^\s*$/) {
-            next;
-        }
-        if ($url =~ m/\/\/([^\/]+)/) {
-            my $host = $1;
-            my $white = 0;
-            foreach my $dom (@{$self->{'whitelist'}}) {
-                if (($host eq $dom) || ($host =~ m/\.$dom$/)) {
-                    $white = 1;
-                    last;
-                }
-            }
-            if (!$white) {
-                next;
-            }
-        } else {
-            $self->{'oai'}->log ('e', "could not extra hostname from URL: $url (" . $self->id () . ")");
-            next;
         }
         push (@ret, $rec);
     }

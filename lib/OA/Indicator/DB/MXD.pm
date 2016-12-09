@@ -55,14 +55,13 @@ sub create
                    dads_id         text,
                    source          text,
                    source_id       text,
+                   version         text,
                    type            text,
-                   uri             text,
                    access          text,
-                   text            text,
-                   role            text,
-                   size            integer,
-                   mime            text,
-                   filename        text
+                   license         text,
+                   embargo_start   text,
+                   embargo_end     text,
+                   url             text
               )');
     $db->sql ('create index if not exists mxdft_dads_id on mxdft (dads_id)');
     $db->sql ('create index if not exists mxdft_source_id on mxdft (source_id)');
@@ -180,32 +179,6 @@ sub load_source
     }
     close ($fin);
     $self->{'oai'}->log ('i',  "loaded $count->{'rows'} ids");
-#   Loading fulltext, first getting digital_object URI's to then clean out duplicate URI
-    if (!open ($fin, "/var/lib/oa-indicator/$year/mxd/$src.ftx")) {
-        $self->{'oai'}->log ('f', "failed to open /var/lib/oa-indicator/$year/mxd/$src.ftx ($!)");
-        $self->{'oai'}->log ('f', 'failed');
-        return (0);
-    }
-    my $douri = {};
-    while (<$fin>) {
-        chomp;
-        if (m/^#/) {
-            next;
-        }
-        my $rec = {};
-        my @fields = split ("\t");
-        foreach my $fld (qw(dads_id type uri)) {
-            $rec->{$fld} = shift (@fields);
-        }
-        if ($rec->{'type'} eq 'digital_object') {
-            if (exists ($douri->{$rec->{'uri'}})) {
-                $self->{'oai'}->log ('w', "duplicate URI between $rec->{'dads_id'} and $douri->{$rec->{'uri'}}: $rec->{'uri'}");
-            } else {
-                $douri->{$rec->{'uri'}} = $rec->{'dads_id'};
-            }
-        }
-    }
-    close ($fin);
     if (!open ($fin, "/var/lib/oa-indicator/$year/mxd/$src.ftx")) {
         $self->{'oai'}->log ('f', "failed to open /var/lib/oa-indicator/$year/mxd/$src.ftx ($!)");
         $self->{'oai'}->log ('f', 'failed');
@@ -218,28 +191,22 @@ sub load_source
         }
         my $rec = {};
         my @fields = split ("\t");
-        foreach my $fld (qw(dads_id type uri access text role size mime filename)) {
+        foreach my $fld (qw(dads_id version type access license embargo_start embargo_end url)) {
             $rec->{$fld} = shift (@fields);
         }
+        if ((!defined ($rec->{'url'})) || ($rec->{'url'} =~ m/^[\s\t\r\n]*$/)) {
+            $count->{'ft-no-url'}++;
+            next;
+        }
+        $rec->{'embargo_start'} =~ s/\+.*//;
+        $rec->{'embargo_end'} =~ s/\+.*//;
         $rec->{'source_id'} = $idmap->{$rec->{'dads_id'}};
         $rec->{'source'} = $src;
-        if ($rec->{'type'} eq 'digital_object') {
-            delete ($rec->{'text'});
-            $self->{'db'}->insert ('mxdft', $rec);
-            $count->{'ft'}++;
-        } else {
-            if (!exists ($douri->{$rec->{'uri'}})) {
-                foreach my $f (qw(role size mime filename)) {
-                    delete ($rec->{$f});
-                }
-                $self->{'db'}->insert ('mxdft', $rec);
-                $count->{'ft'}++;
-            }
-        }
+        $self->{'db'}->insert ('mxdft', $rec);
+        $count->{'ft'}++;
     }
-    $douri = {};
     close ($fin);
-    $self->{'oai'}->log ('i',  "loaded $count->{'ft'} fulltext links");
+    $self->{'oai'}->log ('i',  "loaded $count->{'ft'} fulltext links, skipped $count->{'ft-no-url'} missing URL");
 #   Person records
     if (!open ($fin, "/var/lib/oa-indicator/$year/mxd/$src.persons")) {
         $self->{'oai'}->log ('f', "failed to open /var/lib/oa-indicator/$year/mxd/$src.persons ($!)");
@@ -430,6 +397,19 @@ sub field
     } else {
         return ('');
     }
+}
+
+sub fulltext
+{
+    my ($self, $id) = @_;
+
+    my $rs = $self->{'db'}->select ('*', 'mxdft', "dads_id='$id'");
+    my $rc;
+    my @ft = ();
+    while ($rc = $self->{'db'}->next ($rs)) {
+        push (@ft, $rc);
+    }
+    return (@ft);
 }
 
 sub fulltext_exists
