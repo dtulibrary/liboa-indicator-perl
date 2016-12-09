@@ -28,6 +28,7 @@ sub create
     $db->sql ('create table if not exists fulltext_requests (
                    id                    integer primary key,
                    dsid                  text,
+                   type                  text,
                    url                   text,
                    requested_first       integer,
                    requested_last        integer,
@@ -62,7 +63,7 @@ sub create
 
 sub request
 {
-    my ($self, $id, $url, $size, $mime, $filename) = @_;
+    my ($self, $id, $type, $url, $size, $mime, $filename) = @_;
 
     if ($url =~ m/^[\s\t\r\n]*$/) {
         $self->{'oai'}->log ('w', "skipping request with empty URL: %s", $id);
@@ -76,6 +77,7 @@ sub request
     my $rs = $db->select ('*', 'fulltext_requests', "dsid='$id' and url='$url'");
     my $rec;
     if ($rec = $db->next ($rs)) {
+        $rec->{'type'} = $type;
         $rec->{'size'} = $size;
         $rec->{'mime'} = $mime;
         $rec->{'pending'} = '1';
@@ -84,7 +86,7 @@ sub request
         $rec->{'status'} = '';
         $db->update ('fulltext_requests', 'id', $rec);
     } else {
-        $rec = {dsid => $id, url => $url, requested_first => time, requested_last => time,
+        $rec = {dsid => $id, type => $type, url => $url, requested_first => time, requested_last => time,
                 size => $size, mime => $mime, filename => $filename, pending => 1};
         $db->insert ('fulltext_requests', $rec);
     }
@@ -131,6 +133,7 @@ sub harvest
     }
     $self->{'oai'}->log ('i', "%d URL, %d URL cached, %d URL to harvest from %d hosts", $count->{'url'}, $count->{'cache'}, $count->{'harvest'}, $count->{'hosts'});
     my $match = 1;
+    my $done = {};
     while ($match) {
         $match = 0;
         foreach my $host (keys (%{$queue})) {
@@ -141,6 +144,20 @@ sub harvest
                 delete ($queue->{$host});
             }
             my ($rec, $rc) = @{$entry};
+            if ($done->{$rec->{'url'}}) {
+                $self->{'oai'}->log ('i', "processing already done URL: %s", $rec->{'url'});
+                if ($done->{$rec->{'url'}}{'status'} eq 'ok') {
+                    $rec->{'pending'} = 0;
+                    $rec->{'status'} = 'ok';
+                } else {
+                    $rec->{'status'} = 'error';
+                }
+                $db->update ('fulltext_requests', 'id', $rec);
+                $count->{'done'}++;
+                next;
+            } else {
+                $self->{'oai'}->log ('i', "processing new URL: %s", $rec->{'url'});
+            }
             if ($self->file_harvest ($rec, $rc)) {
                 $rec->{'pending'} = 0;
                 $rec->{'status'} = 'ok';
@@ -155,6 +172,7 @@ sub harvest
             } else {
                 $db->update ('fulltext', 'url', $rc);
             }
+            $done->{$rec->{'url'}} = $rec;
             $count->{'done'}++;
             $self->{'oai'}->log ('i', "done %d of %d URL: %s - %s", $count->{'done'}, $count->{'harvest'}, $rc->{'http_code'}, $rec->{'url'});
         }
@@ -163,7 +181,7 @@ sub harvest
 
 sub file_harvest
 {
-    my ($self, $req, $rec) = @_;
+    my ($self, $req, $rec, $redirect) = @_;
 
     if (!exists ($self->{'ua'})) {
         $self->{'ua'} = new LWP::UserAgent;
@@ -171,8 +189,9 @@ sub file_harvest
         $self->{'ua'}->timeout (180);
         $self->{'ua'}->ssl_opts (SSL_verify_mode => 'SSL_VERIFY_NONE', verify_hostnames => 0);
     }
-    my $re = new HTTP::Request ('GET' => $req->{'url'});
-    my $rs = $self->{'ua'}->request ($re);
+#   my $re = new HTTP::Request ('GET' => $req->{'url'});
+#   my $rs = $self->{'ua'}->request ($re);
+    my $rs = $self->http_get ($req->{'url'});
     $rec->{'http_code'} = $rs->code;
     $rec->{'http_message'} = $rs->message;
     if ($rec->{'success'} = $rs->is_success) {
@@ -302,6 +321,34 @@ sub file_harvest
         $rec->{'errors_total'}++;
     }
     return ($rec->{'success'});
+}
+
+sub http_get
+{
+    my ($self, $url, $redirect) = @_;
+
+    if (!defined ($redirect)) {
+        $redirect = 0;
+    }
+    my $re = new HTTP::Request ('GET' => $url);
+    my $rs = $self->{'ua'}->request ($re);
+    my $code = $rs->code;
+    if (($code == 301) || ($code == 302)) {
+        my $location = $rs->header ('Location');
+        if ($location) {
+            if ($redirect < 6) {
+                if ($location eq $url) {
+                    $self->{'oai'}->log ('i', "ignore redirect to same location: '%s'", $location);
+                } else {
+                    $self->{'oai'}->log ('i', "redirect from '%s' to '%s'", $url, $location);
+                    return ($self->http_get ($location, $redirect + 1));
+                }
+            } else {
+                $self->{'oai'}->log ('i', "exceeded number of redirect: $redirect");
+            }
+        }
+    }
+    return ($rs);
 }
 
 sub host
