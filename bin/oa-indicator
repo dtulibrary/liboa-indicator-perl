@@ -124,6 +124,16 @@ if ($comm eq 'load') {
         $oai->log ('f', "failed to load doaj: see $rundir/load_doaj.log");
         system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading doaj'");
     }
+    $oai->log ('i', 'loading doar');
+    if (system ("/usr/sbin/oa-indicator-load $year $run_type doar")) {
+        $oai->log ('f', "failed to load doar: see $rundir/load_doar.log");
+        system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading doar'");
+    }
+    $oai->log ('i', 'loading jwlep');
+    if (system ("/usr/sbin/oa-indicator-load $year $run_type jwlep")) {
+        $oai->log ('f', "failed to load jwlep: see $rundir/load_jwlep.log");
+        system ("/usr/sbin/oa-indicator-load $year $run_type end 0 'error loading jwlep'");
+    }
     $oai->log ('i', 'loading mxd');
     if (system ("/usr/sbin/oa-indicator-load $year $run_type mxd")) {
         $oai->log ('f', "failed to load doaj: see $rundir/load_mxd.log");
@@ -345,18 +355,27 @@ sub archive_source
     my ($year, $type) = @_;
     my $n = '01';
 
-    while ((-e "/var/lib/oa-indicator/$year/$type.$n") ||
-           (-e "/var/lib/oa-indicator/$year/$type.$n.tar") ||
-           (-e "/var/lib/oa-indicator/$year/$type.$n.tar.gz")) {
-        $n = sprintf ('%02d', $n + 1);
+    if (!-d "/var/lib/oa-indicator/$year/arch") {
+        if (!mkdir ("/var/lib/oa-indicator/$year/arch", 0775)) {
+            die ("fatal: failed to mkdir ('/var/lib/oa-indicator/$year/arch', 0775): @_\n");
+        }
     }
-    if (system ("cd /var/lib/oa-indicator/$year; tar cf $type.$n.tar $type")) {
+    my @stat = stat ("/var/lib/oa-indicator/$year/$type");
+    my ($sec, $min, $hour, $day, $mon, $yoff) = localtime ($stat[9]);
+    my $date = sprintf ('%04d-%02d-%02d.%02d.%02d.%02d', 1900 + $yoff, $mon + 1, $day, $hour, $min, $sec);
+    if (-e "/var/lib/oa-indicator/$year/arch/$type.$date.tar") {
+        die ("fatal: file already exists: /var/lib/oa-indicator/$year/arch/$type.$date.tar\n");
+    }
+    if (-e "/var/lib/oa-indicator/$year/arch/$type.$date.tar.gz") {
+        die ("fatal: file already exists: /var/lib/oa-indicator/$year/arch/$type.$date.tar.gz\n");
+    }
+    if (system ("cd /var/lib/oa-indicator/$year; tar cf arch/$type.$date.tar $type")) {
         die ("fatal: failed to tar existing source:\n" .
-             "       cd /var/lib/oa-indicator/$year; tar cf $type.$n.tar $type\n");
+             "       cd /var/lib/oa-indicator/$year; tar cf arch/$type.$date.tar $type\n");
     }
-    if (system ("gzip -9 /var/lib/oa-indicator/$year/$type.$n.tar")) {
+    if (system ("gzip -9 /var/lib/oa-indicator/$year/arch/$type.$date.tar")) {
         die ("fatal: failed to gzip existing source:\n" .
-             "       gzip /var/lib/oa-indicator/$year/$type.$n.tar\n");
+             "       gzip /var/lib/oa-indicator/$year/arch/$type.$date.tar\n");
     }
     if (system ("rm -rf /var/lib/oa-indicator/$year/$type")) {
         die ("fatal: failed to remove existing source after archiving:\n" .
