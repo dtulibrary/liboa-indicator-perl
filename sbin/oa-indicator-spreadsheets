@@ -94,11 +94,13 @@ foreach my $type (qw(eng dan int)) {
 #   whitelist
     $oai->log ('i', 'creating %s %s', $type, 'whitelist');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_whitelist.xlsx");
+    &cover ($sheet, $labels, $lang, 'white');
     &whitelist ($sheet, $labels, $lang);
     $sheet->{'wb'}->close ();
 #   blacklist
     $oai->log ('i', 'creating %s %s', $type, 'blacklist');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_blacklist.xlsx");
+    &cover ($sheet, $labels, $lang, 'black');
     &blacklist ($sheet, $labels, $lang);
     $sheet->{'wb'}->close ();
 }
@@ -892,10 +894,11 @@ sub cover
     $row++;
     &write ($sps, 'cover', $row, 1, 14, 'cover-title', &label ($labels, $lang, 'cover-oa-indicator'));
     $row++;
-    &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-indicator-year'));
-    &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year + 1);
-    &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
-    $row++;
+#   Removed by FI request
+#   &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-indicator-year'));
+#   &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year + 1);
+#   &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
+#   $row++;
     &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-submission-year'));
     &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year);
     &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
@@ -925,10 +928,22 @@ sub cover
     $row++;
     if ($int) {
         &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-pri-int'));
+    } elsif (($type eq 'white') || ($type eq 'black')) {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-bw-tab'));
     } else {
         &write ($sps, 'cover', $row, 1, 14, 'cover-label-merged', &label ($labels, $lang, 'cover-pri'));
     }
     $row++;
+    if ($type eq 'white') {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-bw-w"));
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+        return ();
+    }
+    if ($type eq 'black') {
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-bw-b"));
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+        return ();
+    }
     for (my $i = 1; $i < 4; $i++) {
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-pri-$i"));
         $row++;

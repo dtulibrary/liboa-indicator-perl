@@ -39,6 +39,15 @@ cover-sec-1                    da "Descoped Records": Records screened off as pa
 cover-sec-2                    en "Supplement BFI Records": Records from BFI not in scope, but with in-scope duplicates 
 cover-sec-2                    da "Supplement BFI Records": Records from BFI not in scope, but with in-scope duplicates 
 
+cover-bw-tab                   en Tab
+cover-bw-tab                   da Fane
+cover-bw-b                     en "Journals with long embargo": List of journals with embargo periods of more than 12 months, \
+                                  used to reclassify from Unused to Unclear
+cover-bw-b                     da "Tidsskrifter med lang embargo": Liste af tidsskrifter med embargo-periode på over 12 måneder, \
+                                  anvendes til at omklassificere fra Uudnyttet til Uklart OA potentiale
+cover-bw-w                     en "Accepted repositories": Repositories accepted for depositing Green Open Access versions of publications
+cover-bw-w                     en "Godkendte arkiver": Arkiver, godkendt til deponering af grøn open access versioner af publikationer
+
 national                       en National
 national                       da Nationalt
 all                            en All
@@ -220,10 +229,11 @@ year-pub                       en Pub. Year
 year-pub                       da Pub. Year
 year-ary                       en Sub. Year
 year-ary                       da Sub. Year
-whitelist                      en Whitelist for external repositories
-whitelist                      da Whitelist for eksterne repositorier
-whitelist-sheet                en Whitelist
-whitelist-sheet                da Whitelist
+
+whitelist                      en Accepted repositories
+whitelist                      da Godkendte arkiver
+whitelist-sheet                en Accepted repositories
+whitelist-sheet                da Godkendte arkiver
 whitelist-name                 en Name
 whitelist-name                 da Titel/Navn
 whitelist-type                 en Type
@@ -236,10 +246,11 @@ whitelist-path                 en Path
 whitelist-path                 da Path
 whitelist-proposer             en Proposer
 whitelist-proposer             da Forslagsstiller
-blacklist                      en Blacklist for long embargo periods
-blacklist                      da Blacklist for long embargo periods
-blacklist-sheet                en Blacklist
-blacklist-sheet                da Blacklist
+
+blacklist                      en Journals with long embargo, more than 12 months
+blacklist                      da Tidsskrifter med lang embargo-periode - over 12 måneder
+blacklist-sheet                en Journals with long embargo
+blacklist-sheet                da Tidsskrifter med lang embargo
 blacklist-title                en Journal title
 blacklist-title                da Tidsskriftstitel
 blacklist-pissn                en ISSN
@@ -248,7 +259,7 @@ blacklist-eissn                en E-ISSN
 blacklist-eissn                da E-ISSN
 blacklist-publisher            en Publisher
 blacklist-publisher            da Forlag
-blacklist-embargo              en Embargo periode
+blacklist-embargo              en Embargo period
 blacklist-embargo              da Embargo periode
 blacklist-url                  en URL
 blacklist-url                  da URL

@@ -198,7 +198,6 @@ sub file_harvest
         $rec->{'success'} = 1;
         my $s = $rs->header ('Client-Aborted');
         if ((defined ($s)) && ($s !~ m/^\s*$/)) {
-            $rec->{'client_aborted'} = $s;
             if ($s eq 'die') {
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'client_aborted - die';
