@@ -3,7 +3,7 @@ package OA::Indicator::Segments::Classify;
 use strict;
 use warnings;
 use DB::SQLite;
-use OA::Indicator::DB::MXD;
+use OA::Indicator::DB::DOAR;
 
 sub new
 {
@@ -13,6 +13,7 @@ sub new
     $self->{'db'} = $db;
     $self->{'oai'} = $oai;
     $self->{'ft'} = new DB::SQLite ("/var/lib/oa-indicator/db/fulltext.sqlite3", DieError => 1);
+    $self->{'wl'} = new OA::Indicator::DB::DOAR ($db, $oai);
     return (bless ($self, $class));
 }
 
@@ -24,7 +25,9 @@ sub process
     my $records = {};
     my $publications = {};
     my $rec;
-    my $rs = $self->{'db'}->select ('id,doaj_issn,bfi_level,romeo_color,fulltext_link,fulltext_link_oa,fulltext_downloaded,fulltext_verified,dedupkey,research_area,bfi_research_area',
+#   Getting records to classify
+    my $rs = $self->{'db'}->select ('id,doaj_issn,bfi_level,romeo_color,romeo_issn,fulltext_link,fulltext_link_oa,fulltext_downloaded,fulltext_verified,dedupkey,' .
+                                    'research_area,bfi_research_area',
                                     'records',
                                     'scoped = 1 and screened = 1');
     while ($rec = $self->{'db'}->next ($rs)) {
@@ -32,6 +35,7 @@ sub process
         $records->{$rec->{'id'}} = $rec;
         $publications->{$rec->{dedupkey}}{$rec->{'id'}} = $rec;
     }
+#   Setting publication research area
     foreach my $dkey (keys (%{$publications})) {
         my $bfi_research_area = '';
         my $bfi_research_area_error = 0;
@@ -64,10 +68,22 @@ sub process
             $count->{'oa-link'}++;
             my $rc;
             my @url = ();
-            my $rs = $self->{'ft'}->select ('url', 'fulltext_requests', "dsid='$id'");
+            my $rs = $self->{'ft'}->select ('type,url', 'fulltext_requests', "dsid='$id'");
             while ($rc = $self->{'ft'}->next ($rs)) {
                 if ((defined ($rc->{'url'})) && ($rc->{'url'} !~ m/^[\s\n\r]*$/)) {
-                    push (@url, $rc->{'url'});
+                    if ($rc->{'type'} eq 'loc') {
+                        push (@url, $rc->{'url'});
+                    } elsif ($rc->{'type'} eq 'rem') {
+                        my $uri;
+                        if ($uri = $self->{'wl'}->valid ($rc->{'url'})) {
+                            push (@url, $rc->{'url'});
+                            $self->{'oai'}->log ('i', "valid URL based on '%s': %s", $uri, $rc->{'url'});
+                        } else {
+                            $self->{'oai'}->log ('i', "invalid URL: %s", $rc->{'url'});
+                        }
+                    } else {
+                        $self->{'oai'}->log ('e', "unknown type ($rc->{'type'}) for URL: $rc->{'url'}");
+                    }
                 }
             }
             foreach my $u (@url) {
@@ -85,7 +101,7 @@ sub process
                     } else {
 #                       Special check because we want a very wide understanding of valid fulltext this year
                         if (($rc->{'http_code'} eq '200') && ($rc->{'size'} > 0) && ($rc->{'error_message'} eq 'PDF error')) {
-                            $count->{'ft-success-2014'}++;
+                            $count->{'ft-success-2015'}++;
                             $rec->{'fulltext_downloaded'} = 1;
                             $rec->{'fulltext_verified'} = 1;
                         }
