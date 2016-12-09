@@ -189,6 +189,12 @@ sub process
     if ($self->{'comm'} eq 'recordMXDraw') {
         $self->comm_recordMXDraw ($db, $self->{'args'}->[0]);
     }
+    if ($self->{'comm'} eq 'whitelist') {
+        $self->comm_whitelist ($db);
+    }
+    if ($self->{'comm'} eq 'blacklist') {
+        $self->comm_blacklist ($db);
+    }
 }
 
 sub cgi_params
@@ -746,8 +752,53 @@ sub comm_publication
         }
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
     }
+    $self->respond ();
+}
 
+sub comm_whitelist
+{
+    my ($self, $db) = @_;
+    my $ret = {};
 
+    $self->{'result'}{'response'}{'body'}{'record'} = [];
+    my $rs = $db->select ('name,type,uri,domain,path,proposer', 'doar', '', 'order by name');
+    my $rc;
+    while ($rc = $db->next ($rs)) {
+        push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
+    }
+    $self->respond ();
+}
+
+sub comm_blacklist
+{
+    my ($self, $db) = @_;
+    my $ret = {};
+
+    $self->{'result'}{'response'}{'body'}{'record'} = [];
+    my $rs = $db->select ('title,pissn,eissn,publisher,embargo,url', 'jwlep');
+    my $rc;
+    my $records = {};
+    while ($rc = $db->next ($rs)) {
+        if ($rc->{'pissn'} =~ m/^[0-9]{7}[0-9Xx]/) {
+            $rc->{'pissn'} = substr ($rc->{'pissn'}, 0, 4) . '-' . uc (substr ($rc->{'pissn'}, 4));
+        }
+        if ($rc->{'eissn'} =~ m/^[0-9]{7}[0-9Xx]/) {
+            $rc->{'eissn'} = substr ($rc->{'eissn'}, 0, 4) . '-' . uc (substr ($rc->{'eissn'}, 4));
+        }
+        my $key = lc ($rc->{'title'});
+        $key =~ s/[^0-9a-z]+/ /g;
+        $key =~ s/\s\s+/ /g;
+        $key =~ s/^\s+//;
+        $key =~ s/\s+$//;
+        if (exists ($records->{$key})) {
+            push (@{$records->{$key}}, $rc);
+        } else {
+            $records->{$key} = [$rc];
+        }
+    }
+    foreach my $key (sort (keys (%{$records}))) {
+        push (@{$self->{'result'}{'response'}{'body'}{'record'}}, @{$records->{$key}});
+    }
     $self->respond ();
 }
 
@@ -1225,6 +1276,58 @@ sub respond_csv_encode
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
             foreach my $fld (qw(title first_author source research_area doi issn pubyear year bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
+                push (@cols, $rec->{$fld});
+            }
+            $csv->print (*STDOUT, \@cols);
+            print ("\n");
+        }
+        return ($result);
+    }
+    if ($self->{'comm'} eq 'whitelist') {
+        my $csv = new Text::CSV ({binary => 1, sep_char => "\t"});
+        my $fields = {
+            name          => 'Name',
+            type          => 'Type',
+            uri           => 'URL',
+            domain        => 'Host',
+            path          => 'Path',
+            proposer      => 'Proposer',
+        };
+        my @cols = ();
+        foreach my $fld (qw(name type uri domain path proposer)) {
+            push (@cols, $fields->{$fld});
+        }
+        $csv->print (*STDOUT, \@cols);
+        print ("\n");
+        foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
+            @cols = ();
+            foreach my $fld (qw(name type uri domain path proposer)) {
+                push (@cols, $rec->{$fld});
+            }
+            $csv->print (*STDOUT, \@cols);
+            print ("\n");
+        }
+        return ($result);
+    }
+    if ($self->{'comm'} eq 'blacklist') {
+        my $csv = new Text::CSV ({binary => 1, sep_char => "\t"});
+        my $fields = {
+            title         => 'Journal title',
+            pissn         => 'ISSN',
+            eissn         => 'E-ISSN',
+            publisher     => 'Publisher',
+            embargo       => 'Embargo periode',
+            url           => 'URL',
+        };
+        my @cols = ();
+        foreach my $fld (qw(title pissn eissn publisher embargo url)) {
+            push (@cols, $fields->{$fld});
+        }
+        $csv->print (*STDOUT, \@cols);
+        print ("\n");
+        foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
+            @cols = ();
+            foreach my $fld (qw(title pissn eissn publisher embargo url)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
