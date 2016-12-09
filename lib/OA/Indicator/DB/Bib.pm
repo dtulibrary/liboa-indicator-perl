@@ -130,13 +130,21 @@ sub load
         }
         $self->{'first_author'}{$rec->{'id'}} = $rec->{'first_author'};
         $self->{'first_author_pos'}{$rec->{'id'}} = $rec->{'first_author_pos'};
+        my $blacklist = 0;
         if ($rec->{'issn'}) {
             foreach my $issn (split (',', $rec->{'issn'})) {
                 if ($issn =~ m/^[0-9]{7}[0-9X]$/) {
                     if ((!$self->{'doaj_issn'}{$rec->{'id'}}) && ($self->{'doaj'}->exists ($issn))) {
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
                     }
+                    if ($blacklist) {
+                        if (!$self->{'bl'}->valid ($issn)) {
+                            $self->{'oai'}->log ('i', "skipping ISSN $issn, because of blacklisted ISSN: $blacklist");
+                            next;
+                        }
+                    }
                     if ($self->{'bl'}->valid ($issn)) {
+                        $blacklist = $issn;
                         $self->{'oai'}->log ('i', "skipping blacklisted ISSN: $issn");
                         next;
                     }
@@ -155,7 +163,14 @@ sub load
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
                         last;
                     }
+                    if ($blacklist) {
+                        if (!$self->{'bl'}->valid ($issn)) {
+                            $self->{'oai'}->log ('i', "skipping E-ISSN $issn, because of blacklisted ISSN: $blacklist");
+                            next;
+                        }
+                    }
                     if ($self->{'bl'}->valid ($issn)) {
+                        $blacklist = $issn;
                         $self->{'oai'}->log ('i', "skipping blacklisted E-ISSN: $issn");
                         next;
                     }
