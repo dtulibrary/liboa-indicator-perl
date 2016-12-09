@@ -220,3 +220,35 @@ year-pub                       en Pub. Year
 year-pub                       da Pub. Year
 year-ary                       en Sub. Year
 year-ary                       da Sub. Year
+whitelist                      en Whitelist for external repositories
+whitelist                      da Whitelist for eksterne repositorier
+whitelist-sheet                en Whitelist
+whitelist-sheet                da Whitelist
+whitelist-name                 en Name
+whitelist-name                 da Titel/Navn
+whitelist-type                 en Type
+whitelist-type                 da Type
+whitelist-uri                  en URL
+whitelist-uri                  da URL
+whitelist-host                 en Host
+whitelist-host                 da Host
+whitelist-path                 en Path
+whitelist-path                 da Path
+whitelist-proposer             en Proposer
+whitelist-proposer             da Forslagsstiller
+blacklist                      en Blacklist for long embargo periods
+blacklist                      da Blacklist for long embargo periods
+blacklist-sheet                en Blacklist
+blacklist-sheet                da Blacklist
+blacklist-title                en Journal title
+blacklist-title                da Tidsskriftstitel
+blacklist-pissn                en ISSN
+blacklist-pissn                da ISSN
+blacklist-eissn                en E-ISSN
+blacklist-eissn                da E-ISSN
+blacklist-publisher            en Publisher
+blacklist-publisher            da Forlag
+blacklist-embargo              en Embargo periode
+blacklist-embargo              da Embargo periode
+blacklist-url                  en URL
+blacklist-url                  da URL

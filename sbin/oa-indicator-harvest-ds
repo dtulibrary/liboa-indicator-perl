@@ -11,10 +11,12 @@ use OA::Indicator::MODS::MXD;
 use OA::Indicator::MODS::Romeo;
 use OA::Indicator::MODS::DOAJ;
 use OA::Indicator::MODS::BFI;
+use OA::Indicator::MODS::DOAR;
+use OA::Indicator::MODS::JWlep;
 
 my $oai = new OA::Indicator (verbose => 1);
 my $handler = {mxd => new OA::Indicator::MODS::MXD (), romeo => new OA::Indicator::MODS::Romeo (), doaj => new OA::Indicator::MODS::DOAJ (),
-               bfi => new OA::Indicator::MODS::BFI ()};
+               bfi => new OA::Indicator::MODS::BFI (), doar  => new OA::Indicator::MODS::DOAR (), jwlep => new OA::Indicator::MODS::JWlep ()};
 #Parse arguments
 my $args = {start => time};
 while ($ARGV[0] =~ m/^-/) {
@@ -130,6 +132,12 @@ while (1) {
                 foreach my $rec ($handler->{'bfi'}->primary ()) {
                     &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', @{$rec}), "\n");
                 }
+            } elsif ($args->{'type'} eq 'doar') {
+                $handler->{'doar'}->parse ($xml);
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'doar'}->primary ()), "\n");
+            } elsif ($args->{'type'} eq 'jwlep') {
+                $handler->{'jwlep'}->parse ($xml);
+                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'jwlep'}->primary ()), "\n");
             } else {
                 &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
             }
@@ -256,6 +264,8 @@ sub source
         sdu     => 'rdb_sdu',
         romeo   => 'romeo',
         doaj    => 'doaj_jou',
+        doar    => 'doar',
+        jwlep   => 'jwlep',
         bfi     => 'bfi',
     };
     if (defined ($src)) {
@@ -333,8 +343,12 @@ sub open_files
                     if (m/^#/) {
                         next;
                     }
+                    chomp;
                     $count->{'total'}++;
                     my ($id, $stamp, $date, $status, $source, $source_id, $pubid) = split ("\t");
+                    if ($status eq 'deleted') {
+                        next;
+                    }
                     $source = lc ($source);
                     $source =~ s/[^a-z]//g;
                     if ($source eq $src) {

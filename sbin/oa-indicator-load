@@ -18,7 +18,7 @@ if (!-e $dir) {
 if ($run_type !~ m/^(devel|test|prod)$/) {
     &usage ($oai, "invalid run-type: $run_type");
 }
-if ($data_type !~ m/^(begin|bfi|bib|doaj|mxd|romeo|end)$/) {
+if ($data_type !~ m/^(begin|bfi|bib|doaj|doar|jwlep|mxd|romeo|end)$/) {
     &usage ($oai, "invalid data-type: $data_type");
 }
 if ($data_type !~ m/^(begin|end)$/) {
@@ -60,6 +60,16 @@ if ($data_type eq 'bfi') {
 } elsif ($data_type eq 'doaj') {
     require OA::Indicator::DB::DOAJ;
     $handler = new OA::Indicator::DB::DOAJ ($db, $oai);
+    system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
+    system ("cp /var/lib/oa-indicator/$year/$data_type/$data_type.log $rundir/harvest-$data_type-ds2.log");
+} elsif ($data_type eq 'doar') {
+    require OA::Indicator::DB::DOAR;
+    $handler = new OA::Indicator::DB::DOAR ($db, $oai);
+    system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
+    system ("cp /var/lib/oa-indicator/$year/$data_type/$data_type.log $rundir/harvest-$data_type-ds2.log");
+} elsif ($data_type eq 'jwlep') {
+    require OA::Indicator::DB::JWlep;
+    $handler = new OA::Indicator::DB::JWlep ($db, $oai);
     system ("cp /var/lib/oa-indicator/$year/$data_type/harvest.log $rundir/harvest-$data_type.log");
     system ("cp /var/lib/oa-indicator/$year/$data_type/$data_type.log $rundir/harvest-$data_type-ds2.log");
 } elsif ($data_type eq 'mxd') {

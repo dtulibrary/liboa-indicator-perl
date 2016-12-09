@@ -19,11 +19,13 @@ sub new
         prod  => 'Production',
         test  => 'Test',
     };
-    $self->{'data-types'} = [qw(bfi doaj romeo bib mxd)];
+    $self->{'data-types'} = [qw(bfi doaj doar jwlep romeo bib mxd)];
     $self->{'data-type'}  = {
         bfi     => 'BFI',
         bib     => 'Bib',
         doaj    => 'DOAJ',
+        doar    => 'DOAR',
+        jwlep   => 'JWlep',
         mxd     => 'MXD',
         romeo   => 'Sherpa/Romeo',
     };

@@ -23,7 +23,7 @@ if ($run_type !~ m/^(devel|test|prod)$/) {
 my $db = new OA::Indicator::DB ();
 $db->reuse ($year, $run_type);
 &start_run ($oai, $db);
-foreach my $type (qw(national universities research_area records publications screened extra)) {
+foreach my $type (qw(national universities research_area records publications screened extra whitelist blacklist)) {
     foreach my $format (qw(csv xml json)) {
         $oai->log ('i', 'harvesting %s.%s', $type, $format);
         system ("wget -S -o cache/$type.$format.log -O cache/$type.$format " .
@@ -90,6 +90,16 @@ foreach my $type (qw(eng dan int)) {
         &screened ($sheet, $labels, $lang);
 #       &extra ($sheet, $labels, $lang);
     }
+    $sheet->{'wb'}->close ();
+#   whitelist
+    $oai->log ('i', 'creating %s %s', $type, 'whitelist');
+    $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_whitelist.xlsx");
+    &whitelist ($sheet, $labels, $lang);
+    $sheet->{'wb'}->close ();
+#   blacklist
+    $oai->log ('i', 'creating %s %s', $type, 'blacklist');
+    $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_blacklist.xlsx");
+    &blacklist ($sheet, $labels, $lang);
     $sheet->{'wb'}->close ();
 }
 $oai->log ('i', 'done');
@@ -197,6 +207,174 @@ sub extra
                 } else {
                     &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
                 }
+            }
+            $col++;
+        }
+        $row++;
+    }
+    close ($fin);
+}
+
+sub whitelist
+{
+    my ($sps, $labels, $lang) = @_;
+
+    my $width = {
+        'name'                    =>  50,
+        'type'                    =>  10,
+        'uri'                     =>  40,
+        'host'                    =>  32,
+        'path'                    =>  20,
+        'proposer'                =>  20,
+    };
+    my $center = {
+        'type'                    => 1,
+    };
+    my @fields_input = (
+        'name', 'type', 'uri', 'host', 'path', 'proposer'
+    );
+    my @fields_official = (
+        'name', 'type', 'uri', 'host', 'path', 'proposer'
+    );
+    my $name = 'whitelist';
+    &worksheet ($sps, $name, &label ($labels, $lang, 'whitelist-sheet'));
+    my @sizes = ();
+    foreach my $fld (@fields_official) {
+        push (@sizes, $width->{$fld});
+    }
+    &set_size ($sps, $name, @sizes);
+    my $row = 1;
+    &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, 'whitelist'));
+    $row++;
+    $row++;
+    my @fields = @fields_official;
+    my $col = 0;
+    foreach my $fld (@fields) {
+        if ($fld !~ m/^spacer-/) {
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-center', &label ($labels, $lang, 'whitelist-' . $fld));
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'label', &label ($labels, $lang, 'whitelist-' . $fld));
+            }
+        }
+        $col++;
+    }
+    $row++;
+    open (my $fin, "cache/$name.csv");
+    binmode ($fin, 'utf8');
+    my $s = <$fin>;
+    while (<$fin>) {
+        chomp;
+        my $col = 0;
+        my @cols = split ("\t", $_);
+        my $rec = {};
+        foreach my $fld (@fields_input) {
+            $rec->{$fld} = shift (@cols);
+            if (defined ($rec->{$fld})) {
+                $rec->{$fld} =~ s/^\s*"//;
+                $rec->{$fld} =~ s/"\s*$//;
+                $rec->{$fld} =~ s/""/"/g;
+            } else {
+                $rec->{$fld} = '';
+            }
+        }
+        foreach my $fld (@fields) {
+            if ($fld =~ m/^spacer-/) {
+                $col++;
+                next;
+            }
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
+            }
+            $col++;
+        }
+        $row++;
+    }
+    close ($fin);
+}
+
+sub blacklist
+{
+    my ($sps, $labels, $lang) = @_;
+
+    my $width = {
+        'title'                   =>  80,
+        'pissn'                   =>  10,
+        'eissn'                   =>  10,
+        'publisher'               =>  30,
+        'embargo'                 =>  10,
+        'url'                     =>  100,
+    };
+    my $center = {
+        'pissn'                   => 1,
+        'eissn'                   => 1,
+    };
+    my $right = {
+        'embargo'                 => 1,
+    };
+    my @fields_input = (
+        'title', 'pissn', 'eissn', 'publisher', 'embargo', 'url',
+    );
+    my @fields_official = (
+        'title', 'pissn', 'eissn', 'publisher', 'embargo', 'url',
+    );
+    my $name = 'blacklist';
+    &worksheet ($sps, $name, &label ($labels, $lang, 'blacklist-sheet'));
+    my @sizes = ();
+    foreach my $fld (@fields_official) {
+        push (@sizes, $width->{$fld});
+    }
+    &set_size ($sps, $name, @sizes);
+    my $row = 1;
+    &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, 'blacklist'));
+    $row++;
+    $row++;
+    my @fields = @fields_official;
+    my $col = 0;
+    foreach my $fld (@fields) {
+        if ($fld !~ m/^spacer-/) {
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-center', &label ($labels, $lang, 'blacklist-' . $fld));
+            } elsif ($right->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-right', &label ($labels, $lang, 'blacklist-' . $fld));
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'label', &label ($labels, $lang, 'blacklist-' . $fld));
+            }
+        }
+        $col++;
+    }
+    $row++;
+    open (my $fin, "cache/$name.csv");
+    binmode ($fin, 'utf8');
+    my $s = <$fin>;
+    while (<$fin>) {
+        chomp;
+        my $col = 0;
+        my @cols = split ("\t", $_);
+        my $rec = {};
+        foreach my $fld (@fields_input) {
+            $rec->{$fld} = shift (@cols);
+            if (defined ($rec->{$fld})) {
+                $rec->{$fld} =~ s/^\s*"//;
+                $rec->{$fld} =~ s/"\s*$//;
+                $rec->{$fld} =~ s/""/"/g;
+            } else {
+                $rec->{$fld} = '';
+            }
+        }
+        foreach my $fld (@fields) {
+            if ($fld =~ m/^spacer-/) {
+                $col++;
+                next;
+            }
+            if ($center->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
+            } elsif ($right->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'text-right', $rec->{$fld}, fix_width => 0);
+            } else {
+                &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
             }
             $col++;
         }
@@ -975,7 +1153,7 @@ sub label
     if (exists ($labels->{$lang}{$name})) {
         return ($labels->{$lang}{$name});
     } else {
-        die ("fatal: label '$name' not found for lamguage '$lang'\n");
+        die ("fatal: label '$name' not found for language '$lang'\n");
     }
 }
 

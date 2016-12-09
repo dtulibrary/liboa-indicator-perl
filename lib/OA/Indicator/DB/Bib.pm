@@ -5,6 +5,7 @@ use warnings;
 use OA::Indicator::DB::DOAJ;
 use OA::Indicator::DB::BFI;
 use OA::Indicator::DB::Romeo;
+use OA::Indicator::DB::JWlep;
 
 our $VERSION = '1.0';
 
@@ -18,6 +19,7 @@ sub new
     $self->{'doaj'}  = new OA::Indicator::DB::DOAJ ($db, $oai);
     $self->{'bfi'}   = new OA::Indicator::DB::BFI ($db, $oai);
     $self->{'romeo'} = new OA::Indicator::DB::Romeo ($db, $oai);
+    $self->{'bl'}    = new OA::Indicator::DB::JWlep ($db, $oai);
     return (bless ($self, $class));
 }
 
@@ -134,6 +136,10 @@ sub load
                     if ((!$self->{'doaj_issn'}{$rec->{'id'}}) && ($self->{'doaj'}->exists ($issn))) {
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
                     }
+                    if ($self->{'bl'}->valid ($issn)) {
+                        $self->{'oai'}->log ('i', "skipping blacklisted ISSN: $issn");
+                        next;
+                    }
                     my $color = $self->{'romeo'}->color ($issn);
                     if ($self->color_id ($color->[0]) > $self->color_id ($self->{'romeo_color'}{$rec->{'id'}})) {
                         $self->{'romeo_color'}{$rec->{'id'}} = $color->[0];
@@ -148,6 +154,10 @@ sub load
                     if ((!$self->{'doaj_issn'}{$rec->{'id'}}) && ($self->{'doaj'}->exists ($issn))) {
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
                         last;
+                    }
+                    if ($self->{'bl'}->valid ($issn)) {
+                        $self->{'oai'}->log ('i', "skipping blacklisted E-ISSN: $issn");
+                        next;
                     }
                     my $color = $self->{'romeo'}->color ($issn);
                     if ($self->color_id ($color->[0]) > $self->color_id ($self->{'romeo_color'}{$rec->{'id'}})) {
