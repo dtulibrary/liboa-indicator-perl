@@ -936,11 +936,13 @@ sub cover
     $row++;
     if ($type eq 'white') {
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-bw-w"));
+        $row++;
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
         return ();
     }
     if ($type eq 'black') {
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-bw-b"));
+        $row++;
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
         return ();
     }
