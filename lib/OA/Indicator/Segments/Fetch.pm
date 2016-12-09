@@ -39,31 +39,64 @@ sub process
     my $ft = new OA::Indicator::DB::Fulltext ($self->{'oai'});
     $ft->create ();
     foreach my $id (keys (%{$records})) {
-        if (!$mxd->fulltext_exists ($id)) {
-            $self->update ($records->{$id});
-            $count->{'noft'}++;
-            next;
+        $count->{'ft'} = 0;
+        foreach my $rc ($mxd->fulltext ($id)) {
+            if ($rc->{'type'} !~ m/^(loc|rem)$/) {
+                $count->{'invalid-type'}{$rc->{'type'}}++;
+                next;
+            }
+            if ($rc->{'url'} !~ m/^https?:/i) {
+                my ($protocol) = split (':', $rc->{'url'});
+                if (!$protocol) {
+                    $protocol = '-undefined-';
+                }
+                $count->{'invalid-protocol'}{$protocol}++;
+                next;
+            }
+            $records->{$id}{'fulltext_link'} = 1;
+            if ($rc->{'access'} ne 'oa') {
+                $count->{'invalid-access'}{$rc->{'access'}}++;
+                next;
+            }
+            $records->{$id}{'fulltext_link_oa'} = 1;
+            $count->{'ft'}++;
+            $count->{'requests'}++;
+            $ft->request ($id, $rc->{'type'}, $rc->{'url'});
         }
-        if ($mxd->fulltext_type ($id) ne 'digital_object') {
-            $self->update ($records->{$id});
-            $count->{'notdo'}++;
-            next;
-        }
-        $records->{$id}{'fulltext_link'} = 1;
-        if ($mxd->fulltext_access ($id) ne 'oa') {
-            $self->update ($records->{$id});
-            $count->{'notoa'}++;
-            next;
-        }
-        $records->{$id}{'fulltext_link_oa'} = 1;
-        $count->{'requests'}++;
-        $ft->request ($id, $mxd->fulltext_uri ($id), $mxd->fulltext_size ($id), $mxd->fulltext_mime ($id), $mxd->fulltext_filename ($id));
         $self->update ($records->{$id});
+        if (!$count->{'ft'}) {
+            $count->{'no-fulltext'}++;
+        }
     }
     $self->{'oai'}->log ('i', "placed $count->{'requests'} requests out of $count->{'total'} records");
-    $self->{'oai'}->log ('i', "$count->{'noft'} have no fulltext");
-    $self->{'oai'}->log ('i', "$count->{'notdo'} are not digital objects");
-    $self->{'oai'}->log ('i', "$count->{'notoa'} are not open access");
+    $self->{'oai'}->log ('i', "$count->{'no-fulltext'} have no fulltext");
+    my $n = 0;
+    my @s = ();
+    foreach my $key (sort (keys (%{$count->{'invalid-type'}}))) {
+        $n += $count->{'invalid-type'}{$key};
+        push (@s, $key . ': ' . $count->{'invalid-type'}{$key});
+    }
+    if ($n) {
+        $self->{'oai'}->log ('i', "$n are of invalid type - " .  join (', ', @s));
+    }
+    $n = 0;
+    @s = ();
+    foreach my $key (sort (keys (%{$count->{'invalid-protocol'}}))) {
+        $n += $count->{'invalid-protocol'}{$key};
+        push (@s, $key . ': ' . $count->{'invalid-protocol'}{$key});
+    }
+    if ($n) {
+        $self->{'oai'}->log ('i', "$n have an invalid protocol - " .  join (', ', @s));
+    }
+    $n = 0;
+    @s = ();
+    foreach my $key (sort (keys (%{$count->{'invalid-access'}}))) {
+        $n += $count->{'invalid-access'}{$key};
+        push (@s, $key . ': ' . $count->{'invalid-access'}{$key});
+    }
+    if ($n) {
+        $self->{'oai'}->log ('i', "$n are not open access - " .  join (', ', @s));
+    }
     $ft->harvest ();
     $self->{'oai'}->log ('i', 'done');
     return (1);
