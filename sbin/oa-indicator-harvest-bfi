@@ -8,7 +8,7 @@ use OA::Indicator;
 my $oai = new OA::Indicator (verbose => 1);
 my $year = shift (@ARGV);
 if (!$oai->valid_year ($year)) {
-    die ("usage: oa-indicator-harvest-doaj <year>\n" .
+    die ("usage: oa-indicator-harvest-bfi <year>\n" .
          '       year: ' . $oai->valid_year_range . "\n");
 }
 my $dir = "/var/lib/oa-indicator/$year";
