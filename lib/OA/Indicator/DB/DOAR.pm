@@ -24,6 +24,7 @@ sub create
                    id              text primary key,
                    harvest_stamp   integer,
                    harvest_date    text,
+                   code            text,
                    name            text,
                    type            text,
                    uri             text,
@@ -56,7 +57,7 @@ sub load
         }
         my $rec = {};
         my @fields = split ("\t");
-        for my $fld (qw(id harvest_stamp harvest_date status name type uri proposer)) {
+        for my $fld (qw(id harvest_stamp harvest_date status code name type uri proposer)) {
             $rec->{$fld} = shift (@fields);
         }
         if ($rec->{'status'} ne 'deleted') {

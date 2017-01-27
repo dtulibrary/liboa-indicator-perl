@@ -9,9 +9,10 @@ sub new
     my ($class) = @_;
     my $self = {};
 
-    $self->{'primary_fields'} = [qw(name type domain proposer)];
+    $self->{'primary_fields'} = [qw(code name type domain proposer)];
     $self->{'xpath'} = {
         id         => '/m:mods/m:identifier[@type="ds.dtic.dk:id:pub:dads:recordid"]',
+        code       => '/m:mods/m:extension/s:snippet/s:directory/s:code',
         name       => '/m:mods/m:extension/s:snippet/s:directory/s:name',
         type       => '/m:mods/m:extension/s:snippet/s:directory/s:type',
         domain     => '/m:mods/m:extension/s:snippet/s:directory/s:domain',
