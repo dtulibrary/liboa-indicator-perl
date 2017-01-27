@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.03-00) unstable; urgency=low
+
+  * Version for January 30 2017 run, will be updated before the 30th, now
+    just covers harvest and load.
+    
+    GIT revision: c5d24f2243bf8f427853680fb60daf57c6c6838f
+
+ -- franck <franck@cvt.dk>  Fri, 27 Jan 2017 13:49:12 +0100
+
 liboa-indicator-perl (1.02-05) unstable; urgency=low
 
   * Change of MRA labels requested to match UI
