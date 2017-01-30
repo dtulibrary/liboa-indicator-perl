@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.03-01) unstable; urgency=low
+
+  * Added check in MXD for potential request error
+    
+    GIT revision: 0492f16ca38abc6addaab87c8dc559bb87b2c1dd
+
+ -- franck <franck@cvt.dk>  Mon, 30 Jan 2017 20:12:16 +0100
+
 liboa-indicator-perl (1.03-00) unstable; urgency=low
 
   * Version for January 30 2017 run, will be updated before the 30th, now
