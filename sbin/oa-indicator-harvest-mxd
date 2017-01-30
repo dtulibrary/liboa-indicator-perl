@@ -95,8 +95,12 @@ foreach my $src (@sources) {
                     }
                     next;
                 }
-                $run->{'recs'}++;
                 $mxd->parse ($records->{$i}{'mxd'});
+                if ($mxd->id () ne $run->{$src}{$i}) {
+                    $oai->log ('f', "MXD error: expecting source ID %s for %s : %s, got %s", $run->{$src}{$i}, $src, $i, $mxd->id ());
+                    die ('failed');
+                }
+                $run->{'recs'}++;
                 print ($fou $records->{$i}{'mxd'}, "\n");
                 print ($fid join ("\t", $i, $oai->stamp (), $records->{$i}{'responseDate'}, $records->{$i}{'datestamp'}, $mxd->primary), "\n");
                 foreach my $rec ($mxd->fulltext ()) {
