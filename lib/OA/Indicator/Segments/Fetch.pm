@@ -17,7 +17,7 @@ sub new
 
 sub process
 {
-    my ($self) = @_;
+    my ($self, $type) = @_;
 
     my $count = {total => 0, requests => 0, noft => 0, notdo => 0, notoa => 0};
     my $records = {};
@@ -97,7 +97,7 @@ sub process
     if ($n) {
         $self->{'oai'}->log ('i', "$n are not open access - " .  join (', ', @s));
     }
-    $ft->harvest ();
+    $ft->harvest ($type);
     $self->{'oai'}->log ('i', 'done');
     return (1);
 }

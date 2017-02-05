@@ -56,6 +56,15 @@ sub process
         } else {
             my @mra = sort {$mra->{$a} <=> $mra->{$b}} keys (%{$mra});
             $pub_research_area = pop (@mra);
+            foreach my $ra (qw(sci med soc hum)) {
+                if ($mra->{$ra} >= $mra->{$pub_research_area}) {
+                    if ($pub_research_area ne $ra) {
+                        $self->{'oai'}->log ('i', "changing MRA from %s:%d to %s:%d", $pub_research_area, $mra->{$pub_research_area}, $ra, $mra->{$ra});
+                        $pub_research_area = $ra;
+                    }
+                    last;
+                }
+            }
         }
         foreach my $id (keys (%{$publications->{$dkey}})) {
             $records->{$id}{'pub_research_area'} = $pub_research_area;

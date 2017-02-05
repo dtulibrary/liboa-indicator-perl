@@ -154,7 +154,7 @@ if ($comm eq 'load') {
     exit (0);
 }
 if ($comm eq 'segment') {
-    my ($year, $run_type, $name) = @ARGV;
+    my ($year, $run_type, $name, $extra) = @ARGV;
     if ($year) {
         if (!$oai->valid_year ($year)) {
             &usage ($oai, 'invalid year: ' . $year);
@@ -204,7 +204,7 @@ if ($comm eq 'segment') {
         require OA::Indicator::Segments::Fetch;
         $db->segment_start ('fetch');
         my $seg = new OA::Indicator::Segments::Fetch ($db->db (), $oai);
-        if ($seg->process ()) {
+        if ($seg->process ($extra)) {
             $db->segment_end ('fetch', 1);
         } else {
             $db->segment_end ('fetch', 0);
@@ -325,6 +325,16 @@ if ($comm eq 'status') {
                 if ($head) {
                     $head = 0;
                     printf("    %3s %-19s %-19s %3s %3s %-10s %s\n", 'run', 'start', 'end', 'suc', 'rel', 'errors', 'description');
+                }
+                foreach my $f (qw(success released)) {
+                    if (!defined ($rec->{$f})) {
+                        $rec->{$f} = 0;
+                    }
+                }
+                foreach my $f (qw(errors)) {
+                    if (!defined ($rec->{$f})) {
+                        $rec->{$f} = '';
+                    }
                 }
                 printf("    %3d %19s %19s %3d %3d %10s %s\n", $run, &date ($rec->{'start'}), &date ($rec->{'end'}),
                        $rec->{'success'}, $rec->{'released'}, $rec->{'errors'}, $rec->{'description'});

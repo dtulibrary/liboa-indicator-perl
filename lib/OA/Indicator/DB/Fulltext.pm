@@ -95,8 +95,14 @@ sub request
 
 sub harvest
 {
-    my ($self) = @_;
+    my ($self, $type) = @_;
 
+    if (defined ($type)) {
+        $type = lc ($type);
+        $type =~ s/[^a-z]//;
+    } else {
+        $type = '';
+    }
     my $db = $self->{'db'};
     my $rs = $db->select ('*', 'fulltext_requests', 'pending=1');
     my @queue = ();
@@ -111,11 +117,26 @@ sub harvest
         $rs = $db->select ('*', 'fulltext', "url='$rec->{'url'}'");
         my $rc;
         if ($rc = $db->next ($rs)) {
-            if (($rc->{'success'}) && (($rc->{'harvested_last'} + $self->{'cachetime'}) >= time)) {
-                $self->{'oai'}->log ('i', "skipping harvest of cached URL: %s", $rec->{'url'});
-                $count->{'cache'}++;
-                $rec->{'pending'} = 0;
-                $rec->{'status'} = 'ok';
+            if ($rc->{'success'}) {
+                if (($rc->{'harvested_last'} + $self->{'cachetime'}) >= time) {
+                    $self->{'oai'}->log ('i', "skipping harvest of cached URL: %s", $rec->{'url'});
+                    $count->{'cache'}++;
+                    $rec->{'pending'} = 0;
+                    $rec->{'status'} = 'ok';
+                    $db->update ('fulltext_requests', 'id', $rec);
+                    next;
+                } elsif ($type eq 'dummy') {
+                    $self->{'oai'}->log ('i', "skipping dummy harvest of cached URL: %s", $rec->{'url'});
+                    $count->{'dummy-cached'}++;
+                    $rec->{'pending'} = 0;
+                    $rec->{'status'} = 'ok';
+                    $db->update ('fulltext_requests', 'id', $rec);
+                    next;
+                }
+            } elsif ($type eq 'dummy') {
+                $self->{'oai'}->log ('i', "skipping dummy harvest of error URL: %s", $rec->{'url'});
+                $count->{'dummy-error'}++;
+                $rec->{'status'} = 'error';
                 $db->update ('fulltext_requests', 'id', $rec);
                 next;
             }
@@ -131,7 +152,13 @@ sub harvest
             $queue->{$host} = [[$rec, $rc]];
         }
     }
-    $self->{'oai'}->log ('i', "%d URL, %d URL cached, %d URL to harvest from %d hosts", $count->{'url'}, $count->{'cache'}, $count->{'harvest'}, $count->{'hosts'});
+    if ($type eq 'dummy') {
+        $self->{'oai'}->log ('i', "%d URL, %d URL cached, %d URL dummy cached, %d URL dummy errors, %d URL to harvest from %d hosts",
+                             $count->{'url'}, $count->{'cache'}, $count->{'dummy-cached'}, $count->{'dummy-error'}, $count->{'harvest'}, $count->{'hosts'});
+    } else {
+        $self->{'oai'}->log ('i', "%d URL, %d URL cached, %d URL to harvest from %d hosts",
+                             $count->{'url'}, $count->{'cache'}, $count->{'harvest'}, $count->{'hosts'});
+    }
     my $match = 1;
     my $done = {};
     while ($match) {
