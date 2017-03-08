@@ -98,7 +98,9 @@ foreach my $src (@sources) {
                 $mxd->parse ($records->{$i}{'mxd'});
                 if ($mxd->id () ne $run->{$src}{$i}) {
                     $oai->log ('f', "MXD error: expecting source ID %s for %s : %s, got %s", $run->{$src}{$i}, $src, $i, $mxd->id ());
-                    die ('failed');
+                    $oai->log ('f', "Original MXD: '%s'", $records->{$i}{'mxd'});
+                    $oai->log ('f', 'failed');
+                    exit (1);
                 }
                 $run->{'recs'}++;
                 print ($fou $records->{$i}{'mxd'}, "\n");
@@ -154,8 +156,10 @@ sub harvest
         my $s = $rs->header ('Client-Aborted');
         if ((defined ($s)) && ($s !~ m/^\s*$/)) {
             if ($s eq 'die') {
+                $oai->log ('e', "error getting: '%s'", $url);
                 $oai->log ('f', 'error getting records: client_aborted - die');
             } else {
+                $oai->log ('e', "error getting: '%s'", $url);
                 $oai->log ('f', 'error getting records: client_aborted - unknown');
             }
             $oai->log ('f', 'failed');
@@ -166,10 +170,13 @@ sub harvest
         if ((defined ($s)) && ($s !~ m/^\s*$/)) {
             $s =~ s/ at \/.*//;
             if ($s =~ m/eof when chunk header expected/i) {
+                $oai->log ('e', "error getting: '%s'", $url);
                 $oai->log ('f', 'error getting records: connection lost');
             } elsif ($s =~ m/read timeout/i) {
+                $oai->log ('e', "error getting: '%s'", $url);
                 $oai->log ('f', 'error getting records: connection timeout');
             } else {
+                $oai->log ('e', "error getting: '%s'", $url);
                 $oai->log ('f', 'error getting records: unknown error');
             }
             $oai->log ('f', 'failed');
@@ -177,6 +184,7 @@ sub harvest
             exit (1);
         }
     } else {
+        $oai->log ('e', "error getting: '%s'", $url);
         $oai->log ('f', 'error getting records: %s : %s', $rs->code, $rs->message);
         $oai->log ('f', 'failed');
         $oai->log_main ('f', "harvest of MXD failed");
@@ -186,6 +194,7 @@ sub harvest
     my $size = $rs->header ('Content-Length');
     if ($size) {
         if ($size > length ($content)) {
+            $oai->log ('e', "error getting: '%s'", $url);
             $oai->log ('f', 'error getting records: short content - based on Content-Length');
             $oai->log ('f', 'failed');
             $oai->log_main ('f', "harvest of MXD failed");

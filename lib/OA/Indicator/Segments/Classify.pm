@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use DB::SQLite;
 use OA::Indicator::DB::DOAR;
+use OA::Indicator::DB::JWlep;
 
 sub new
 {
@@ -14,6 +15,7 @@ sub new
     $self->{'oai'} = $oai;
     $self->{'ft'} = new DB::SQLite ("/var/lib/oa-indicator/db/fulltext.sqlite3", DieError => 1);
     $self->{'wl'} = new OA::Indicator::DB::DOAR ($db, $oai);
+    $self->{'bl'} = new OA::Indicator::DB::JWlep ($db, $oai);
     return (bless ($self, $class));
 }
 
@@ -27,7 +29,7 @@ sub process
     my $rec;
 #   Getting records to classify
     my $rs = $self->{'db'}->select ('id,doaj_issn,bfi_level,romeo_color,romeo_issn,fulltext_link,fulltext_link_oa,fulltext_downloaded,fulltext_verified,dedupkey,' .
-                                    'research_area,bfi_research_area',
+                                    'research_area,bfi_research_area,blacklisted_issn',
                                     'records',
                                     'scoped = 1 and screened = 1');
     while ($rec = $self->{'db'}->next ($rs)) {
@@ -77,16 +79,22 @@ sub process
             $count->{'oa-link'}++;
             my $rc;
             my @url = ();
-            my $rs = $self->{'ft'}->select ('type,url', 'fulltext_requests', "dsid='$id'");
+            my $codes  = {};
+            $rec->{'fulltext_local'} = 0;
+            $rec->{'fulltext_remote'} = {};
+            my $rs = $self->{'ft'}->select ('type,url', 'fulltext_requests', "dsid='$id' and del=0");
             while ($rc = $self->{'ft'}->next ($rs)) {
                 if ((defined ($rc->{'url'})) && ($rc->{'url'} !~ m/^[\s\n\r]*$/)) {
                     if ($rc->{'type'} eq 'loc') {
                         push (@url, $rc->{'url'});
+                        $rec->{'fulltext_local'} = 1;
                     } elsif ($rc->{'type'} eq 'rem') {
-                        my $uri;
-                        if ($uri = $self->{'wl'}->valid ($rc->{'url'})) {
+                        my $code;
+                        if ($code = $self->{'wl'}->valid ($rc->{'url'})) {
                             push (@url, $rc->{'url'});
-                            $self->{'oai'}->log ('i', "valid URL based on '%s': %s", $uri, $rc->{'url'});
+                            $rec->{'fulltext_remote'}{$code} = 1;
+                            $codes->{$rc->{'url'}} = $code;
+                            $self->{'oai'}->log ('i', "valid URL based on '%s': %s", $code, $rc->{'url'});
                         } else {
                             $self->{'oai'}->log ('i', "invalid URL: %s", $rc->{'url'});
                         }
@@ -95,6 +103,9 @@ sub process
                     }
                 }
             }
+            $rec->{'fulltext_remote'} = join (',', sort (keys (%{$rec->{'fulltext_remote'}})));
+            $rec->{'fulltext_local_valid'} = 0;
+            $rec->{'fulltext_remote_valid'} = {};
             foreach my $u (@url) {
                 $count->{'oa-url'}++;
                 $rs = $self->{'ft'}->select ('http_code,success,size,error_message,pdf_pages', 'fulltext', "url='$u'");
@@ -107,16 +118,27 @@ sub process
                         if (($rc->{'pdf_pages'}) && ($rc->{'pdf_pages'} > 0)) {
                             $rec->{'fulltext_pdf'} = 1;
                         }
+                        if ($codes->{$u}) {
+                            $rec->{'fulltext_remote_valid'}{$codes->{$u}} = 1;
+                        } else {
+                            $rec->{'fulltext_local_valid'} = 1;
+                        }
                     } else {
-#                       Special check because we want a very wide understanding of valid fulltext this year
+#                       Special check because we want a very wide understanding of valid fulltext this year, and in 2017 runs as well
                         if (($rc->{'http_code'} eq '200') && ($rc->{'size'} > 0) && ($rc->{'error_message'} eq 'PDF error')) {
                             $count->{'ft-success-2015'}++;
                             $rec->{'fulltext_downloaded'} = 1;
                             $rec->{'fulltext_verified'} = 1;
+                            if ($codes->{$u}) {
+                                $rec->{'fulltext_remote_valid'}{$codes->{$u}} = 1;
+                            } else {
+                                $rec->{'fulltext_local_valid'} = 1;
+                            }
                         }
                     }
                 }
             }
+            $rec->{'fulltext_remote_valid'} = join (',', sort (keys (%{$rec->{'fulltext_remote_valid'}})));
         }
         if (($rec->{'doaj_issn'}) && ($rec->{'bfi_level'})) {
             $rec->{'class'} = 'realized';
@@ -129,7 +151,7 @@ sub process
             if (!$rec->{'bfi_level'}) {
                 push (@{$rec->{'class_reasons'}}, 'not-bfi');
             }
-            if ($rec->{'romeo_color'} =~ m/(green|blue|yellow)/) {
+            if (($rec->{'blacklisted_issn'} =~ m/^\s*$/) && ($rec->{'romeo_color'} =~ m/(green|blue|yellow)/)) {
                 push (@{$rec->{'class_reasons'}}, 'romeo');
                 if ($rec->{'fulltext_verified'}) {
                    $rec->{'class'} = 'realized';
@@ -147,7 +169,16 @@ sub process
                    }
                 }
             } else {
-                push (@{$rec->{'class_reasons'}}, 'not-romeo');
+                if ($rec->{'romeo_color'} =~ m/(green|blue|yellow)/) {
+                    push (@{$rec->{'class_reasons'}}, 'romeo');
+                    push (@{$rec->{'class_reasons'}}, 'blacklisted');
+                } else {
+                    push (@{$rec->{'class_reasons'}}, 'not-romeo');
+                    if ($rec->{'blacklisted_issn'} =~ m/[0-9]/) {
+                        push (@{$rec->{'class_reasons'}}, 'blacklisted');
+                    }
+
+                }
                 if ($rec->{'fulltext_verified'}) {
                    $rec->{'class'} = 'realized';
                    push (@{$rec->{'class_reasons'}}, 'fulltext');
@@ -168,7 +199,25 @@ sub process
         $rec->{'class_reasons'} = join (',', @{$rec->{'class_reasons'}});
         $rec->{'pub_class'} = $rec->{'class'};
         $rec->{'pub_class_reasons'} = $rec->{'class_reasons'};
+        $rec->{'blacklisted_reclass'} = 0;
+        if ($rec->{'class'} eq 'unclear') {
+            if ($rec->{'class_reasons'} =~ m/blacklisted/) {
+                if ($rec->{'class_reasons'} !~ m/not-romeo/) {
+                    $rec->{'blacklisted_reclass'} = 1;
+                }
+            }
+        } 
         $self->{'db'}->update ('records', 'id', $rec);
+        if ($rec->{'fulltext_remote_valid'}) {
+            foreach my $code (split (',', $rec->{'fulltext_remote_valid'})) {
+                if ($code =~ m/[a-z]/) {
+                    $self->{'wl'}->usage_records ($code);
+                }
+            }
+        }
+        if ($rec->{'blacklisted_issn'}) {
+            $self->{'bl'}->usage_records ($rec->{'blacklisted_issn'}, $rec->{'blacklisted_reclass'});
+        }
         $count->{'done'}++;
         if (($count->{'done'} % 5000) == 0) {
             $self->{'oai'}->log ('i', "processed $count->{'done'} records out of $count->{'total'}");

@@ -234,6 +234,8 @@ whitelist                      en Accepted repositories
 whitelist                      da Godkendte arkiver
 whitelist-sheet                en Accepted repositories
 whitelist-sheet                da Godkendte arkiver
+whitelist-code                 en Code
+whitelist-code                 da Kode
 whitelist-name                 en Name
 whitelist-name                 da Titel/Navn
 whitelist-type                 en Type
@@ -246,6 +248,8 @@ whitelist-path                 en Path
 whitelist-path                 da Path
 whitelist-proposer             en Proposer
 whitelist-proposer             da Forslagsstiller
+whitelist-usage_records        en Usage: Records with realised OA Potential
+whitelist-usage_records        da Anvendelse: Poster med Realiseret OA Potentiale
 
 blacklist                      en Journals with long embargo, more than 12 months
 blacklist                      da Tidsskrifter med lang embargo-periode - over 12 måneder
@@ -263,3 +267,15 @@ blacklist-embargo              en Embargo period
 blacklist-embargo              da Embargo periode
 blacklist-url                  en URL
 blacklist-url                  da URL
+blacklist-usage_effective      en Usage: # of reclassifications
+blacklist-usage_effective      da Anvendelse: Antal omklassificeringer
+blacklist-usage_records        en Usage: # of records
+blacklist-usage_records        da Anvendelse: Antal poster
+
+usage-authority                en Indicator Authority Lists Usage
+usage-authority                da Anvendelse af Indikator Authoritetslister
+fulltext_remote_valid          en External Repository Used
+fulltext_remote_valid          da Anvendt Eksternt Repositorie
+blacklisted_issn               en Extended-embargoed Journal Used
+blacklisted_issn               da Anvendt tidsskrift med lang embargo
+

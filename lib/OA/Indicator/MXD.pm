@@ -57,7 +57,7 @@ sub new
         person_id_id               => '.',
         person_email               => 'mxd:email',
     };
-    $self->{'xml'} = new OA::Indicator::XML (mxd => 'http://mx.forskningsdatabasen.dk/ns/documents/1.3');
+    $self->{'xml'} = new OA::Indicator::XML (mxd => 'mxdns');
     return (bless ($self, $class));
 }
 

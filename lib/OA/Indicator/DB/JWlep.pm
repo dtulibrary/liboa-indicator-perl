@@ -30,6 +30,10 @@ sub create
                    publisher       text,
                    embargo         text,
                    url             text,
+                   usage_records   integer,
+                   usage_effective integer,
+                   usage_pissn     integer,
+                   usage_eissn     integer,
                    mods            text,
                    original_xml    text
               )');
@@ -136,6 +140,54 @@ sub valid
         return ($rc->{'embargo'});
     } else {
         return (0);
+    }
+}
+
+sub usage_records
+{   
+    my ($self, $issnlist, $reclass) = @_;
+
+    my $ISSN = {};
+    foreach my $i (split (',', $issnlist)) {
+        $ISSN->{$i} = 0;
+    }
+    my @rec = ();
+    foreach my $issn (keys (%{$ISSN})) {
+        if ($ISSN->{$issn}) {
+            next;
+        }
+        my $rs = $self->{'db'}->select ('id,pissn,eissn,usage_records,usage_effective,usage_pissn,usage_eissn', 'jwlep', "pissn='$issn' or eissn='$issn'");
+        my $rc;
+        while ($rc = $self->{'db'}->next ($rs)) {
+            $rc->{'usage_records'}++;
+            if ($reclass) {
+                $rc->{'usage_effective'}++;
+            }
+            foreach my $i (keys (%{$ISSN})) {
+                if ($ISSN->{$i}) {
+                    next;
+                }
+                if ($issn eq $rc->{'pissn'}) {
+                    $rc->{'usage_pissn'}++;
+                    $ISSN->{$i} = 1;
+                }
+                if ($issn eq $rc->{'eissn'}) {
+                    $rc->{'usage_eissn'}++;
+                    $ISSN->{$i} = 1;
+                }
+            }
+            push (@rec, $rc);
+        }
+    }
+    if (@rec) {
+        foreach my $rc (@rec) {
+            $self->{'db'}->update ('jwlep', 'id', $rc);
+            $self->{'db'}->commit ();
+        }
+    } else {
+        $self->{'oai'}->log ('f',  "DB::JWlep::usage_records - ISSN not found: '$issnlist'");
+        $self->{'oai'}->log ('f',  'failed');
+        exit (1);
     }
 }
 

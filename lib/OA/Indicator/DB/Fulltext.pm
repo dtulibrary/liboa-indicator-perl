@@ -28,6 +28,7 @@ sub create
     $db->sql ('create table if not exists fulltext_requests (
                    id                    integer primary key,
                    dsid                  text,
+                   del                   integer,
                    type                  text,
                    url                   text,
                    requested_first       integer,
@@ -61,6 +62,24 @@ sub create
               )');
 }
 
+sub delete
+{
+    my ($self, $id) = @_;
+
+    my $rs = $self->{'db'}->select ('id,del', 'fulltext_requests', "dsid='$id'");
+    my $rc; 
+    my @recs = ();
+    if ($rc = $self->{'db'}->next ($rs)) {
+        if (!$rc->{'del'}) {
+            $rc->{'del'} = 1;
+            push (@recs, $rc);
+        }
+    }
+    foreach $rc (@recs) {
+        $self->{'db'}->update ('fulltext_requests', 'id', $rc);
+    }
+}
+
 sub request
 {
     my ($self, $id, $type, $url, $size, $mime, $filename) = @_;
@@ -77,6 +96,7 @@ sub request
     my $rs = $db->select ('*', 'fulltext_requests', "dsid='$id' and url='$url'");
     my $rec;
     if ($rec = $db->next ($rs)) {
+        $rec->{'del'}  = 0;
         $rec->{'type'} = $type;
         $rec->{'size'} = $size;
         $rec->{'mime'} = $mime;
@@ -106,7 +126,7 @@ sub harvest
     my $db = $self->{'db'};
     my $rs = $db->select ('*', 'fulltext_requests', 'pending=1');
     my @queue = ();
-    my $count = {cache => 0, done => 0, hosts => 0, url => 0};
+    my $count = {harvest => 0, hosts => 0, cache => 0, done => 0, url => 0};
     my $rec;
     while ($rec = $db->next ($rs)) {
         push (@queue, $rec);
@@ -237,7 +257,7 @@ sub file_harvest
         $s = $rs->header ('X-Died');
         if ((defined ($s)) && ($s !~ m/^\s*$/)) {
             $s =~ s/ at \/.*//;
-            $rec->{'x_died'} = $s;
+#           $rec->{'x_died'} = $s;
             if ($s =~ m/eof when chunk header expected/i) {
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'connection lost';

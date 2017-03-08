@@ -34,7 +34,19 @@ sub parse
     if ($self->{'prefix'}) {
         $xpc = new XML::LibXML::XPathContext ($doc);
         foreach my $pre (keys (%{$self->{'prefix'}})) {
-            $xpc->registerNs ($pre, $self->{'prefix'}{$pre});
+            if ($self->{'prefix'}{$pre} eq 'mxdns') {
+                my $uri;
+                if ($xml =~ m|http://mx.forskningsdatabasen.dk/ns/documents/1.3|) {
+                    $uri = 'http://mx.forskningsdatabasen.dk/ns/documents/1.3';
+                } elsif ($xml =~ m|http://mx.forskningsdatabasen.dk/ns/documents/1.4|) {
+                    $uri = 'http://mx.forskningsdatabasen.dk/ns/documents/1.4';
+                } else {
+                    die ("could not find version of MXD for: '$xml'");
+                }
+                $xpc->registerNs ($pre, $uri);
+            } else {
+                $xpc->registerNs ($pre, $self->{'prefix'}{$pre});
+            }
         }
         $self->{'doc'} = $xpc;
         return ($xpc);

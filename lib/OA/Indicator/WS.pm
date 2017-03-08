@@ -360,8 +360,8 @@ sub comm_records
     my ($self, $db) = @_;
 
     my $duplicates = $self->duplicates ($db);
-    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,class,class_reasons,bfi_class,bfi_level,source_id,dedupkey',
-                          'records', 'scoped=1 and screened=1', 'order by title');
+    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,class,class_reasons,bfi_class,bfi_level,source_id,dedupkey,' .
+                          'fulltext_remote_valid,blacklisted_issn', 'records', 'scoped=1 and screened=1', 'order by title');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
     my $rc;
     while ($rc = $db->next ($rs)) {
@@ -392,6 +392,9 @@ sub comm_records
             $rc->{'duplicates'} = '';
         }
         $rc->{'ddf_link'} = 'http://forskningsdatabasen.dk/en/catalog/' . $rc->{'dedupkey'};
+        if ($rc->{'blacklisted_issn'}) {
+            $rc->{'blacklisted_issn'} = $self->display_issn_list ($rc->{'blacklisted_issn'}, ' / ');
+        }
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
     }
     $self->respond ();
@@ -761,7 +764,7 @@ sub comm_whitelist
     my $ret = {};
 
     $self->{'result'}{'response'}{'body'}{'record'} = [];
-    my $rs = $db->select ('name,type,uri,domain,path,proposer', 'doar', '', 'order by name');
+    my $rs = $db->select ('code,name,type,uri,domain,path,proposer,usage_records', 'doar', '', 'order by code');
     my $rc;
     while ($rc = $db->next ($rs)) {
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
@@ -775,7 +778,7 @@ sub comm_blacklist
     my $ret = {};
 
     $self->{'result'}{'response'}{'body'}{'record'} = [];
-    my $rs = $db->select ('title,pissn,eissn,publisher,embargo,url', 'jwlep');
+    my $rs = $db->select ('title,pissn,eissn,publisher,embargo,url,usage_records,usage_effective', 'jwlep');
     my $rc;
     my $records = {};
     while ($rc = $db->next ($rs)) {
@@ -800,17 +803,6 @@ sub comm_blacklist
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, @{$records->{$key}});
     }
     $self->respond ();
-}
-
-sub display_issn
-{
-    my ($self, $issn) = @_;
-
-    if ($issn =~ m/^[0-9]{7}[0-9Xx]/) {
-        return (substr ($issn, 0, 4) . '-' . uc (substr ($issn, 4)));
-    } else {
-        return ($issn);
-    }
 }
 
 sub duplicates
@@ -1130,31 +1122,33 @@ sub respond_csv_encode
     if ($self->{'comm'} eq 'records') {
         my $csv = new Text::CSV ({binary => 1, sep_char => "\t"});
         my $fields = {
-            title         => 'Title',
-            first_author  => 'First (Local) Author',
-            source        => 'University',
-            research_area => 'MRA',
-            doi           => 'DOI',
-            issn          => 'ISSN',
-            class         => 'Status',
-            class_reasons => 'Reason',
-            bfi_class     => 'Classification',
-            bfi_level     => 'Level',
-            dedupkey      => 'DDF ID',
-            ddf_link      => 'DDF Link',
-            source_id     => 'CRIS ID',
-            cris_link     => 'University CRIS Record',
-            duplicates    => 'Duplicates',
+            title                  => 'Title',
+            first_author           => 'First (Local) Author',
+            source                 => 'University',
+            research_area          => 'MRA',
+            doi                    => 'DOI',
+            issn                   => 'ISSN',
+            class                  => 'Status',
+            class_reasons          => 'Reason',
+            bfi_class              => 'Classification',
+            bfi_level              => 'Level',
+            dedupkey               => 'DDF ID',
+            ddf_link               => 'DDF Link',
+            source_id              => 'CRIS ID',
+            cris_link              => 'University CRIS Record',
+            duplicates             => 'Duplicates',
+            fulltext_remote_valid  => 'External repository',
+            blacklisted_issn       => 'Blacklisted'
         };
         my @cols = ();
-        foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
+        foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates)) {
+            foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -1286,22 +1280,24 @@ sub respond_csv_encode
     if ($self->{'comm'} eq 'whitelist') {
         my $csv = new Text::CSV ({binary => 1, sep_char => "\t"});
         my $fields = {
+            code          => 'Code',
             name          => 'Name',
             type          => 'Type',
             uri           => 'URL',
             domain        => 'Host',
             path          => 'Path',
             proposer      => 'Proposer',
+            usage_records => 'Usage-Records'
         };
         my @cols = ();
-        foreach my $fld (qw(name type uri domain path proposer)) {
+        foreach my $fld (qw(code name type uri domain path proposer usage_records)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
-            foreach my $fld (qw(name type uri domain path proposer)) {
+            foreach my $fld (qw(code name type uri domain path proposer usage_records)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -1312,22 +1308,24 @@ sub respond_csv_encode
     if ($self->{'comm'} eq 'blacklist') {
         my $csv = new Text::CSV ({binary => 1, sep_char => "\t"});
         my $fields = {
-            title         => 'Journal title',
-            pissn         => 'ISSN',
-            eissn         => 'E-ISSN',
-            publisher     => 'Publisher',
-            embargo       => 'Embargo periode',
-            url           => 'URL',
+            title            => 'Journal title',
+            pissn            => 'ISSN',
+            eissn            => 'E-ISSN',
+            publisher        => 'Publisher',
+            embargo          => 'Embargo periode',
+            url              => 'URL',
+            usage_effective  => 'Usage-class',
+            usage_records    => 'Usage-records',
         };
         my @cols = ();
-        foreach my $fld (qw(title pissn eissn publisher embargo url)) {
+        foreach my $fld (qw(title pissn eissn publisher embargo url usage_effective usage_records)) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
-            foreach my $fld (qw(title pissn eissn publisher embargo url)) {
+            foreach my $fld (qw(title pissn eissn publisher embargo url usage_effective usage_records)) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -1673,6 +1671,43 @@ sub date
     my ($sec, $min, $hour, $day, $mon, $year) = localtime ($time);
     
     return (sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
+}
+
+sub display_issn
+{
+    my ($self, $issn) = @_;
+
+    my $ISSN = uc ($issn);
+    $ISSN =~ s/[^0-9X]//g;
+    if ($ISSN =~ m/^[0-9]{7}[0-9Xx]/) {
+        return (substr ($ISSN, 0, 4) . '-' . substr ($ISSN, 4));
+    } else {
+        if ($ISSN =~ m/[0-9X]/) {
+            return ($issn);
+        } else {
+            return ('');
+        }
+    }
+}
+
+sub display_issn_list
+{
+    my ($self, $list, $sep, $del) = @_;
+
+    if (!$sep) {
+        $sep = ',';
+    }
+    if (!$del) {
+        $del = ',';
+    }
+    my @issn;
+    foreach my $issn (split ($del, $list)) {
+        my $i = $self->display_issn ($issn);
+        if ($i) {
+            push (@issn, $i);
+        }
+    }
+    return (join ($sep, @issn));
 }
 
 sub error

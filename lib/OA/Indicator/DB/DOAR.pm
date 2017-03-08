@@ -31,6 +31,7 @@ sub create
                    domain          text,
                    path            text,
                    proposer        text,
+                   usage_records   integer,
                    mods            text,
                    original_xml    text
               )');
@@ -139,14 +140,37 @@ sub valid
     my ($self, $uri) = @_;
 
     my ($domain, $path) = $self->extract_domain_path ($uri);
-    my $rs = $self->{'db'}->select ('uri,path', 'doar', "domain='$domain'");
+    my $rs = $self->{'db'}->select ('code,path', 'doar', "domain='$domain'");
     my $rc;
     while ($rc = $self->{'db'}->next ($rs)) {
         if (($rc->{'path'} eq '') || ($rc->{'path'} eq substr ($path, 0, length ($rc->{'path'})))) {
-           return ($rc->{'uri'});
+           return ($rc->{'code'});
         }
     }
     return (0);
+}
+
+sub usage_records
+{
+    my ($self, $code) = @_;
+
+    my $rs = $self->{'db'}->select ('id,usage_records', 'doar', "code='$code'");
+    my $rc;
+    my @rec = ();
+    while ($rc = $self->{'db'}->next ($rs)) {
+        $rc->{'usage_records'}++;
+        push (@rec, $rc);
+    }
+    if (@rec) {
+        foreach my $rc (@rec) {
+            $self->{'db'}->update ('doar', 'id', $rc);
+            $self->{'db'}->commit ();
+        }
+    } else {
+        $self->{'oai'}->log ('f',  "DB::DOAR::usage_records - code not found: '$code'");
+        $self->{'oai'}->log ('f',  'failed');
+        exit (1);
+    }
 }
 
 1;

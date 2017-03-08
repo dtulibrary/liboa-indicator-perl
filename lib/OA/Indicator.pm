@@ -79,7 +79,11 @@ sub data_type
 {
     my ($self, $name) = @_;
 
-    return ($self->{'data-type'}{$name});
+    if (defined ($name)) {
+        return ($self->{'data-type'}{$name});
+    } else {
+        return (undef);
+    }
 }
 
 sub data_types

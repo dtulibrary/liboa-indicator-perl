@@ -222,21 +222,26 @@ sub whitelist
     my ($sps, $labels, $lang) = @_;
 
     my $width = {
+        'code'                    =>  15,
         'name'                    =>  50,
         'type'                    =>  10,
         'uri'                     =>  40,
         'host'                    =>  32,
         'path'                    =>  20,
         'proposer'                =>  20,
+        'usage_records'           =>  20,
     };
     my $center = {
         'type'                    => 1,
     };
+    my $right = {
+        'usage_records'           => 1,
+    };
     my @fields_input = (
-        'name', 'type', 'uri', 'host', 'path', 'proposer'
+        'code', 'name', 'type', 'uri', 'host', 'path', 'proposer', 'usage_records',
     );
     my @fields_official = (
-        'name', 'type', 'uri', 'host', 'path', 'proposer'
+        'code', 'name', 'type', 'uri', 'host', 'path', 'proposer', 'usage_records',
     );
     my $name = 'whitelist';
     &worksheet ($sps, $name, &label ($labels, $lang, 'whitelist-sheet'));
@@ -255,6 +260,8 @@ sub whitelist
         if ($fld !~ m/^spacer-/) {
             if ($center->{$fld}) {
                 &write ($sps, $name, $row,  $col, 1, 'label-center', &label ($labels, $lang, 'whitelist-' . $fld));
+            } elsif ($right->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'label-right', &label ($labels, $lang, 'whitelist-' . $fld));
             } else {
                 &write ($sps, $name, $row,  $col, 1, 'label', &label ($labels, $lang, 'whitelist-' . $fld));
             }
@@ -287,6 +294,8 @@ sub whitelist
             }
             if ($center->{$fld}) {
                 &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
+            } elsif ($right->{$fld}) {
+                &write ($sps, $name, $row,  $col, 1, 'text-right', $rec->{$fld}, fix_width => 0);
             } else {
                 &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
             }
@@ -307,7 +316,9 @@ sub blacklist
         'eissn'                   =>  10,
         'publisher'               =>  30,
         'embargo'                 =>  10,
-        'url'                     =>  100,
+        'url'                     => 100,
+        'usage_effective'         =>  20,
+        'usage_records'           =>  20,
     };
     my $center = {
         'pissn'                   => 1,
@@ -315,12 +326,14 @@ sub blacklist
     };
     my $right = {
         'embargo'                 => 1,
+        'usage_effective'         => 1,
+        'usage_records'           => 1,
     };
     my @fields_input = (
-        'title', 'pissn', 'eissn', 'publisher', 'embargo', 'url',
+        'title', 'pissn', 'eissn', 'publisher', 'embargo', 'url', 'usage_effective', 'usage_records',
     );
     my @fields_official = (
-        'title', 'pissn', 'eissn', 'publisher', 'embargo', 'url',
+        'title', 'pissn', 'eissn', 'publisher', 'embargo', 'url', 'usage_effective', 'usage_records',
     );
     my $name = 'blacklist';
     &worksheet ($sps, $name, &label ($labels, $lang, 'blacklist-sheet'));
@@ -537,7 +550,10 @@ sub records
         'spacer-4'                =>   5,
         'cris-id'                 =>  40,
         'cris-url'                => 100,
-        'duplicates'              =>  40,
+        'duplicates'              =>  36,
+        'spacer-5'                =>   5,
+        'fulltext_remote_valid'   =>  20,
+        'blacklisted_issn'        =>  20,
     };
     my $center = {
         'university'              => 1,
@@ -549,15 +565,17 @@ sub records
     };
     my @fields_input = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'status', 'reason',
-        'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates'
+        'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates', 'fulltext_remote_valid', 'blacklisted_issn',
     );
     my @fields_official = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'spacer-1', 'status',
-        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates'
+        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
+        'spacer-5', 'fulltext_remote_valid', 'blacklisted_issn',
     );
     my @fields_internal = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'spacer-1', 'status', 'reason',
-        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates'
+        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
+        'spacer-5', 'fulltext_remote_valid', 'blacklisted_issn',
     );
     my $name = 'records';
     &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records'));
@@ -590,6 +608,8 @@ sub records
     &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
     $col += 3;
     &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'in-cris-pub'));
+    $col += 4;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'usage-authority'));
     $row++;
     my @fields;
     if ($int) {
@@ -976,6 +996,9 @@ sub write
 {
     my ($sps, $ws, $row, $col, $width, $format, $data, %opt) = @_;
 
+    if (!defined ($data)) {
+        $data = '';
+    }
     $data =~ s/<\/?(em|sub|sup|i)\/?>//g;
     $data =~ s/<sup [^>]+>//g;
     if (!defined ($sps->{'row-height'}{$ws}{$row})) {

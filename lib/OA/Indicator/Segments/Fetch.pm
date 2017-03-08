@@ -39,6 +39,7 @@ sub process
     my $ft = new OA::Indicator::DB::Fulltext ($self->{'oai'});
     $ft->create ();
     foreach my $id (keys (%{$records})) {
+        $ft->delete ($id);
         $count->{'ft'} = 0;
         foreach my $rc ($mxd->fulltext ($id)) {
             if ($rc->{'type'} !~ m/^(loc|rem)$/) {

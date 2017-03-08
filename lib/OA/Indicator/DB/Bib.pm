@@ -63,16 +63,20 @@ sub create
                    screened              integer,
                    fulltext_link         integer,
                    fulltext_link_oa      integer,
-                   fulltext_whitelist    text,
                    fulltext_downloaded   integer,
                    fulltext_verified     integer,
                    fulltext_pdf          integer,
+                   fulltext_local        integer,
+                   fulltext_remote       text,
+                   fulltext_local_valid  integer,
+                   fulltext_remote_valid text,
                    doaj_issn             text,
                    bfi_level             integer,
                    bfi_class             text,
                    romeo_color           text,
                    romeo_issn            text,
                    blacklisted_issn      text,
+                   blacklisted_reclass   integer,
                    class                 text,
                    class_reasons         text,
                    pub_class             text,
@@ -132,23 +136,15 @@ sub load
         }
         $self->{'first_author'}{$rec->{'id'}} = $rec->{'first_author'};
         $self->{'first_author_pos'}{$rec->{'id'}} = $rec->{'first_author_pos'};
-        my $blacklist = 0;
+        my $blacklist = {};
         if ($rec->{'issn'}) {
             foreach my $issn (split (',', $rec->{'issn'})) {
                 if ($issn =~ m/^[0-9]{7}[0-9X]$/) {
                     if ((!$self->{'doaj_issn'}{$rec->{'id'}}) && ($self->{'doaj'}->exists ($issn))) {
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
                     }
-                    if ($blacklist) {
-                        if (!$self->{'bl'}->valid ($issn)) {
-                            $self->{'oai'}->log ('i', "skipping ISSN $issn, because of blacklisted ISSN: $blacklist");
-                            next;
-                        }
-                    }
                     if ($self->{'bl'}->valid ($issn)) {
-                        $blacklist = $issn;
-                        $self->{'oai'}->log ('i', "skipping blacklisted ISSN: $issn");
-                        next;
+                        $blacklist->{$issn} = 1;
                     }
                     my $color = $self->{'romeo'}->color ($issn);
                     if ($self->color_id ($color->[0]) > $self->color_id ($self->{'romeo_color'}{$rec->{'id'}})) {
@@ -165,16 +161,8 @@ sub load
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
                         last;
                     }
-                    if ($blacklist) {
-                        if (!$self->{'bl'}->valid ($issn)) {
-                            $self->{'oai'}->log ('i', "skipping E-ISSN $issn, because of blacklisted ISSN: $blacklist");
-                            next;
-                        }
-                    }
                     if ($self->{'bl'}->valid ($issn)) {
-                        $blacklist = $issn;
-                        $self->{'oai'}->log ('i', "skipping blacklisted E-ISSN: $issn");
-                        next;
+                        $blacklist->{$issn} = 1;
                     }
                     my $color = $self->{'romeo'}->color ($issn);
                     if ($self->color_id ($color->[0]) > $self->color_id ($self->{'romeo_color'}{$rec->{'id'}})) {
@@ -184,6 +172,7 @@ sub load
                 }
             }
         }
+        $self->{'blacklisted_issn'}{$rec->{'id'}} = join (',', sort (keys (%{$blacklist})));
     }
     foreach my $src (qw(aau au cbs dtu itu ku ruc sdu)) {
         $self->{'oai'}->log ('i', "loading bibliographic records for $src");
@@ -219,7 +208,7 @@ sub load_source
         }
         if ($rec->{'status'} ne 'deleted') {
             my $id = $rec->{'id'};
-            foreach my $f (qw(original_xml bfi_id bfi_class issn eissn doaj_issn romeo_color romeo_issn)) {
+            foreach my $f (qw(original_xml bfi_id bfi_class issn eissn doaj_issn romeo_color romeo_issn blacklisted_issn)) {
                 $rec->{$f} = '';
             }
             $rec->{'source'} = $src;
@@ -268,6 +257,9 @@ sub load_source
             if ($self->{'romeo_color'}{$id}) {
                 $rec->{'romeo_color'} = $self->{'romeo_color'}{$id};
                 $rec->{'romeo_issn'} = $self->{'romeo_issn'}{$id};
+            }
+            if ($self->{'blacklisted_issn'}{$id}) {
+                $rec->{'blacklisted_issn'} = $self->{'blacklisted_issn'}{$id};
             }
             $records->{$id} = $rec;
             $count->{'rows'}++;
