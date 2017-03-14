@@ -8,10 +8,9 @@ our $db;
 if (!defined ($db)) {
     $db = new DB::SQLite ('/var/lib/oa-indicator/db/fulltext.sqlite3', DieError => 1);
 }
-my ($v, $year, $dsid) = split ('/', $ENV{'PATH_INFO'});
-my $rs = $db->select ('f.mime as mime,f.size as size,f.md5 as md5', 'fulltext as f, fulltext_requests as r', "f.url=r.url and dsid='$dsid'");
+my ($v, $year, $dsid, $file) = split ('/', $ENV{'PATH_INFO'});
 my $rc;
-if ($rc = $db->next ($rs)) {
+if ($rc = &record ($dsid, $file)) {
     my $file = '/var/lib/oa-indicator/ft/' . substr ($rc->{'md5'}, 0, 2) . '/' . $rc->{'md5'} . '.dat';
     if (-e $file) {
         if (open (my $fin, $file)) {
@@ -33,4 +32,21 @@ if ($rc = $db->next ($rs)) {
     print ("Status: 404\n\n");
 }
 exit (0);
+
+sub record
+{
+    my ($dsid, $file) = @_;
+
+    my $rs = $db->select ('f.mime as mime,f.size as size,f.md5 as md5', 'fulltext as f, fulltext_requests as r',
+                          "f.url=r.url and dsid='$dsid' and f.filename='$file'");
+    my $rc;
+    if ($rc = $db->next ($rs)) {
+        return ($rc);
+    }
+    $rs = $db->select ('f.mime as mime,f.size as size,f.md5 as md5', 'fulltext as f, fulltext_requests as r',
+                          "f.url=r.url and dsid='$dsid'");
+    if ($rc = $db->next ($rs)) {
+        return ($rc);
+    }
+}
 
