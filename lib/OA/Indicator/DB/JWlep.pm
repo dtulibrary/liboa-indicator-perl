@@ -151,43 +151,31 @@ sub usage_records
     foreach my $i (split (',', $issnlist)) {
         $ISSN->{$i} = 0;
     }
-    my @rec = ();
+    my $done = {};
     foreach my $issn (keys (%{$ISSN})) {
-        if ($ISSN->{$issn}) {
-            next;
-        }
         my $rs = $self->{'db'}->select ('id,pissn,eissn,usage_records,usage_effective,usage_pissn,usage_eissn', 'jwlep', "pissn='$issn' or eissn='$issn'");
         my $rc;
+        my @rec = ();
         while ($rc = $self->{'db'}->next ($rs)) {
-            $rc->{'usage_records'}++;
-            if ($reclass) {
-                $rc->{'usage_effective'}++;
+            if (!$done->{$rc->{'id'}}) {
+                $done->{$rc->{'id'}} = 1;
+                $rc->{'usage_records'}++;
+                if ($reclass) {
+                    $rc->{'usage_effective'}++;
+                }
             }
-            foreach my $i (keys (%{$ISSN})) {
-                if ($ISSN->{$i}) {
-                    next;
-                }
-                if ($issn eq $rc->{'pissn'}) {
-                    $rc->{'usage_pissn'}++;
-                    $ISSN->{$i} = 1;
-                }
-                if ($issn eq $rc->{'eissn'}) {
-                    $rc->{'usage_eissn'}++;
-                    $ISSN->{$i} = 1;
-                }
+            if ($issn eq $rc->{'pissn'}) {
+                $rc->{'usage_pissn'}++;
+            }
+            if ($issn eq $rc->{'eissn'}) {
+                $rc->{'usage_eissn'}++;
             }
             push (@rec, $rc);
         }
-    }
-    if (@rec) {
         foreach my $rc (@rec) {
             $self->{'db'}->update ('jwlep', 'id', $rc);
             $self->{'db'}->commit ();
         }
-    } else {
-        $self->{'oai'}->log ('f',  "DB::JWlep::usage_records - ISSN not found: '$issnlist'");
-        $self->{'oai'}->log ('f',  'failed');
-        exit (1);
     }
 }
 
