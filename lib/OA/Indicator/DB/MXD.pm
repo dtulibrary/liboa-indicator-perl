@@ -153,7 +153,7 @@ sub load_source
         $self->{'oai'}->log ('f', 'failed');
         return (0);
     }
-    $count = {};
+    $count = {ft => 0, 'ft-no-url' => 0};
     while (<$fin>) {
         chomp;
         if (m/^#/) {
