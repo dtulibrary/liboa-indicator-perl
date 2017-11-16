@@ -918,7 +918,7 @@ sub cris_link
         return ("http://research.ku.dk/search/?pure=en/publications/id($id).html");
     }
     if ($source eq 'ruc') {
-        return ("http://rucforsk.ruc.dk/site/en/publications/id($id).html");
+        return ("https://rucforsk.ruc.dk/site/en/publications/id($id).html");
     }
     if ($source eq 'sdu') {
         return ("http://findresearcher.sdu.dk/portal/da/publications/id($id).html");
@@ -951,7 +951,7 @@ sub oai_link
         return ("http://curis.ku.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
     }
     if ($source eq 'ruc') {
-        return ("http://rucforsk.ruc.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
+        return ("https://rucforsk.ruc.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
     }
     if ($source eq 'sdu') {
         return ("http://findresearcher.sdu.dk:8080/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
