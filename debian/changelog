@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.04-01) unstable; urgency=low
+
+  * Starting development of realised split into four.
+    
+    GIT revision: 5a9a3926ba1db9ed358e93bc8a4cb3e40fb2f679
+
+ -- franck <franck@cvt.dk>  Thu, 16 Nov 2017 18:26:13 +0100
+
 liboa-indicator-perl (1.03-02) unstable; urgency=low
 
   * Production version for 2015 run
