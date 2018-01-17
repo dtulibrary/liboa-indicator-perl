@@ -3,3 +3,5 @@ debian/changelog.bck
 arch/
 ff
 ff.*
+.DS_Store
+*.pl
