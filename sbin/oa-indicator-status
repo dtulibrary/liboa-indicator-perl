@@ -38,6 +38,7 @@ foreach my $year ($db->run_years ()) {
         if ($type eq 'prod') {
             system ("/usr/bin/wget -O /tmp/national.$$.csv -o /dev/null 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
             if (!-s "/tmp/national.$$.csv") {
+                unlink ("/tmp/national.$$.csv");
                 &log ('f', "failed to harvest 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
                 &status ('f', "web service error for year $year");
             }
@@ -49,6 +50,7 @@ foreach my $year ($db->run_years ()) {
                 close (FIN);
             }
             if ($lines != 2) {
+                unlink ("/tmp/national.$$.csv");
                 &log ('f', "harvested $lines lines from 'http://localhost/oa-indicator/ws/national.csv/$year/prod/latest'");
                 &status ('f', "web service error for year $year");
             }
