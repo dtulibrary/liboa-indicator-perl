@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+case "$1" in
+    install|upgrade)
+    if [ -e /var/lib/oa-indicator/cgi/ws ]
+    then
+        cp /var/lib/oa-indicator/cgi/ws /tmp/liboa-indicator-perl.ws
+    else
+        touch /tmp/liboa-indicator-perl.ws
+    fi
+    if [ -e /usr/share/perl5/OA/Indicator/WS.pm ]
+    then
+        cp /usr/share/perl5/OA/Indicator/WS.pm /tmp/liboa-indicator-perl.WS.pm
+    else
+        touch /tmp/liboa-indicator-perl.WS.pm
+    fi
+    ;;
+    abort-upgrade)
+        rm -f /tmp/liboa-indicator-perl.ws /tmp/liboa-indicator-perl.WS.pm
+    ;;
+    *)
+        echo "preinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+exit 0

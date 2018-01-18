@@ -24,6 +24,18 @@ case "$1" in
         touch /var/log/oa-indicator/status.log
         chown nagios /var/log/oa-indicator/status.log
         chmod 664 /var/log/oa-indicator/status.log
+        if ! diff -q /var/lib/oa-indicator/cgi/ws /tmp/liboa-indicator-perl.ws > /dev/null
+        then
+            echo 'web service updated, restarting apache'
+            /etc/init.d/apache2 restart
+        else
+            if ! diff -q /usr/share/perl5/OA/Indicator/WS.pm /tmp/liboa-indicator-perl.WS.pm > /dev/null
+            then
+                echo 'web service library updated, restarting apache'
+                /etc/init.d/apache2 restart
+            fi
+        fi
+        rm -f /tmp/liboa-indicator-perl.ws /tmp/liboa-indicator-perl.WS.pm
     ;;
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;
