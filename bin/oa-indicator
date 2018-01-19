@@ -4,11 +4,53 @@ use strict;
 use warnings;
 use OA::Indicator;
 use OA::Indicator::DB;
+use Fatal qw(open chdir mkdir unlink);
 
 my $oai = new OA::Indicator (verbose => 1);
 my $comm = shift (@ARGV);
 if (!$comm) {
     &usage ($oai);
+}
+$comm = &comm ($oai, $comm);
+if ($comm eq 'data-repo') {
+    my ($year, @desc) = @ARGV;
+    if (!$oai->valid_year ($year)) {
+        if ($year) {
+            &usage ($oai, 'invalid year: ' . $year);
+        } else {
+            &usage ($oai);
+        }
+    }
+    my $desc;
+    if (@desc) {
+        $desc = join (' ', @desc);
+    } else {
+        $desc = 'new data repository without description';
+    }
+    my $dir = $year;
+    my $n = '001';
+    while (-e "/var/lib/oa-indicator/$dir.$n") {
+        $n = sprintf ('%03d', $n + 1);
+    }
+    $dir .= '.' . $n;
+    chdir ('/var/lib/oa-indicator');
+    mkdir ($dir, 0775);
+    system ("chmod 2775 $dir");
+    open (my $fou, "> $dir/.desc");
+    print ($fou $desc, "\n");
+    close ($fou);
+    open ($fou, "> $dir/.date");
+    print ($fou &date (time), "\n");
+    close ($fou);
+    if (-e $year) {
+        unlink ($year);
+    }
+    system ("ln -s $dir $year");
+    if (!-e $year) {
+        die ("failed to create link $year for $dir");
+    }
+    warn ("new data repository created: $dir\n");
+    exit (0);
 }
 if ($comm eq 'harvest') {
     my ($year, $type) = @ARGV;
@@ -324,7 +366,7 @@ if ($comm eq 'status') {
                 my $rec = $db->run_info ($y, $t, $run);
                 if ($head) {
                     $head = 0;
-                    printf("    %3s %-19s %-19s %3s %3s %-10s %s\n", 'run', 'start', 'end', 'suc', 'rel', 'errors', 'description');
+                    printf("    %3s %-10s %-19s %-19s %3s %3s %-10s %s\n", 'run', 'repository', 'start', 'end', 'suc', 'rel', 'errors', 'description');
                 }
                 foreach my $f (qw(success released)) {
                     if (!defined ($rec->{$f})) {
@@ -336,10 +378,59 @@ if ($comm eq 'status') {
                         $rec->{$f} = '';
                     }
                 }
-                printf("    %3d %19s %19s %3d %3d %10s %s\n", $run, &date ($rec->{'start'}), &date ($rec->{'end'}),
+                printf("    %3d %-10s %19s %19s %3d %3d %10s %s\n", $run, $rec->{'repository'}, &date ($rec->{'start'}), &date ($rec->{'end'}),
                        $rec->{'success'}, $rec->{'released'}, $rec->{'errors'}, $rec->{'description'});
             }
         }
+    }
+    exit (0);
+}
+if ($comm eq 'repo-status') {
+    chdir ('/var/lib/oa-indicator');
+    printf ("%-10s  %-19s  %s\n", 'repository', 'date / time', 'description');
+    open (my $fls, "ls -d 20* |");
+    while (<$fls>) {
+        chomp;
+        if ((-d $_) && (!-l $_)) {
+            my $date;
+            my $desc;
+            if (-e "$_/.desc") {
+                open (my $fin, "$_/.date");
+                $date = <$fin>;
+                chomp ($date);
+                close ($fin);
+                open ($fin, "$_/.desc");
+                $desc = <$fin>;
+                chomp ($desc);
+                close ($fin);
+            } else {
+                $date = '';
+                $desc = 'pre-repository data storage';
+            }
+            printf ("%-10s  %-19s  %s\n", $_, $date, $desc);
+        }
+    }
+    close ($fls);
+    exit (0);
+}
+if ($comm eq 'db') {
+    my ($year, $run_type, $run) = @ARGV;
+    if ($year) {
+        if (!$oai->valid_year ($year)) {
+            &usage ($oai, 'invalid year: ' . $year);
+        }
+    }
+    if ($run_type) {
+        if ($run_type !~ m/^(devel|test|prod)$/) {
+            &usage ($oai, 'invalid run type: ' . $run_type);
+        }
+    }
+    my $db = new OA::Indicator::DB ();
+    my $file = $db->run_db ($year, $run_type, $run);
+    if ($file) {
+        print ($file, "\n");
+    } else {
+        die ("fatal: no run matches the given criterias\n");
     }
     exit (0);
 }
@@ -365,6 +456,12 @@ sub archive_source
     my ($year, $type) = @_;
     my $n = '01';
 
+    if (-e "/var/lib/oa-indicator/$year/.prod") {
+        die ("fatal: cannot re-harvest data, repository has been used for a production run\n");
+    }
+    if (-e "/var/lib/oa-indicator/$year/.test") {
+        die ("fatal: cannot re-harvest data, repository has been used for a test run\n");
+    }
     if (!-d "/var/lib/oa-indicator/$year/arch") {
         if (!mkdir ("/var/lib/oa-indicator/$year/arch", 0775)) {
             die ("fatal: failed to mkdir ('/var/lib/oa-indicator/$year/arch', 0775): @_\n");
@@ -398,7 +495,50 @@ sub date
     my ($time) = @_;
     my ($sec, $min, $hour, $day, $mon, $year) = localtime ($time);
 
-    return (sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
+    if ($time) {
+        return (sprintf ("%04d-%02d-%02d %02d:%02d:%02d", 1900 + $year, $mon + 1, $day, $hour, $min, $sec));
+    } else {
+        return ('');
+    }
+}
+
+sub comm
+{
+    my ($oai, $comm) = @_;
+
+    my $COMM = {
+        'datarepo'     => 'data-repo',
+        'db'           => '',
+        'harvest'      => '',
+        'load'         => '',
+        'segment'      => '',
+        'close'        => '',
+        'spreadsheets' => '',
+        'release'      => '',
+        'status'       => '',
+        'repostatus'   => 'repo-status',
+    };
+    my $co = lc ($comm);
+    $co =~ s/[^a-z]//g;
+    my $match = 0;
+    my $match_comm = '';
+    foreach my $key (keys (%{$COMM})) {
+        if ($co eq substr ($key, 0, length ($co))) {
+            $match++;
+            if ($COMM->{$key}) {
+                $match_comm = $COMM->{$key};
+            } else {
+                $match_comm = $key;
+            }
+        }
+    }
+    if ($match == 1) {
+        return ($match_comm);
+    }
+    if ($match == 0) {
+        &usage ($oai, "unknown command: $comm");
+    }
+    &usage ($oai, "ambiguous command: $comm");
 }
 
 sub usage
@@ -408,13 +548,17 @@ sub usage
     if ($msg) {
         warn ("\n$msg\n");
     }
-    warn ('usage: ao-indicator harvest      <year> <' . join (' | ', $oai->data_types ()) . ">\n");
+    my @seg = $oai->segments ();
+    shift (@seg);
+    warn ("usage: ao-indicator data-repo    <year> [description]\n");
+    warn ('       ao-indicator harvest      <year> <' . join (' | ', $oai->data_types ()) . ">\n");
     warn ('       ao-indicator load         <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
-    warn ('       ao-indicator segment      <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', $oai->segments ()) . ">\n");
+    warn ('       ao-indicator segment      <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', @seg) . ">\n");
     warn ('       ao-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n");
     warn ('       ao-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n");
     warn ('       ao-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
-    warn ('       ao-indicator status       [year] [' . join (' | ', $oai->run_types ()) . "]\n\n");
+    warn ('       ao-indicator status       [year] [' . join (' | ', $oai->run_types ()) . "]\n");
+    warn ("       ao-indicator repo-status\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
 }
