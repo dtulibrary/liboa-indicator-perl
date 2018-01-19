@@ -47,7 +47,7 @@ sub validate_type
 
 sub create
 {   
-    my ($self, $year, $type, $desc) = @_;
+    my ($self, $repo, $year, $type, $desc) = @_;
     my $db = $self->{'rundb'};
 
     $self->validate_year ($year);
@@ -62,7 +62,8 @@ sub create
                    end             integer,
                    success         integer,
                    released        integer,
-                   errors          text
+                   errors          text,
+                   repository      text
                )');
     $db->sql ('create index if not exists runs_year on runs (year)');
     $db->sql ('create index if not exists runs_type on runs (type)');
@@ -79,7 +80,8 @@ sub create
     $db->sql ('create index if not exists segments_run on segments (run)');
     $self->{'run'} = $self->new_run ($self->{'year'}, $self->{'type'});
     $self->{'id'} = $self->{'year'} . '.' . $self->{'type'} . '.' . sprintf ('%03d', $self->{'run'});
-    $db->insert ('runs', {id => $self->{'id'}, year => $self->{'year'}, type => $self->{'type'}, run => $self->{'run'}, description => $desc, start => time, end => 0, released => 0});
+    $db->insert ('runs', {id => $self->{'id'}, year => $self->{'year'}, type => $self->{'type'}, run => $self->{'run'}, description => $desc, start => time,
+                          end => 0, released => 0, repository => $repo});
     $self->{'db'} = new DB::SQLite ("$self->{'root'}/run_$self->{'id'}.sqlite3", DieError => 1, cacheUpdates => 1000);
     return ($self->{'db'});
 }
@@ -386,12 +388,47 @@ sub run_info
     my $db = $self->{'rundb'};
 
     my $id = $year . '.' . $type . '.' . sprintf ('%03d', $run);
-    my $rs = $db->select ('description,start,end,success,released,errors', 'runs', "id='$id'");
+    my $rs = $db->select ('description,repository,start,end,success,released,errors', 'runs', "id='$id'");
     my $rec;
     if ($rec = $db->next ($rs)) {
         return ($rec);
     } else {
         return ({});
+    }
+}
+
+sub run_db
+{
+    my ($self, $year, $type, $run) = @_;
+    my $db = $self->{'rundb'};
+
+    my $rec;
+    if ($year) {
+        if ($type) {
+            if ($run) {
+                my $rs = $db->select ('year,type,run', 'runs', "year=$year and type='$type' and run=$run", 'order by start desc');
+                $rec = $db->next ($rs);
+            } else {
+                my $rs = $db->select ('year,type,run', 'runs', "year=$year and type='$type'", 'order by start desc');
+                $rec = $db->next ($rs);
+            }
+        } else {
+            my $rs = $db->select ('year,type,run', 'runs', "year=$year", 'order by start desc');
+            $rec = $db->next ($rs);
+        }
+    } else {
+        my $rs = $db->select ('year,type,run', 'runs', '', 'order by start desc');
+        $rec = $db->next ($rs);
+    }
+    if ($rec) {
+        my $file = sprintf ('/var/lib/oa-indicator/db/run_%04d.%s.%03d.sqlite3', $rec->{'year'}, $rec->{'type'}, $rec->{'run'});
+        if (-e $file) {
+            return ($file);
+        } else {
+            die ("fatal: could not find db with year: $year, type: $type, run: $run, file: $file");
+        }
+    } else {
+        return (undef);
     }
 }
 
