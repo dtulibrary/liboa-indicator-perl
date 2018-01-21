@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.04-02) unstable; urgency=low
+
+  * Complete addition of data repository, DOAJ APC and 4 ways split of
+    realised records.
+    
+    GIT revision: 784d2d5acff963e10b406811566df4da819c7a0f
+
+ -- franck <franck@cvt.dk>  Sun, 21 Jan 2018 15:51:05 +0100
+
 liboa-indicator-perl (1.04-01) unstable; urgency=low
 
   * Starting development of realised split into four.
