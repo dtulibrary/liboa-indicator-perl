@@ -71,6 +71,8 @@ sub create
                    fulltext_local_valid  integer,
                    fulltext_remote_valid text,
                    doaj_issn             text,
+                   doaj_apc              integer,
+                   doaj_apc_price        text,
                    bfi_level             integer,
                    bfi_class             text,
                    romeo_color           text,
@@ -142,6 +144,7 @@ sub load
                 if ($issn =~ m/^[0-9]{7}[0-9X]$/) {
                     if ((!$self->{'doaj_issn'}{$rec->{'id'}}) && ($self->{'doaj'}->exists ($issn))) {
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
+                        $self->{'doaj_apc'}{$rec->{'id'}} = [$self->{'doaj'}->apc ($issn)];
                     }
                     if ($self->{'bl'}->valid ($issn)) {
                         $blacklist->{$issn} = 1;
@@ -159,7 +162,7 @@ sub load
                 if ($issn =~ m/^[0-9]{7}[0-9X]$/) {
                     if ((!$self->{'doaj_issn'}{$rec->{'id'}}) && ($self->{'doaj'}->exists ($issn))) {
                         $self->{'doaj_issn'}{$rec->{'id'}} = $issn;
-                        last;
+                        $self->{'doaj_apc'}{$rec->{'id'}} = [$self->{'doaj'}->apc ($issn)];
                     }
                     if ($self->{'bl'}->valid ($issn)) {
                         $blacklist->{$issn} = 1;
@@ -208,8 +211,11 @@ sub load_source
         }
         if ($rec->{'status'} ne 'deleted') {
             my $id = $rec->{'id'};
-            foreach my $f (qw(original_xml bfi_id bfi_class issn eissn doaj_issn romeo_color romeo_issn blacklisted_issn)) {
+            foreach my $f (qw(original_xml bfi_id bfi_class issn eissn doaj_issn doaj_apc_price romeo_color romeo_issn blacklisted_issn)) {
                 $rec->{$f} = '';
+            }
+            foreach my $f (qw(doaj_apc)) {
+                $rec->{$f} = 0;
             }
             $rec->{'source'} = $src;
             if (exists ($self->{'bfi_id'}{$rec->{'source_id'}})) {
@@ -253,6 +259,9 @@ sub load_source
             }
             if ($self->{'doaj_issn'}{$id}) {
                 $rec->{'doaj_issn'} = $self->{'doaj_issn'}{$id};
+            }
+            if ($self->{'doaj_apc'}{$id}) {
+                ($rec->{'doaj_apc'}, $rec->{'doaj_apc_price'}) = @{$self->{'doaj_apc'}{$id}};
             }
             if ($self->{'romeo_color'}{$id}) {
                 $rec->{'romeo_color'} = $self->{'romeo_color'}{$id};

@@ -30,6 +30,10 @@ sub create
                    license         text,
                    publisher       text,
                    title           text,
+                   apc             integer,
+                   apc_price       text,
+                   apc_currency    text,
+                   apc_url         text,
                    mods            text,
                    original_xml    text
               )');
@@ -57,13 +61,18 @@ sub load
         }
         my $rec = {};
         my @fields = split ("\t");
-        for my $fld (qw(id harvest_stamp harvest_date status source_id pissn eissn license publisher title)) {
+        for my $fld (qw(id harvest_stamp harvest_date status source_id pissn eissn license publisher title apc_price apc_currency apc_url)) {
             $rec->{$fld} = shift (@fields);
         }
         if ($rec->{'status'} ne 'deleted') {
             $rec->{'pissn'} = $self->issn_normalize ($rec->{'pissn'});
             $rec->{'eissn'} = $self->issn_normalize ($rec->{'eissn'});
             $rec->{'mods'} = $rec->{'original_xml'} = '';
+            if ((!defined ($rec->{'apc_price'})) || ($rec->{'apc_price'} =~ m/^[\s\t\r\n]*$/)) {
+                $rec->{'apc'} = 0;
+            } else {
+                $rec->{'apc'} = 1;
+            }
             delete ($rec->{'status'});
             $records->{$rec->{'id'}} = $rec;
             $count->{'rows'}++;
@@ -133,7 +142,7 @@ sub cache
         return (1);
     }
     $self->{'cache'} = {};
-    my $rs = $self->{'db'}->select ('id,pissn,eissn,license', 'doaj');
+    my $rs = $self->{'db'}->select ('id,pissn,eissn,license,apc,apc_price,apc_currency', 'doaj');
     my $rec;
     while ($rec = $self->{'db'}->next ($rs)) {
         foreach my $fld (qw(pissn eissn)) {
@@ -148,8 +157,14 @@ sub cache
                 if ($self->{'cache'}{$rec->{$fld}}->[0] ne $rec->{'license'}) {
                     $self->{'oai'}->log ('w',  "existing ISSN with two different license: $rec->{$fld} : $self->{'cache'}{$rec->{$fld}}->[0] != $rec->{'license'}");
                 }
+                if ($self->{'cache'}{$rec->{$fld}}->[2] ne $rec->{'apc'}) {
+                    $self->{'oai'}->log ('w',  "existing ISSN with two different APC: $rec->{$fld} : $self->{'cache'}{$rec->{$fld}}->[2] != $rec->{'apc'}");
+                }
             } else {
-                $self->{'cache'}{$rec->{$fld}} = [$rec->{'license'}, $rec->{'id'}];
+                if (($rec->{'apc'}) && ($rec->{'apc_currency'})) {
+                    $rec->{'apc_price'} = $rec->{'apc_currency'} . ' ' . $rec->{'apc_price'};
+                }
+                $self->{'cache'}{$rec->{$fld}} = [$rec->{'license'}, $rec->{'id'}, $rec->{'apc'}, $rec->{'apc_price'}];
             }
         }
     }
@@ -189,6 +204,19 @@ sub license
     $issn = $self->issn_normalize ($issn);
     if ($self->{'cache'}{$issn}) {
         return ($self->{'cache'}{$issn}->[0]);
+    } else {
+        return (undef);
+    }
+}
+
+sub apc
+{
+    my ($self, $issn) = @_;
+
+    $self->cache ();
+    $issn = $self->issn_normalize ($issn);
+    if ($self->{'cache'}{$issn}) {
+        return ($self->{'cache'}{$issn}->[2], $self->{'cache'}{$issn}->[3]);
     } else {
         return (undef);
     }

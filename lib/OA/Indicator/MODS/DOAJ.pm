@@ -9,14 +9,17 @@ sub new
     my ($class) = @_;
     my $self = {};
 
-    $self->{'primary_fields'} = [qw(source_id pissn eissn license publisher title)];
+    $self->{'primary_fields'} = [qw(source_id pissn eissn license publisher title apc_price apc_currency apc_url)];
     $self->{'xpath'} = {
-        source_id  => '/m:mods/m:identifier[@type="ds.dtic.dk:id:pub:dads:sourceid"]',
-        pissn      => '//m:identifier[@type="ds.dtic.dk:id:pub:dads:pissn"]',
-        eissn      => '//m:identifier[@type="ds.dtic.dk:id:pub:dads:eissn"]',
-        license    => '/m:mods/m:extension/d:oaindicator/d:doaj/d:doajlicense',
-        publisher  => '/m:mods/m:relatedItem/m:originInfo/m:publisher',
-        title      => '/m:mods/m:titleInfo/m:title'
+        source_id    => '/m:mods/m:identifier[@type="ds.dtic.dk:id:pub:dads:sourceid"]',
+        pissn        => '//m:identifier[@type="ds.dtic.dk:id:pub:dads:pissn"]',
+        eissn        => '//m:identifier[@type="ds.dtic.dk:id:pub:dads:eissn"]',
+        license      => '/m:mods/m:extension/d:oaindicator/d:doaj/d:doajlicense',
+        publisher    => '/m:mods/m:relatedItem/m:originInfo/m:publisher',
+        title        => '/m:mods/m:titleInfo/m:title',
+        apc_price    => '/m:mods/m:extension/d:oaindicator/d:doaj/d:apc_average_price',
+        apc_currency => '/m:mods/m:extension/d:oaindicator/d:doaj/d:apc_currency',
+        apc_url      => '/m:mods/m:extension/d:oaindicator/d:doaj/d:apc_url'
     };
     $self->{'xml'} = new OA::Indicator::XML (m => 'http://www.loc.gov/mods/v3', d => 'http://dtic.dk/ds');
     return (bless ($self, $class));
