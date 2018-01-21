@@ -58,6 +58,24 @@ realised                       en Realised
 realised                       da Realiseret
 realized                       en Realised
 realized                       da Realiseret
+realized_total                 en Total
+realized_total                 da Total
+realized_gre_loc               en Green local
+realized_gre_loc               da Grøn lokalt
+realized_gre_ext               en Green external
+realized_gre_ext               da Grøn eksternt
+realized_gol_apc               en Golden w/APC
+realized_gol_apc               da Gylden med APC
+realized_gol_fre               en Golden wo/APC
+realized_gol_fre               da Gylden uden APC
+green-loc                      en Green local
+green-loc                      da Grøn lokalt
+green-ext                      en Green external
+green-ext                      da Grøn eksternt
+golden-apc                     en Golden w/APC
+golden-apc                     da Gylden med APC
+golden-fre                     en Golden wo/APC
+golden-fre                     da Gylden uden APC
 unused                         en Unused
 unused                         da Uudnyttet
 unclear                        en Unclear
@@ -68,6 +86,10 @@ total                          en Total
 total                          da Total
 total-clear                    en Total wo/Unclear
 total-clear                    da Total Uden Uklart
+total-clear-1                  en Total
+total-clear-1                  da Total
+total-clear-2                  en wo/Unclear
+total-clear-2                  da Uden Uklart
 relative                       en Relative
 relative                       da Relativt
 relative-clear                 en Relative (wo/Unclear)

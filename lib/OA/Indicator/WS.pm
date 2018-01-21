@@ -294,16 +294,54 @@ sub comm_national
         $rc = $db->next ($rs);
         $ret->{$class} = $rc->{'c'};
     }
+    $ret->{'realized_gre_loc'} = 0;
+    $ret->{'realized_gre_ext'} = 0;
+    $ret->{'realized_gol_apc'} = 0;
+    $ret->{'realized_gol_fre'} = 0;
+    my $pub = $self->publication_realised ($db);
+    foreach my $key (keys (%{$pub})) {
+        foreach my $fld (qw(realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre)) {
+            if ($pub->{$key}{$fld}) {
+                $ret->{$fld} += $pub->{$key}{$fld};
+            }
+        }
+    }
     $ret->{'total'} = $ret->{'realized'} + $ret->{'unclear'} + $ret->{'unused'};
     $ret->{'total_clear'} = $ret->{'realized'} + $ret->{'unused'};
-    foreach my $class (qw(realized unclear unused)) {
+    foreach my $class (qw(realized realized_gol_apc realized_gol_fre realized_gre_loc realized_gre_ext unclear unused)) {
         $ret->{'relative'}{$class} = $ret->{$class} / $ret->{'total'} * 100;
     }
-    foreach my $class (qw(realized unused)) {
+    foreach my $class (qw(realized realized_gol_apc realized_gol_fre realized_gre_loc realized_gre_ext unused)) {
         $ret->{'relative_clear'}{$class} = $ret->{$class} / $ret->{'total_clear'} * 100;
     }
     $self->{'result'}{'response'}{'body'} = $ret;
     $self->respond ();
+}
+
+sub publication_realised
+{
+    my ($self, $db) = @_;
+
+    my $rs = $db->select ('class_reasons,doaj_apc,fulltext_local_valid,fulltext_remote_valid,dedupkey', 'records',
+                          "scoped=1 and screened=1 and pub_class='realized'");
+    my $pub = {};
+    my $rc;
+    while ($rc = $db->next ($rs)) {
+        if ($rc->{'class_reasons'} =~ m/golden/) {
+            if ($rc->{'doaj_apc'}) {
+                $pub->{$rc->{'dedupkey'}}{'realized_gol_apc'} = 1;
+            } else {
+                $pub->{$rc->{'dedupkey'}}{'realized_gol_fre'} = 1;
+            }
+        }
+        if ($rc->{'fulltext_local_valid'}) {
+            $pub->{$rc->{'dedupkey'}}{'realized_gre_loc'} = 1;
+        }
+        if ($rc->{'fulltext_remote_valid'}) {
+            $pub->{$rc->{'dedupkey'}}{'realized_gre_ext'} = 1;
+        }
+    }
+    return ($pub);
 }
 
 sub comm_research_area
@@ -311,19 +349,34 @@ sub comm_research_area
     my ($self, $db) = @_;
     my $ret = {};
 
+    my $pub = $self->publication_realised ($db);
     my ($rs, $rc);
     foreach my $area (qw(sci soc hum med)) {
+        $ret->{$area}{'realized_gre_loc'} = 0;
+        $ret->{$area}{'realized_gre_ext'} = 0;
+        $ret->{$area}{'realized_gol_apc'} = 0;
+        $ret->{$area}{'realized_gol_fre'} = 0;
         foreach my $class (qw(realized unclear unused)) {
             $rs = $db->select ('count(distinct(dedupkey)) as c', 'records', "scoped=1 and screened=1 and pub_research_area='$area' and pub_class='$class'");
             $rc = $db->next ($rs);
             $ret->{$area}{$class} = $rc->{'c'};
+            if ($class eq 'realized') {
+                $rs = $db->select ('distinct(dedupkey)', 'records', "scoped=1 and screened=1 and pub_research_area='$area' and pub_class='$class'");
+                while ($rc = $db->next ($rs)) {
+                    foreach my $fld (qw(realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre)) {
+                        if ($pub->{$rc->{'dedupkey'}}{$fld}) {
+                            $ret->{$area}{$fld} += $pub->{$rc->{'dedupkey'}}{$fld};
+                        }
+                    }
+                }
+            }
         }
         $ret->{$area}{'total'} = $ret->{$area}{'realized'} + $ret->{$area}{'unclear'} + $ret->{$area}{'unused'};
         $ret->{$area}{'total_clear'} = $ret->{$area}{'realized'} + $ret->{$area}{'unused'};
-        foreach my $class (qw(realized unclear unused)) {
+        foreach my $class (qw(realized realized_gol_apc realized_gol_fre realized_gre_loc realized_gre_ext unclear unused)) {
             $ret->{$area}{'relative'}{$class} = $ret->{$area}{$class} / $ret->{$area}{'total'} * 100;
         }
-        foreach my $class (qw(realized unused)) {
+        foreach my $class (qw(realized realized_gol_apc realized_gol_fre realized_gre_loc realized_gre_ext unused)) {
             $ret->{$area}{'relative_clear'}{$class} = $ret->{$area}{$class} / $ret->{$area}{'total_clear'} * 100;
         }
     }
@@ -340,14 +393,37 @@ sub comm_universities
     my $rc;
     while ($rc = $db->next ($rs)) {
         $ret->{$rc->{'source'}}{$rc->{'class'}} = $rc->{'c'};
+        if ($rc->{'class'} eq 'realized') {
+            $ret->{$rc->{'source'}}{'realized_gre_loc'} = 0;
+            $ret->{$rc->{'source'}}{'realized_gre_ext'} = 0;
+            $ret->{$rc->{'source'}}{'realized_gol_apc'} = 0;
+            $ret->{$rc->{'source'}}{'realized_gol_fre'} = 0;
+        }
+    }
+    $rs = $db->select ('class_reasons,doaj_apc,fulltext_local_valid,fulltext_remote_valid,source', 'records',
+                       "scoped=1 and screened=1 and class='realized'");
+    while ($rc = $db->next ($rs)) {
+        if ($rc->{'class_reasons'} =~ m/golden/) {
+            if ($rc->{'doaj_apc'}) {
+                $ret->{$rc->{'source'}}{'realized_gol_apc'}++;
+            } else {
+                $ret->{$rc->{'source'}}{'realized_gol_fre'}++;
+            }
+        }
+        if ($rc->{'fulltext_local_valid'}) {
+            $ret->{$rc->{'source'}}{'realized_gre_loc'}++;
+        }
+        if ($rc->{'fulltext_remote_valid'}) {
+            $ret->{$rc->{'source'}}{'realized_gre_ext'}++;
+        }
     }
     foreach my $source (keys (%{$ret})) {
         $ret->{$source}{'total'} = $ret->{$source}{'realized'} + $ret->{$source}{'unclear'} + $ret->{$source}{'unused'};
         $ret->{$source}{'total_clear'} = $ret->{$source}{'realized'} + $ret->{$source}{'unused'};
-        foreach my $class (qw(realized unclear unused)) {
+        foreach my $class (qw(realized realized_gol_apc realized_gol_fre realized_gre_loc realized_gre_ext unclear unused)) {
             $ret->{$source}{'relative'}{$class} = $ret->{$source}{$class} / $ret->{$source}{'total'} * 100;
         }
-        foreach my $class (qw(realized unused)) {
+        foreach my $class (qw(realized realized_gol_apc realized_gol_fre realized_gre_loc realized_gre_ext unused)) {
             $ret->{$source}{'relative_clear'}{$class} = $ret->{$source}{$class} / $ret->{$source}{'total_clear'} * 100;
         }
     }
@@ -361,7 +437,7 @@ sub comm_records
 
     my $duplicates = $self->duplicates ($db);
     my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,class,class_reasons,bfi_class,bfi_level,source_id,dedupkey,' .
-                          'fulltext_remote_valid,blacklisted_issn', 'records', 'scoped=1 and screened=1', 'order by title');
+                          'fulltext_remote_valid,fulltext_local_valid,doaj_apc,blacklisted_issn', 'records', 'scoped=1 and screened=1', 'order by title');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
     my $rc;
     while ($rc = $db->next ($rs)) {
@@ -395,6 +471,21 @@ sub comm_records
         if ($rc->{'blacklisted_issn'}) {
             $rc->{'blacklisted_issn'} = $self->display_issn_list ($rc->{'blacklisted_issn'}, ' / ');
         }
+        if ($rc->{'class'} eq 'realized') {
+            if ($rc->{'class_reasons'} =~ m/golden/) {
+                if ($rc->{'doaj_apc'}) {
+                    $rc->{'realized_gol_apc'} = 1;
+                } else {
+                    $rc->{'realized_gol_fre'} = 1;
+                }
+            }
+            if ($rc->{'fulltext_local_valid'}) {
+                $rc->{'realized_gre_loc'} = 1;
+            }
+            if ($rc->{'fulltext_remote_valid'}) {
+                $rc->{'realized_gre_ext'} = 1;
+            }
+        }
         push (@{$self->{'result'}{'response'}{'body'}{'record'}}, $rc);
     }
     $self->respond ();
@@ -404,6 +495,7 @@ sub comm_publications
 {
     my ($self, $db) = @_;
 
+    my $realised = $self->publication_realised ($db);
     my $duplicates = $self->duplicates ($db, merge => 1);
     my $rs = $db->select ('title,first_author,source,research_area,pub_research_area,bfi_research_area,doi,issn,eissn,class,pub_class,pub_class_reasons,bfi_class,bfi_level,source_id,dedupkey',
                           'records', 'scoped=1 and screened=1', 'order by title');
@@ -462,6 +554,13 @@ sub comm_publications
             delete ($rc->{'source'});
             if ($rc->{'bfi_level'} == 0) {
                 $rc->{'bfi_level'} = '';
+            }
+        }
+        if ($rc->{'pub_class'} eq 'realized') {
+            foreach my $fld (qw(realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre)) {
+                if ($realised->{$rc->{'dedupkey'}}{$fld}) {
+                    $rc->{$fld} = 1;
+                }
             }
         }
         $rc->{'ddf_link'} = 'http://forskningsdatabasen.dk/en/catalog/' . $rc->{'dedupkey'};
@@ -1039,8 +1138,11 @@ sub respond_csv_encode
     my $result = '';
     if ($self->{'comm'} eq 'national') {
         my @cols = ('');
-        foreach my $class (qw(realized unused unclear total total-clear relative-realized relative-unused relative-unclear
-                              relative-clear-realized relative-clear-unused)) {
+        foreach my $class (qw(realized realized-gre-loc realized-gre-ext realized-gol-apc realized-gol-fre unused unclear total total-clear
+                              relative-realized relative-realized-gre-loc relative-realized-gre-ext relative-realized-gol-apc relative-realized-gol-fre
+                              relative-unused relative-unclear
+                              relative-clear-realized relative-clear-realized-gre-loc relative-clear-realized-gre-ext relative-clear-realized-gol-apc
+                              relative-clear-realized-gol-fre relative-clear-unused)) {
             my $s = $class;
             $s =~ s/-/ /g;
             $s =~ s/^([a-z])/uc ($1)/ge;
@@ -1049,15 +1151,15 @@ sub respond_csv_encode
         }
         $result .= join ("\t", @cols) . "\n";
         @cols = ('all'); 
-        foreach my $class (qw(realized unused unclear)) {
+        foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused unclear)) {
             push (@cols, $self->{'result'}{'response'}{'body'}{$class});
         }
         push (@cols, $self->{'result'}{'response'}{'body'}{'total'});
         push (@cols, $self->{'result'}{'response'}{'body'}{'total_clear'});
-        foreach my $class (qw(realized unused unclear)) {
+        foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused unclear)) {
             push (@cols, $self->{'result'}{'response'}{'body'}{'relative'}{$class});
         }
-        foreach my $class (qw(realized unused)) {
+        foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused)) {
             push (@cols, $self->{'result'}{'response'}{'body'}{'relative_clear'}{$class});
         }
         $result .= join ("\t", @cols) . "\n";
@@ -1065,8 +1167,11 @@ sub respond_csv_encode
     }
     if ($self->{'comm'} eq 'research_area') {
         my @cols = ('');
-        foreach my $class (qw(realized unused unclear total total-clear relative-realized relative-unused relative-unclear
-                              relative-clear-realized relative-clear-unused)) {
+        foreach my $class (qw(realized realized-gre-loc realized-gre-ext realized-gol-apc realized-gol-fre unused unclear total total-clear
+                              relative-realized relative-realized-gre-loc relative-realized-gre-ext relative-realized-gol-apc relative-realized-gol-fre
+                              relative-unused relative-unclear
+                              relative-clear-realized relative-clear-realized-gre-loc relative-clear-realized-gre-ext relative-clear-realized-gol-apc
+                              relative-clear-realized-gol-fre relative-clear-unused)) {
             my $s = $class;
             $s =~ s/-/ /g;
             $s =~ s/^([a-z])/uc ($1)/ge;
@@ -1076,15 +1181,15 @@ sub respond_csv_encode
         $result .= join ("\t", @cols) . "\n";
         foreach my $ra (qw(hum soc sci med)) {
             @cols = ($ra);
-            foreach my $class (qw(realized unused unclear)) {
+            foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused unclear)) {
                 push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{$class});
             }
             push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'total'});
             push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'total_clear'});
-            foreach my $class (qw(realized unused unclear)) {
+            foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused unclear)) {
                 push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'relative'}{$class});
             }
-            foreach my $class (qw(realized unused)) {
+            foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused)) {
                 push (@cols, $self->{'result'}{'response'}{'body'}{$ra}{'relative_clear'}{$class});
             }
             $result .= join ("\t", @cols) . "\n";
@@ -1093,8 +1198,11 @@ sub respond_csv_encode
     }
     if ($self->{'comm'} eq 'universities') {
         my @cols = ('');
-        foreach my $class (qw(realized unused unclear total total-clear relative-realized relative-unused relative-unclear
-                              relative-clear-realized relative-clear-unused)) {
+        foreach my $class (qw(realized realized-gre-loc realized-gre-ext realized-gol-apc realized-gol-fre unused unclear total total-clear
+                              relative-realized relative-realized-gre-loc relative-realized-gre-ext relative-realized-gol-apc relative-realized-gol-fre
+                              relative-unused relative-unclear
+                              relative-clear-realized relative-clear-realized-gre-loc relative-clear-realized-gre-ext relative-clear-realized-gol-apc
+                              relative-clear-realized-gol-fre relative-clear-unused)) {
             my $s = $class;
             $s =~ s/-/ /g;
             $s =~ s/^([a-z])/uc ($1)/ge;
@@ -1104,15 +1212,15 @@ sub respond_csv_encode
         $result .= join ("\t", @cols) . "\n";
         foreach my $uni (qw(aau au cbs dtu itu ku ruc sdu)) {
             @cols = ($uni);
-            foreach my $class (qw(realized unused unclear)) {
+            foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused unclear)) {
                 push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{$class});
             }
             push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'total'});
             push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'total_clear'});
-            foreach my $class (qw(realized unused unclear)) {
+            foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused unclear)) {
                 push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'relative'}{$class});
             }
-            foreach my $class (qw(realized unused)) {
+            foreach my $class (qw(realized realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre unused)) {
                 push (@cols, $self->{'result'}{'response'}{'body'}{$uni}{'relative_clear'}{$class});
             }
             $result .= join ("\t", @cols) . "\n";
@@ -1129,6 +1237,10 @@ sub respond_csv_encode
             doi                    => 'DOI',
             issn                   => 'ISSN',
             class                  => 'Status',
+            realized_gre_loc       => 'Green local',
+            realized_gre_ext       => 'Green ext.',
+            realized_gol_apc       => 'Golden w/APC',
+            realized_gol_fre       => 'Golden wo/APC',
             class_reasons          => 'Reason',
             bfi_class              => 'Classification',
             bfi_level              => 'Level',
@@ -1140,15 +1252,17 @@ sub respond_csv_encode
             fulltext_remote_valid  => 'External repository',
             blacklisted_issn       => 'Blacklisted'
         };
+        my @fields = qw(title first_author source research_area doi issn class realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre
+                        class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn);
         my @cols = ();
-        foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn)) {
+        foreach my $fld (@fields) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'record'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author source research_area doi issn class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn)) {
+            foreach my $fld (@fields) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -1176,6 +1290,10 @@ sub respond_csv_encode
             source_ruc       => 'RUC',
             source_sdu       => 'SDU',
             pub_class        => 'Status',
+            realized_gre_loc => 'Green local',
+            realized_gre_ext => 'Green ext.',
+            realized_gol_apc => 'Golden w/APC',
+            realized_gol_fre => 'Golden wo/APC',
             pub_class_reasons=> 'Status Reason',
             class            => 'Record class',
             class_reasons     => 'Record reason',
@@ -1186,15 +1304,19 @@ sub respond_csv_encode
             source_id        => 'IDs',
             cris_link        => 'University CRIS Records',
         };
+        my @fld = qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn
+                     source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu
+                     pub_class realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre pub_class_reasons class class_reasons
+                     bfi_class bfi_level dedupkey ddf_link source_id cris_link);
         my @cols = ();
-        foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
+        foreach my $fld (@fld) {
             push (@cols, $fields->{$fld});
         }
         $csv->print (*STDOUT, \@cols);
         print ("\n");
         foreach my $rec (@{$self->{'result'}{'response'}{'body'}{'publication'}}) {
             @cols = ();
-            foreach my $fld (qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu pub_class pub_class_reasons class class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link)) {
+            foreach my $fld (@fld) {
                 push (@cols, $rec->{$fld});
             }
             $csv->print (*STDOUT, \@cols);
@@ -1343,8 +1465,8 @@ sub respond_html_encode
     if ((defined ($self->{'result'}{'response'}{'error'})) && ($self->{'result'}{'response'}{'error'} !~ m/^\s*$/)) {
         return ($self->scr_parse ($self->scr_file ('error'), $self->{'result'}{'response'}));
     }
-    my $rec = $self->{'result'}{'response'}{'body'}{'record'};
     if ($self->{'comm'} eq 'record') {
+        my $rec = $self->{'result'}{'response'}{'body'}{'record'};
         if ($rec->{'scoped'}) {
             $rec->{'scopeDetails'} = 'Record is in scope.';
         } else {
