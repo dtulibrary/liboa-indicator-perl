@@ -77,7 +77,7 @@ my $req = DS2::Message::Export::Request->new ({requestor  => 'OAindicator',
                                                set        => $source,
                                                routingkey => $queue })->serialise ();
 &file_output ($args, 'dat', join ("\t", 'request', &time_date_time ()), "\n");
-$qreq->put ('export', $req);
+$qreq->put ('export_requests', $req);
 $oai->log ('i', 'put in request: %s', $req);
 #Sleeping on the job... so we know records will be waiting for us
 &sleep ($oai, 10);
