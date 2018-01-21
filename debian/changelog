@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.04-03) unstable; urgency=low
+
+  * Starting development of SFU-2018-2, remove BFI check for golden
+    classification.
+    
+    GIT revision: be3946a70a6665facd1b90b22b6b1e0103cf2d18
+
+ -- franck <franck@cvt.dk>  Sun, 21 Jan 2018 20:32:21 +0100
+
 liboa-indicator-perl (1.04-02) unstable; urgency=low
 
   * Complete addition of data repository, DOAJ APC and 4 ways split of
