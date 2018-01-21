@@ -35,7 +35,7 @@ sub process
     while ($rec = $self->{'db'}->next ($rs)) {
         $count->{'total'}++;
         $records->{$rec->{'id'}} = $rec;
-        $publications->{$rec->{dedupkey}}{$rec->{'id'}} = $rec;
+        $publications->{$rec->{'dedupkey'}}{$rec->{'id'}} = $rec;
     }
 #   Setting publication research area
     foreach my $dkey (keys (%{$publications})) {
@@ -142,13 +142,17 @@ sub process
         }
         if (($rec->{'doaj_issn'}) && ($rec->{'bfi_level'})) {
             $rec->{'class'} = 'realized';
-            $rec->{'class_reasons'} = ['golden'];
+            $rec->{'class_reasons'} = ['golden', 'doaj', 'bfi'];
         } else {
             $rec->{'class_reasons'} = [];
-            if (!$rec->{'doaj_issn'}) {
+            if ($rec->{'doaj_issn'}) {
+                push (@{$rec->{'class_reasons'}}, 'doaj');
+            } else {
                 push (@{$rec->{'class_reasons'}}, 'not-doaj');
             }
-            if (!$rec->{'bfi_level'}) {
+            if ($rec->{'bfi_level'}) {
+                push (@{$rec->{'class_reasons'}}, 'bfi');
+            } else {
                 push (@{$rec->{'class_reasons'}}, 'not-bfi');
             }
             if (($rec->{'blacklisted_issn'} =~ m/^\s*$/) && ($rec->{'romeo_color'} =~ m/(green|blue|yellow)/)) {
@@ -177,7 +181,6 @@ sub process
                     if ($rec->{'blacklisted_issn'} =~ m/[0-9]/) {
                         push (@{$rec->{'class_reasons'}}, 'blacklisted');
                     }
-
                 }
                 if ($rec->{'fulltext_verified'}) {
                    $rec->{'class'} = 'realized';
