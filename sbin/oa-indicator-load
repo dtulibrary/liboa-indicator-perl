@@ -29,9 +29,15 @@ if ($data_type !~ m/^(begin|end)$/) {
 }
 my $oaiDB = new OA::Indicator::DB ();
 if ($data_type eq 'begin') {
-    $oaiDB->create ($year, $run_type, join (' ', @desc));
+    my $repo = readlink ("/var/lib/oa-indicator/$year");
+    if ($repo =~ m/^\s*$/) {
+        $repo = $year;
+    }
+    $oaiDB->create ($repo, $year, $run_type, join (' ', @desc));
     $oaiDB->segment_start ('load');
     $oai->log_main ('i', "starting a new load for $year, $run_type run #" . $oaiDB->run());
+    open (my $fou, ">> /var/lib/oa-indicator/$year/.$run_type");
+    print ($fou join ("\t", $oai->stamp ()), "\n");
     exit (0);
 }
 if ($data_type eq 'end') {
