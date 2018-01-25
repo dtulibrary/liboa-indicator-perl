@@ -140,9 +140,13 @@ sub process
             }
             $rec->{'fulltext_remote_valid'} = join (',', sort (keys (%{$rec->{'fulltext_remote_valid'}})));
         }
-        if (($rec->{'doaj_issn'}) && ($rec->{'bfi_level'})) {
+        if ($rec->{'doaj_issn'}) {
             $rec->{'class'} = 'realized';
-            $rec->{'class_reasons'} = ['golden', 'doaj', 'bfi'];
+            if ($rec->{'bfi_level'}) {
+                $rec->{'class_reasons'} = ['golden', 'doaj', 'bfi'];
+            } else {
+                $rec->{'class_reasons'} = ['golden', 'doaj', 'not-bfi'];
+            }
         } else {
             $rec->{'class_reasons'} = [];
             if ($rec->{'doaj_issn'}) {
