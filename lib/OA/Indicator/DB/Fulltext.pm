@@ -126,7 +126,7 @@ sub harvest
     my $db = $self->{'db'};
     my $rs = $db->select ('*', 'fulltext_requests', 'pending=1');
     my @queue = ();
-    my $count = {harvest => 0, hosts => 0, cache => 0, done => 0, url => 0};
+    my $count = {harvest => 0, hosts => 0, cache => 0, done => 0, url => 0, 'dummy-cached' => 0, 'dummy-error' => 0};
     my $rec;
     while ($rec = $db->next ($rs)) {
         push (@queue, $rec);
