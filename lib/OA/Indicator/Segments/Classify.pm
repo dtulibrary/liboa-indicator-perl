@@ -142,22 +142,13 @@ sub process
         }
         if ($rec->{'doaj_issn'}) {
             $rec->{'class'} = 'realized';
-            if ($rec->{'bfi_level'}) {
-                $rec->{'class_reasons'} = ['golden', 'doaj', 'bfi'];
-            } else {
-                $rec->{'class_reasons'} = ['golden', 'doaj', 'not-bfi'];
-            }
+            $rec->{'class_reasons'} = ['golden', 'doaj'];
         } else {
             $rec->{'class_reasons'} = [];
             if ($rec->{'doaj_issn'}) {
                 push (@{$rec->{'class_reasons'}}, 'doaj');
             } else {
                 push (@{$rec->{'class_reasons'}}, 'not-doaj');
-            }
-            if ($rec->{'bfi_level'}) {
-                push (@{$rec->{'class_reasons'}}, 'bfi');
-            } else {
-                push (@{$rec->{'class_reasons'}}, 'not-bfi');
             }
             if (($rec->{'blacklisted_issn'} =~ m/^\s*$/) && ($rec->{'romeo_color'} =~ m/(green|blue|yellow)/)) {
                 push (@{$rec->{'class_reasons'}}, 'romeo');
