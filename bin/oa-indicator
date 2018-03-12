@@ -214,8 +214,14 @@ if ($comm eq 'segment') {
     $oai->arg ('year', $year);
     my $db = new OA::Indicator::DB ();
     $db->open ($year, $run_type);
-    if (!$db->segment_validate ($name)) {
-        &usage ($oai, "fatal: invalid segment: $name, valid segments are: " . join (' | ', $db->segments));
+    if ($name) {
+        if (!$db->segment_validate ($name)) {
+            my @seg = $oai->segments ();
+            shift (@seg);
+            &usage ($oai, "fatal: invalid segment: $name, valid segments are: " . join (' | ', @seg));
+        }
+    } else {
+        &usage ($oai);
     }
     my $rundir = '/var/lib/oa-indicator/runs/' . $db->id;
     $oai->log_file ("$rundir/segment-$name.log");
@@ -550,15 +556,15 @@ sub usage
     }
     my @seg = $oai->segments ();
     shift (@seg);
-    warn ("usage: ao-indicator data-repo    <year> [description]\n");
-    warn ('       ao-indicator harvest      <year> <' . join (' | ', $oai->data_types ()) . ">\n");
-    warn ('       ao-indicator load         <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
-    warn ('       ao-indicator segment      <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', @seg) . ">\n");
-    warn ('       ao-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n");
-    warn ('       ao-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n");
-    warn ('       ao-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
-    warn ('       ao-indicator status       [year] [' . join (' | ', $oai->run_types ()) . "]\n");
-    warn ("       ao-indicator repo-status\n\n");
+    warn ("usage: oa-indicator data-repo    <year> [description]\n");
+    warn ('       oa-indicator harvest      <year> <' . join (' | ', $oai->data_types ()) . ">\n");
+    warn ('       oa-indicator load         <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
+    warn ('       oa-indicator segment      <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', @seg) . ">\n");
+    warn ('       oa-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n");
+    warn ('       oa-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n");
+    warn ('       oa-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
+    warn ('       oa-indicator status       [year] [' . join (' | ', $oai->run_types ()) . "]\n");
+    warn ("       oa-indicator repo-status\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
 }
