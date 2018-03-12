@@ -4,8 +4,8 @@ use strict;
 use warnings;
 use Fatal qw(open mkdir unlink rmdir);
 use DS2::MQueue;
-use DS2::Message::Export::Request;
-use DS2::Message::Export::Response;
+use DS2::Message::Record::ExportRequest;
+use DS2::Message::Export;
 use OA::Indicator;
 use OA::Indicator::MODS::MXD;
 use OA::Indicator::MODS::Romeo;
@@ -72,10 +72,10 @@ $oai->log ('i', 'using queue: %s', $queue);
 my $qres = DS2::MQueue->new ({op => 'response'});
 #Use request queue (export) to place request
 my $qreq = DS2::MQueue->new ({op => 'request'});
-my $req = DS2::Message::Export::Request->new ({requestor  => 'OAindicator',
-                                               fromdate   => '2000-01-01T00:00:00',
-                                               set        => $source,
-                                               routingkey => $queue })->serialise ();
+my $req = DS2::Message::Record::ExportRequest->new ({requestor  => 'OAindicator',
+                                                     fromdate   => '2000-01-01T00:00:00',
+                                                     set        => $source,
+                                                     routingkey => $queue })->serialise ();
 &file_output ($args, 'dat', join ("\t", 'request', &time_date_time ()), "\n");
 $qreq->put ('export_requests', $req);
 $oai->log ('i', 'put in request: %s', $req);
@@ -91,7 +91,7 @@ my $deleted = 0;
 my $skipped = 0;
 my $bfiadded = 0;
 while (1) {
-    my $res = DS2::Message::Export::Response->new ($qres->get ());
+    my $res = DS2::Message::Export->new ($qres->get ());
     if ($res->response () eq 'ok') {
         if ($res->status () eq 'ok') {
             my $xml = $res->metadata ();
