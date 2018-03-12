@@ -20,11 +20,11 @@ sub process
 
     my $count = {};
     my $records = {};
-    my $rs = $self->{'db'}->select ('id', 'records');
+    my $rs = $self->{'db'}->select ('id,source', 'records');
     my $rec;
     while ($rec = $self->{'db'}->next ($rs)) {
         $count->{'total'}++;
-        $records->{$rec->{'id'}} = {id => $rec->{'id'}};
+        $records->{$rec->{'id'}} = {id => $rec->{'id'}, source => $rec->{'source'}};
     }
     $self->{'oai'}->log ('i', "starting scoping of $count->{'total'} records");
     my $mxd = new OA::Indicator::DB::MXD ($self->{'db'}, $self->{'oai'});
@@ -50,18 +50,14 @@ sub process
             } else {
                 $records->{$id}{'scoped'} = 0;
             }
+            delete ($records->{$id}{'source'});
             $self->{'db'}->update ('records', 'id', $records->{$id});
             $count->{'done'}++;
             if (($count->{'done'} % 5000) == 0) {
                 $self->{'oai'}->log ('i', "processed $count->{'done'} records out of $count->{'total'}");
             }
         } else {
-#           FIX
-            my $rs = $self->{'db'}->select ('source', 'records');
-            my $rec = $self->{'db'}->next ($rs);
-            $self->{'oai'}->log ('e', "could not find MXD record for id '$id', $rec->{'source'}");
-#           $self->{'oai'}->log ('f', 'failed');
-#           return (0);
+            $self->{'oai'}->log ('e', "could not find MXD record for id '$id', $records->{$id}{'source'}");
         }
     }
     $self->{'oai'}->log ('i', "processed $count->{'done'} records out of $count->{'total'}");
