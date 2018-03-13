@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.04-04) unstable; urgency=low
+
+  * 2016 prod version 1, new version for 2016 prod coming up
+    
+    GIT revision: b7584ab8d7d602341e0280c21eacaa46bcfe5d65
+
+ -- franck <franck@cvt.dk>  Tue, 13 Mar 2018 09:50:53 +0100
+
 liboa-indicator-perl (1.04-03) unstable; urgency=low
 
   * Starting development of SFU-2018-2, remove BFI check for golden
