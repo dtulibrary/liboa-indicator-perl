@@ -68,6 +68,7 @@ sub load
             $rec->{'pissn'} = $self->issn_normalize ($rec->{'pissn'});
             $rec->{'eissn'} = $self->issn_normalize ($rec->{'eissn'});
             $rec->{'mods'} = $rec->{'original_xml'} = '';
+            $rec->{'usage_records'} = $rec->{'usage_effective'} = $rec->{'usage_pissn'} = $rec->{'usage_eissn'} = 0;
             delete ($rec->{'status'});
             $records->{$rec->{'id'}} = $rec;
             $count->{'rows'}++;

@@ -92,6 +92,9 @@ sub request
         $self->{'oai'}->log ('w', "skipping request with unsupported URL protocol: %s : %s", $id, $url);
         return (0);
     }
+    if (!$size) {
+        $size = 0;
+    }
     my $db = $self->{'db'};
     my $rs = $db->select ('*', 'fulltext_requests', "dsid='$id' and url='$url'");
     my $rec;
@@ -106,7 +109,7 @@ sub request
         $rec->{'status'} = '';
         $db->update ('fulltext_requests', 'id', $rec);
     } else {
-        $rec = {dsid => $id, type => $type, url => $url, requested_first => time, requested_last => time,
+        $rec = {dsid => $id, del => 0, type => $type, url => $url, requested_first => time, requested_last => time,
                 size => $size, mime => $mime, filename => $filename, pending => 1};
         $db->insert ('fulltext_requests', $rec);
     }
@@ -329,6 +332,7 @@ sub file_harvest
             }
             close ($fin);
             if (!$rec->{'pdf_pages'}) {
+                $rec->{'pdf_pages'} = 0;
                 $rec->{'success'} = 0;
                 $rec->{'error_message'} = 'PDF error';
                 $self->{'oai'}->log ('e', "PDF error for '%s':\n%s", $req->{'url'}, join ('', @lines));
@@ -363,6 +367,7 @@ sub file_harvest
             exit (1);
         }
     } else {
+        $rec->{'success'} = 0;
         $rec->{'errors_consecutive'}++;
         $rec->{'errors_total'}++;
     }

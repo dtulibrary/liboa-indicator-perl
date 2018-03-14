@@ -139,6 +139,9 @@ sub load_source
         foreach my $fld (qw(dads_id position role firstname lastname email pid pid_type pid_source)) {
             $rec->{$fld} = shift (@fields);
         }
+        if (!$rec->{'position'}) {
+            $rec->{'position'} = 0;
+        }
         if ((defined ($rec->{'pid_type'})) && ($rec->{'pid_type'} eq 'loc_per') && (!exists ($first_author->{$rec->{'dads_id'}}))) {
             $first_author->{$rec->{'dads_id'}}{'name'} = $rec->{'lastname'} . ', ' . $rec->{'firstname'};
             $first_author->{$rec->{'dads_id'}}{'pos'} = $rec->{'position'};
@@ -165,6 +168,11 @@ sub load_source
             $rec->{$fld} = shift (@fields);
         }
         $rec->{'source'} = $src;
+        foreach my $f (qw(year jno pno)) {
+            if (!$rec->{$f}) {
+                $rec->{$f} = 0;
+            }
+        }
         $rec->{'original_xml'} = '';
         if (exists ($first_author->{$rec->{'id'}})) {
             $rec->{'first_author'} = $first_author->{$rec->{'id'}}{'name'};

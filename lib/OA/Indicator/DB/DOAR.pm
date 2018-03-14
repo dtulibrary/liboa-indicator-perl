@@ -63,6 +63,7 @@ sub load
         }
         if ($rec->{'status'} ne 'deleted') {
             ($rec->{'domain'}, $rec->{'path'}) = $self->extract_domain_path ($rec->{'uri'});
+            $rec->{'usage_records'} = 0;
             $rec->{'mods'} = $rec->{'original_xml'} = '';
             delete ($rec->{'status'});
             $records->{$rec->{'id'}} = $rec;

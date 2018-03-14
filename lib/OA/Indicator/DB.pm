@@ -81,7 +81,7 @@ sub create
     $self->{'run'} = $self->new_run ($self->{'year'}, $self->{'type'});
     $self->{'id'} = $self->{'year'} . '.' . $self->{'type'} . '.' . sprintf ('%03d', $self->{'run'});
     $db->insert ('runs', {id => $self->{'id'}, year => $self->{'year'}, type => $self->{'type'}, run => $self->{'run'}, description => $desc, start => time,
-                          end => 0, released => 0, repository => $repo});
+                          end => 0, success => 0, released => 0, repository => $repo});
     $self->{'db'} = new DB::SQLite ("$self->{'root'}/run_$self->{'id'}.sqlite3", DieError => 1, cacheUpdates => 1000);
     return ($self->{'db'});
 }
@@ -152,7 +152,7 @@ sub segment_start
     if (!$self->segment_validate ($segment)) {
         die ("fatal: invalid segment: $segment, valid segments are: " . join (' | ', $self->segments));
     }
-    $db->insert ('segments', {run => $self->{'id'}, name => $segment, start => time, end => 0});
+    $db->insert ('segments', {run => $self->{'id'}, name => $segment, start => time, end => 0, success => 0});
 }
 
 sub segment_end

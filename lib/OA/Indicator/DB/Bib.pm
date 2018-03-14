@@ -214,7 +214,7 @@ sub load_source
             foreach my $f (qw(original_xml bfi_id bfi_class issn eissn doaj_issn doaj_apc_price romeo_color romeo_issn blacklisted_issn)) {
                 $rec->{$f} = '';
             }
-            foreach my $f (qw(doaj_apc)) {
+            foreach my $f (qw(scoped_type scoped_level scoped_review scoped screened_issn screened_year screened fulltext_link fulltext_link_oa fulltext_downloaded fulltext_verified fulltext_pdf fulltext_local fulltext_local_valid doaj_apc blacklisted_reclass)) {
                 $rec->{$f} = 0;
             }
             $rec->{'source'} = $src;
@@ -235,7 +235,11 @@ sub load_source
                 $rec->{'bfi_research_area'} = '';
             }
             if (!$records->{$id}{'year'}) {
-                $records->{$id}{'year'} = $self->{'year'}{$id};
+                if ($self->{'year'}{$id}) {
+                    $records->{$id}{'year'} = $self->{'year'}{$id};
+                } else {
+                    $records->{$id}{'year'} = 0;
+                }
             }
             $rec->{'pubyear'} = $self->{'pubyear'}{$id};
             if ($self->{'issn'}{$id}) {
@@ -255,7 +259,11 @@ sub load_source
             }
             if ($self->{'first_author'}{$id}) {
                 $rec->{'first_author'} = $self->{'first_author'}{$id};
-                $rec->{'first_author_pos'} = $self->{'first_author_pos'}{$id};
+                if ($self->{'first_author_pos'}{$id}) {
+                    $rec->{'first_author_pos'} = $self->{'first_author_pos'}{$id};
+                } else {
+                    $rec->{'first_author_pos'} = 0;
+                }
             }
             if ($self->{'doaj_issn'}{$id}) {
                 $rec->{'doaj_issn'} = $self->{'doaj_issn'}{$id};
