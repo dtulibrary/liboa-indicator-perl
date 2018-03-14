@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.05-00) unstable; urgency=low
+
+  * Bug fixed version for 2nd 2016 production run
+    
+    GIT revision: 9c65e3e22e76e48886eb1a6689397cb66f6abe5e
+
+ -- franck <franck@cvt.dk>  Wed, 14 Mar 2018 01:22:23 +0100
+
 liboa-indicator-perl (1.04-04) unstable; urgency=low
 
   * 2016 prod version 1, new version for 2016 prod coming up
