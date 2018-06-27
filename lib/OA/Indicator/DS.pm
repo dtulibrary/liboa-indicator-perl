@@ -61,8 +61,9 @@ sub record
     if (is_utf8 ($msg->{'body'})) {
         $msg->{'body'} = encode ('UTF-8', $msg->{'body'});
     }
+    my $rec;
     eval {
-        my $rec = decode_json ($msg->{'body'});
+        $rec = decode_json ($msg->{'body'});
 #       Fields available in the message body:
 #           dedupkey      The record's dedupkey
 #           pkey          The record's unique datastore id.  Responds to _id in a request (Why is this different)
@@ -71,7 +72,6 @@ sub record
 #           source        The nice name of the source, ie orbit, elsevier, etc. (NB, This is also available in the routing key)
 #           timestamp     A Formatted timestamp of the last time the record was updated
 #           metadata      The entire record in MODS format
-        return ($rec);
     };
     if ($@) {
         if ($msg->{'body'} eq 'eor') {
@@ -82,8 +82,9 @@ sub record
         } else {
             $self->error ('error', 'undefined error');
         }
-        return (undef);
         return ({response => 'error'});
+    } else {
+        return ($rec);
     }
 }
 
