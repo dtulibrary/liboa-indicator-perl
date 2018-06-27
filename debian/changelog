@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.06-00) unstable; urgency=low
+
+  * new DS2 harvesting
+    
+    GIT revision: 88257e27e4c1045c22d04220910828e9c0d83016
+
+ -- franck <franck@cvt.dk>  Wed, 27 Jun 2018 02:31:00 +0200
+
 liboa-indicator-perl (1.05-00) unstable; urgency=low
 
   * Bug fixed version for 2nd 2016 production run
