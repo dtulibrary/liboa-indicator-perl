@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Fcntl qw(:flock);
 use Fatal qw(open mkdir unlink rmdir);
 use OA::Indicator;
 use OA::Indicator::DS;
@@ -55,11 +56,24 @@ my $source = &source ($src);
 if (!$source) {
     &usage ($handler);
 }
+&set_log ($args, $oai);
+$oai->log ('i', 'locking for DS2 harvest');
+#Lock to avoid DS2 conflits
+open (my $flock, '> /tmp/oa-indicator-harvest-ds.lock');
+my $lock_start = time;
+while (!flock ($flock, LOCK_EX | LOCK_NB)) {
+    sleep (10);
+    if (((time - $lock_start) % 60) == 0) {
+        $oai->log ('i', 'waiting for lock %d sec...', (time - $lock_start));
+    }
+}
+if ((time - $lock_start) > 1) {
+    $oai->log ('i', 'waited for lock %d sec.', (time - $lock_start));
+}
 #Define and open files
 if (!$args->{'file'}) {
     $args->{'file'} = "$src." . &date_time () . '.xml';
 }
-&set_log ($args, $oai);
 &open_files ($oai, $args, $handler, $src);
 $oai->log ('i', 'harvesting source %s (%s)', $src, $source);
 $oai->log ('i', "output to '%s'", $args->{'file'});
@@ -154,6 +168,8 @@ while (1) {
         &file_output ($args, 'dat', join ("\t", 'end', &time_date_time ()), "\n");
         &file_output ($args, 'dat', join ("\t", 'records', $recno), "\n");
         &file_output ($args, 'dat', join ("\t", 'status', 'done'), "\n");
+        flock ($flock, LOCK_UN);
+        unlink ('/tmp/oa-indicator-harvest-ds.lock');
         exit (0);      
     } else {
         $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
@@ -163,6 +179,9 @@ while (1) {
         &file_output ($args, 'dat', join ("\t", 'end', &time_date_time ()), "\n");
         &file_output ($args, 'dat', join ("\t", 'records', $recno), "\n");
         &file_output ($args, 'dat', join ("\t", 'status', 'failed'), "\n");
+        flock ($flock, LOCK_UN);
+        unlink ('/tmp/oa-indicator-harvest-ds.lock');
+        exit (1);
     }
 }
 
