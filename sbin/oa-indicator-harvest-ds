@@ -1,12 +1,10 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
 use warnings;
 use Fatal qw(open mkdir unlink rmdir);
-use DS2::MQueue;
-use DS2::Message::Record::ExportRequest;
-use DS2::Message::Export;
 use OA::Indicator;
+use OA::Indicator::DS;
 use OA::Indicator::MODS::MXD;
 use OA::Indicator::MODS::Romeo;
 use OA::Indicator::MODS::DOAJ;
@@ -65,24 +63,14 @@ if (!$args->{'file'}) {
 &open_files ($oai, $args, $handler, $src);
 $oai->log ('i', 'harvesting source %s (%s)', $src, $source);
 $oai->log ('i', "output to '%s'", $args->{'file'});
-#Create proper config file and define queue name
-my $queue = &create_config ($source);
-$oai->log ('i', 'using queue: %s', $queue);
-#Create queue (should be done before creating the request queue!)
-my $qres = DS2::MQueue->new ({op => 'response'});
-#Use request queue (export) to place request
-my $qreq = DS2::MQueue->new ({op => 'request'});
-my $req = DS2::Message::Record::ExportRequest->new ({requestor  => 'OAindicator',
-                                                     fromdate   => '2000-01-01T00:00:00',
-                                                     set        => $source,
-                                                     routingkey => $queue })->serialise ();
+
+my $ds = new OA::Indicator::DS ();
+$ds->init ();
+$ds->request ($source);
 &file_output ($args, 'dat', join ("\t", 'request', &time_date_time ()), "\n");
-$qreq->put ('export_requests', $req);
-$oai->log ('i', 'put in request: %s', $req);
 #Sleeping on the job... so we know records will be waiting for us
 &sleep ($oai, 10);
 #Opening response queue and getting records, also making sure an interupt will delete the queue
-$SIG{'INT'} = sub { &delete_queue ($oai, $qres, $queue); &delete_config ($queue); exit (0); };
 &file_output ($args, 'fou', '<?xml version="1.0" encoding="utf-8"?>', "\n");
 &file_output ($args, 'fou', '<records>', "\n");
 &file_output ($args, 'dat', join ("\t", 'fetch', &time_date_time ()), "\n");
@@ -91,10 +79,10 @@ my $deleted = 0;
 my $skipped = 0;
 my $bfiadded = 0;
 while (1) {
-    my $res = DS2::Message::Export->new ($qres->get ());
-    if ($res->response () eq 'ok') {
-        if ($res->status () eq 'ok') {
-            my $xml = $res->metadata ();
+    my $rec = $ds->record ();
+    if ($rec->{'response'} eq 'ok') {
+        if ($rec->{'status'} eq 'ok') {
+            my $xml = $rec->{'metadata'};
             if ($args->{'type'} eq 'mxd') {
                 $handler->{'mxd'}->parse ($xml);
                 if ($args->{'year'}) {
@@ -111,47 +99,47 @@ while (1) {
                         delete ($args->{'bfiIDs'}{$handler->{'mxd'}->id});
                     }
                 }
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'mxd'}->primary ()), "\n");
+                &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time (), '', $handler->{'mxd'}->primary ()), "\n");
                 foreach my $ftx ($handler->{'mxd'}->fulltext ()) {
-                    &file_output ($args, 'ftx', join ("\t", $res->pkey (), @{$ftx}), "\n");
+                    &file_output ($args, 'ftx', join ("\t", $rec->{'pkey'}, @{$ftx}), "\n");
                 }
                 foreach my $issn ($handler->{'mxd'}->issn ()) {
-                    &file_output ($args, 'iss', join ("\t", $res->pkey (), @{$issn}), "\n");
+                    &file_output ($args, 'iss', join ("\t", $rec->{'pkey'}, @{$issn}), "\n");
                 }
             } elsif ($args->{'type'} eq 'romeo') {
                 $handler->{'romeo'}->parse ($xml);
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'romeo'}->primary ()), "\n");
+                &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time (), '', $handler->{'romeo'}->primary ()), "\n");
             } elsif ($args->{'type'} eq 'doaj') {
                 $handler->{'doaj'}->parse ($xml);
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'doaj'}->primary ()), "\n");
+                &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time (), '', $handler->{'doaj'}->primary ()), "\n");
             } elsif ($args->{'type'} eq 'bfi') {
                 $handler->{'bfi'}->parse ($xml);
                 if ($handler->{'bfi'}->year () != $args->{'year'}) {
                     next;
                 }
-                foreach my $rec ($handler->{'bfi'}->primary ()) {
-                    &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', @{$rec}), "\n");
+                foreach my $rc ($handler->{'bfi'}->primary ()) {
+                    &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time (), '', @{$rc}), "\n");
                 }
             } elsif ($args->{'type'} eq 'doar') {
                 $handler->{'doar'}->parse ($xml);
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'doar'}->primary ()), "\n");
+                &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time (), '', $handler->{'doar'}->primary ()), "\n");
             } elsif ($args->{'type'} eq 'jwlep') {
                 $handler->{'jwlep'}->parse ($xml);
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), '', $handler->{'jwlep'}->primary ()), "\n");
+                &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time (), '', $handler->{'jwlep'}->primary ()), "\n");
             } else {
-                &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time ()), "\n");
+                &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time ()), "\n");
             }
             $xml =~ s/<\?xml [^>]*>[\s\r\n]*//;
             &file_output ($args, 'fou', $xml);
         } else {
-            &file_output ($args, 'ids', join ("\t", $res->pkey (), &time_date_time (), 'deleted'), "\n");
+            &file_output ($args, 'ids', join ("\t", $rec->{'pkey'}, &time_date_time (), 'deleted'), "\n");
             $deleted++;
         }
         $recno++;
         if (($recno % 1000) == 0) {
             $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
         }
-    } elsif ($res->response () eq 'eor') {   
+    } elsif ($rec->{'response'} eq 'eor') {   
         $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
         my $n = 0;
         foreach my $id (keys (%{$args->{'bfiIDs'}})) {
@@ -161,24 +149,20 @@ while (1) {
             $oai->log ('i', '%d records added through BFI ids, %d BFI ids not found in dataset', $bfiadded, $n);
         }
         $oai->log ('i', 'elapse %s', $oai->elapse (time - $args->{'start'}));
-        &delete_queue ($oai, $qres, $queue);
         $oai->log ('i', 'done');
         &file_output ($args, 'fou', '</records>', "\n");
         &file_output ($args, 'dat', join ("\t", 'end', &time_date_time ()), "\n");
         &file_output ($args, 'dat', join ("\t", 'records', $recno), "\n");
         &file_output ($args, 'dat', join ("\t", 'status', 'done'), "\n");
-        &delete_config ($queue);
         exit (0);      
     } else {
         $oai->log ('i', 'harvested %6d records, %6d deleted', $recno, $deleted);
         $oai->log ('i', 'elapse %s', $oai->elapse (time - $args->{'start'}));
-        $oai->log ('f', 'error in payload: ' . $res->response ());
-        &delete_queue ($oai, $qres, $queue);
+        $oai->log ('f', 'error in payload: ' . $ds->body ());
         $oai->log ('f', 'failed');
         &file_output ($args, 'dat', join ("\t", 'end', &time_date_time ()), "\n");
         &file_output ($args, 'dat', join ("\t", 'records', $recno), "\n");
         &file_output ($args, 'dat', join ("\t", 'status', 'failed'), "\n");
-        &delete_config ($queue);
     }
 }
 
@@ -206,48 +190,6 @@ sub sleep
         $oai->log ('i', "sleeping $sec seconds");
         sleep ($sec);
     }
-}
-
-sub create_config
-{
-    my ($source) = @_;
-
-    my $queue = 'export.response.oai.' . $source . ".$$." . time;
-    mkdir ("/tmp/$queue");
-    mkdir ("/tmp/$queue/DS2");
-    mkdir ("/tmp/$queue/DS2/config");
-    open (my $fin, '/etc/libds2-mqueue-perl/mqconfig.xml');
-    open (my $fou, "> /tmp/$queue/DS2/config/mqconfig.xml");
-    while (<$fin>) {
-        s/QUEUE-NAME/$queue/g;
-        print ($fou $_);
-    }
-    close ($fou);
-    close ($fin);
-    $ENV{'DATASTORE_HOME'} = "/tmp/$queue/DS2";
-    return ($queue);
-}
-
-sub delete_queue
-{
-    my ($oai, $qres, $queue) = @_;
-
-    if ($qres->queueExists ($queue)) {
-        $qres->deleteQueue ($queue);
-        $oai->log ('i', 'delete_queue: %s', $queue);
-    } else {
-        $oai->log ('e', 'delete_queue: nothing to delete');
-    }
-}
-
-sub delete_config
-{
-    my ($queue) = @_;
-
-    unlink ("/tmp/$queue/DS2/config/mqconfig.xml");
-    rmdir ("/tmp/$queue/DS2/config");
-    rmdir ("/tmp/$queue/DS2");
-    rmdir ("/tmp/$queue");
 }
 
 sub source
