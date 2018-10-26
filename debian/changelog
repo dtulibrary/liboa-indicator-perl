@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.06-01) unstable; urgency=low
+
+  * Start of spreadsheet changes requested by SFU for 2018 second test.
+    
+    GIT revision: b92eb7f2ee4c0d2d0b215ea27a83043a0608433d
+
+ -- franck <franck@cvt.dk>  Fri, 26 Oct 2018 18:06:44 +0200
+
 liboa-indicator-perl (1.06-00) unstable; urgency=low
 
   * new DS2 harvesting
