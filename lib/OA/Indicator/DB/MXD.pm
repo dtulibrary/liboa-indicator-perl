@@ -40,6 +40,7 @@ sub create
                    pno              integer,
                    jtitle           text,
                    jtitle_alt       text,
+                   series           text,
                    issn             text,
                    eissn            text,
                    doi              text,
@@ -164,7 +165,7 @@ sub load_source
         }
         my $rec = {};
         my @fields = split ("\t");
-        foreach my $fld (qw(id stamp date oai_harvest oai_datestamp source_id year doc_type doc_level doc_review research_area jno pno jtitle jtitle_alt doi title_main title_sub pubyear)) {
+        foreach my $fld (qw(id stamp date oai_harvest oai_datestamp source_id year doc_type doc_level doc_review research_area jno pno jtitle jtitle_alt series doi title_main title_sub pubyear)) {
             $rec->{$fld} = shift (@fields);
         }
         $rec->{'source'} = $src;

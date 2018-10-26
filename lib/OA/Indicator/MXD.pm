@@ -21,7 +21,7 @@ sub new
         push (@{$self->{'whitelist'}}, $domain);
     }
     close ($fh);
-    $self->{'primary_fields'} = [qw(source_id year type level review research_area jno pno jtitle jtitle_alt doi title_main title_sub pubyear)];
+    $self->{'primary_fields'} = [qw(source_id year type level review research_area jno pno jtitle jtitle_alt series doi title_main title_sub pubyear)];
     $self->{'xpath'} = {
         source_id                  => '/mxd:ddf_doc/@rec_id',
         year                       => '/mxd:ddf_doc/@doc_year',
@@ -33,6 +33,7 @@ sub new
         pno                        => '/mxd:ddf_doc/mxd:publication/@bfi_publisher_no',
         jtitle                     => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title',
         jtitle_alt                 => '/mxd:ddf_doc/mxd:publication/mxd:in_journal/mxd:title_alternative',
+        series                     => '/mxd:ddf_doc/mxd:publication/*/mxd:series',
         doi                        => '//mxd:doi',
         title_main                 => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:main',
         title_sub                  => '/mxd:ddf_doc/mxd:title/mxd:original/mxd:sub',
