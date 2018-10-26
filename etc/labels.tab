@@ -2,10 +2,12 @@ cover                          en Cover
 cover                          da Forside
 cover-oa-indicator             en Danish Open Access Indicator
 cover-oa-indicator             da Dansk Open Access Indikator
-cover-indicator-year           en Indicator Year:
-cover-indicator-year           da Indikatorstatistikår:
-cover-submission-year          en Submission Year:
-cover-submission-year          da Indberetningsår:
+cover-indicator-year           en Indicator Year:*
+cover-indicator-year           da Indikatorår:*
+cover-note                     en *The indicator is calculated yearly in Ql. k is calculated on the basis of publications published two years earlier. This in order to credit publications with a 12 months Open Access embargo published late in a given publication year.
+cover-note                     da *Indikatoren beregnes årligt i første kvartal. Den beregnes på basis af publikationer udgivet to år tidligere. Dette for at godskrive publikationer med 12 måneders Open Access embargo, der er udgivet sent i et givent publiceringsår.
+cover-submission-year          en Publication Year:
+cover-submission-year          da Publiceringsår:
 cover-version                  en Version:
 cover-version                  da Version:
 cover-compilation-date         en Compilation Date:
