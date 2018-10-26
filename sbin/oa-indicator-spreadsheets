@@ -44,7 +44,7 @@ foreach my $type (qw(eng dan int)) {
 #   full
     $oai->log ('i', 'creating %s %s', $type, 'full');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_full.xlsx");
-    &cover ($sheet, $labels, $lang, 'full', $int);
+    &cover ($sheet, $labels, $lang, 'full', $year, $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
@@ -58,14 +58,14 @@ foreach my $type (qw(eng dan int)) {
 #   summary
     $oai->log ('i', 'creating %s %s', $type, 'summary');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_summary.xlsx");
-    &cover ($sheet, $labels, $lang, 'summary', $int);
+    &cover ($sheet, $labels, $lang, 'summary', $year, $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
 #   publications
     $oai->log ('i', 'creating %s %s', $type, 'publications');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_publications.xlsx");
-    &cover ($sheet, $labels, $lang, 'publications', $int);
+    &cover ($sheet, $labels, $lang, 'publications', $year, $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
@@ -74,7 +74,7 @@ foreach my $type (qw(eng dan int)) {
 #   records
     $oai->log ('i', 'creating %s %s', $type, 'records');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_records.xlsx");
-    &cover ($sheet, $labels, $lang, 'records', $int);
+    &cover ($sheet, $labels, $lang, 'records', $year, $int);
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
@@ -83,7 +83,7 @@ foreach my $type (qw(eng dan int)) {
     if ($int) {
         $oai->log ('i', 'creating %s %s', $type, 'extra');
         $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_extra.xlsx");
-        &cover ($sheet, $labels, $lang, 'extra', $int);
+        &cover ($sheet, $labels, $lang, 'extra', $year, $int);
         &summary ($sheet, $labels, $lang, 'national');
         &summary ($sheet, $labels, $lang, 'research_area');
         &summary ($sheet, $labels, $lang, 'universities');
@@ -94,13 +94,13 @@ foreach my $type (qw(eng dan int)) {
 #   whitelist
     $oai->log ('i', 'creating %s %s', $type, 'whitelist');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_whitelist.xlsx");
-    &cover ($sheet, $labels, $lang, 'white');
+    &cover ($sheet, $labels, $lang, 'white', $year);
     &whitelist ($sheet, $labels, $lang);
     $sheet->{'wb'}->close ();
 #   blacklist
     $oai->log ('i', 'creating %s %s', $type, 'blacklist');
     $sheet = &spreadsheet ("spreadsheets/$type/OA-Indicator_${year}_${type}_blacklist.xlsx");
-    &cover ($sheet, $labels, $lang, 'black');
+    &cover ($sheet, $labels, $lang, 'black', $year);
     &blacklist ($sheet, $labels, $lang);
     $sheet->{'wb'}->close ();
 }
@@ -973,7 +973,7 @@ sub set_size
 
 sub cover
 {
-    my ($sps, $labels, $lang, $type, $int) = @_;
+    my ($sps, $labels, $lang, $type, $year, $int) = @_;
 
     &worksheet ($sps, 'cover', &label ($labels, $lang, 'cover'));
     $sps->{'ws'}{'cover'}->set_column (1, 1, 20);
@@ -984,11 +984,10 @@ sub cover
     $row++;
     &write ($sps, 'cover', $row, 1, 14, 'cover-title', &label ($labels, $lang, 'cover-oa-indicator'));
     $row++;
-#   Removed by FI request
-#   &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-indicator-year'));
-#   &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year + 1);
-#   &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
-#   $row++;
+    &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-indicator-year'));
+    &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year + 2);
+    &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
+    $row++;
     &write ($sps, 'cover', $row, 1, 1, 'cover-label', &label ($labels, $lang, 'cover-submission-year'));
     &write ($sps, 'cover', $row, 2, 1, 'cover-text-right', $year);
     &write ($sps, 'cover', $row, 3, 12, 'cover-text-merged', '');
@@ -1060,6 +1059,8 @@ sub cover
         }
     }
     &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+    $row++;
+    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, 'cover-note));
 }
 
 sub write
