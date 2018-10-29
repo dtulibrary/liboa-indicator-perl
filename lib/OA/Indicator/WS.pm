@@ -436,7 +436,7 @@ sub comm_records
     my ($self, $db) = @_;
 
     my $duplicates = $self->duplicates ($db);
-    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,class,class_reasons,bfi_class,bfi_level,source_id,dedupkey,' .
+    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,jtitle,jtitle_alt,series,class,class_reasons,bfi_class,bfi_level,source_id,dedupkey,' .
                           'fulltext_remote_valid,fulltext_local_valid,doaj_apc,blacklisted_issn', 'records', 'scoped=1 and screened=1', 'order by title');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
     my $rc;
@@ -452,6 +452,17 @@ sub comm_records
             }
         }
         delete ($rc->{'eissn'});
+        if (!$rc->{'jtitle'}) {
+            if ($rc->{'jtitle_alt'}) {
+                $rc->{'jtitle'} = $rc->{'jtitle_alt'};
+            } elsif ($rc->{'series'}) {
+                $rc->{'jtitle'} = $rc->{'series'};
+            } else {
+                $rc->{'jtitle'} = '';
+            }
+        }
+        delete ($rc->{'jtitle_alt'});
+        delete ($rc->{'series'});
         if ($rc->{'bfi_level'} == 0) {
             $rc->{'bfi_level'} = '';
         }
@@ -497,7 +508,7 @@ sub comm_publications
 
     my $realised = $self->publication_realised ($db);
     my $duplicates = $self->duplicates ($db, merge => 1);
-    my $rs = $db->select ('title,first_author,source,research_area,pub_research_area,bfi_research_area,doi,issn,eissn,class,pub_class,pub_class_reasons,bfi_class,bfi_level,source_id,dedupkey',
+    my $rs = $db->select ('title,first_author,source,research_area,pub_research_area,bfi_research_area,doi,issn,eissn,jtitle,jtitle_alt,series,class,pub_class,pub_class_reasons,bfi_class,bfi_level,source_id,dedupkey',
                           'records', 'scoped=1 and screened=1', 'order by title');
     $self->{'result'}{'response'}{'body'}{'publication'} = [];
     my $rc;
@@ -521,6 +532,17 @@ sub comm_publications
             $rc->{'research_area'} = join (', ', @list);
             $rc->{'doi'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'doi'}})));
             $rc->{'issn'} = join (', ', sort (keys (%{$duplicates->{$rc->{'dedupkey'}}{'issn'}})));
+            if ($duplicates->{$rc->{'dedupkey'}}{'jtitle'}) {
+                $rc->{'jtitle'} = $duplicates->{$rc->{'dedupkey'}}{'jtitle'};
+            } elsif ($duplicates->{$rc->{'dedupkey'}}{'jtitle_alt'}) {
+                $rc->{'jtitle'} = $duplicates->{$rc->{'dedupkey'}}{'jtitle_alt'};
+            } elsif ($duplicates->{$rc->{'dedupkey'}}{'series'}) {
+                $rc->{'jtitle'} = $duplicates->{$rc->{'dedupkey'}}{'series'};
+            } else {
+                $rc->{'jtitle'} = '';
+            }
+            delete ($rc->{'jtitle_alt'});
+            delete ($rc->{'series'});
             $rc->{'source_id'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'source_id'}}));
             $rc->{'class'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'class'}}));
             $rc->{'class_reasons'} = join (', ', sort (@{$duplicates->{$rc->{'dedupkey'}}{'class_reasons'}}));
@@ -545,6 +567,17 @@ sub comm_publications
                 }
             }
             delete ($rc->{'eissn'});
+            if (!$rc->{'jtitle'}) {
+                if ($rc->{'jtitle_alt'}) {
+                    $rc->{'jtitle'} = $rc->{'jtitle_alt'};
+                } elsif ($rc->{'series'}) {
+                    $rc->{'jtitle'} = $rc->{'series'};
+                } else {
+                    $rc->{'jtitle'} = '';
+                }
+            }
+            delete ($rc->{'jtitle_alt'});
+            delete ($rc->{'series'});
             $rc->{'first_author_uni'} = $rc->{'source'};
             $rc->{'source_' . $rc->{'source'}} = 'X';
             $rc->{'cris_link'} = $self->cris_link ($rc->{'source'}, $rc->{'source_id'});
@@ -962,6 +995,15 @@ sub duplicates
             if ($rc->{'eissn'}) {
                 $rec->{'issn'}{$self->display_issn ($rc->{'eissn'})} = 1;
             }
+            if ((!$rec->{'jtitle'}) && ($rc->{'jtitle'} =~ m/[A-Za-z]/)) {
+                $rec->{'jtitle'} = $rc->{'jtitle'};
+            }
+            if ((!$rec->{'jtitle_alt'}) && ($rc->{'jtitle_alt'} =~ m/[A-Za-z]/)) {
+                $rec->{'jtitle_alt'} = $rc->{'jtitle_alt'};
+            }
+            if ((!$rec->{'series'}) && ($rc->{'series'} =~ m/[A-Za-z]/)) {
+                $rec->{'series'} = $rc->{'series'};
+            }
             $rec->{'source_' . $rc->{'source'}} = 'X';
             if ($rec->{'source_id'}) {
                 push (@{$rec->{'source_id'}}, $rc->{'source'} . ':' . $rc->{'source_id'});
@@ -1236,6 +1278,7 @@ sub respond_csv_encode
             research_area          => 'MRA',
             doi                    => 'DOI',
             issn                   => 'ISSN',
+            jtitle                 => 'Journal title / Series',
             class                  => 'Status',
             realized_gre_loc       => 'Green local',
             realized_gre_ext       => 'Green ext.',
@@ -1252,7 +1295,7 @@ sub respond_csv_encode
             fulltext_remote_valid  => 'External repository',
             blacklisted_issn       => 'Blacklisted'
         };
-        my @fields = qw(title first_author source research_area doi issn class realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre
+        my @fields = qw(title first_author source research_area doi issn jtitle class realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre
                         class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn);
         my @cols = ();
         foreach my $fld (@fields) {
@@ -1281,6 +1324,7 @@ sub respond_csv_encode
             research_area    => 'Research Area details',
             doi              => 'DOI',
             issn             => 'ISSN',
+            jtitle           => 'Journal title / Series',
             source_aau       => 'AAU',
             source_au        => 'AU',
             source_cbs       => 'CBS',
@@ -1304,7 +1348,7 @@ sub respond_csv_encode
             source_id        => 'IDs',
             cris_link        => 'University CRIS Records',
         };
-        my @fld = qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn
+        my @fld = qw(title first_author first_author_uni pub_research_area bfi_research_area research_area doi issn jtitle
                      source_aau source_au source_cbs source_dtu source_itu source_ku source_ruc source_sdu
                      pub_class realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre pub_class_reasons class class_reasons
                      bfi_class bfi_level dedupkey ddf_link source_id cris_link);
