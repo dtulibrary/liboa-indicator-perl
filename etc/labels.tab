@@ -4,7 +4,7 @@ cover-oa-indicator             en Danish Open Access Indicator
 cover-oa-indicator             da Dansk Open Access Indikator
 cover-indicator-year           en Indicator Year:*
 cover-indicator-year           da Indikatorår:*
-cover-note                     en *The indicator is calculated yearly in Ql. k is calculated on the basis of publications published two years earlier. This in order to credit publications with a 12 months Open Access embargo published late in a given publication year.
+cover-note                     en *The indicator is calculated yearly in Q1. It is calculated on the basis of publications published two years earlier. This in order to credit publications with a 12 months Open Access embargo published late in a given publication year.
 cover-note                     da *Indikatoren beregnes årligt i første kvartal. Den beregnes på basis af publikationer udgivet to år tidligere. Dette for at godskrive publikationer med 12 måneders Open Access embargo, der er udgivet sent i et givent publiceringsår.
 cover-submission-year          en Publication Year:
 cover-submission-year          da Publiceringsår:
@@ -44,9 +44,9 @@ cover-sec-2                    da "Supplement BFI Records": Records from BFI not
 cover-bw-tab                   en Tab
 cover-bw-tab                   da Fane
 cover-bw-b                     en "Journals with long embargo": List of journals with embargo periods of more than 12 months, \
-                                  used to reclassify from Unused to Unclear
+                                  used to reclassify from Unused to Blocked
 cover-bw-b                     da "Tidsskrifter med lang embargo": Liste af tidsskrifter med embargo-periode på over 12 måneder, \
-                                  anvendes til at omklassificere fra Uudnyttet til Uklart OA potentiale
+                                  anvendes til at omklassificere fra Uudnyttet til Blokeret OA potentiale
 cover-bw-w                     en "Accepted repositories": Repositories accepted for depositing Green Open Access versions of publications
 cover-bw-w                     da "Godkendte arkiver": Arkiver, godkendt til deponering af grøn open access versioner af publikationer
 
@@ -80,22 +80,22 @@ golden-fre                     en Golden wo/APC
 golden-fre                     da Gylden uden APC
 unused                         en Unused
 unused                         da Uudnyttet
-unclear                        en Unclear
-unclear                        da Uklar
-unclear-header                 en Unclear
-unclear-header                 da Uklart
+unclear                        en Blocked
+unclear                        da Blokeret
+unclear-header                 en Blocked
+unclear-header                 da Blokeret
 total                          en Total
 total                          da Total
-total-clear                    en Total wo/Unclear
-total-clear                    da Total Uden Uklart
+total-clear                    en Total wo/Blocked
+total-clear                    da Total Uden Blokeret
 total-clear-1                  en Total
 total-clear-1                  da Total
-total-clear-2                  en wo/Unclear
-total-clear-2                  da Uden Uklart
+total-clear-2                  en wo/Blocked
+total-clear-2                  da Uden Blokeret
 relative                       en Relative
 relative                       da Relativt
-relative-clear                 en Relative (wo/Unclear)
-relative-clear                 da Relativt (Uden Uklart)
+relative-clear                 en Relative (wo/Blocked)
+relative-clear                 da Relativt (Uden Blokeret)
 
 research_area                  en Main Research Areas
 research_area                  da Hovedforskningsområder
@@ -148,6 +148,8 @@ doi                            en DOI
 doi                            da DOI
 issn                           en ISSN
 issn                           da ISSN
+jtitle                         en Journal title / Series
+jtitle                         da Journal title / Series
 university-affiliation         en University Affiliation
 university-affiliation         da Universitets Affiliation
 aau                            en AAU
