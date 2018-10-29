@@ -45,6 +45,9 @@ sub create
                    dedupkey              text,
                    issn                  text,
                    eissn                 text,
+                   jtitle                text,
+                   jtitle_alt            text,
+                   series                text,
                    research_area         text,
                    bfi_research_area     text,
                    pub_research_area     text,
@@ -123,7 +126,7 @@ sub load
         $self->{'bfi_research_area'}{$rec->{'source_id'}} = $rec->{'research_area'};
     }
 #   Quick fix for missing year in MODS and to get ISSNs, ... and research area, doi, title and first author
-    $rs = $self->{'db'}->select ('id,year,pubyear,issn,eissn,research_area,doi,title_main,title_sub,first_author,first_author_pos', 'mxd');
+    $rs = $self->{'db'}->select ('id,year,pubyear,issn,eissn,research_area,doi,title_main,title_sub,first_author,first_author_pos,jtitle,jtitle_alt,series', 'mxd');
     while ($rec = $self->{'db'}->next ($rs)) {
         $self->{'year'}{$rec->{'id'}} = $rec->{'year'};
         $self->{'pubyear'}{$rec->{'id'}} = $rec->{'pubyear'};
@@ -131,6 +134,9 @@ sub load
         $self->{'eissn'}{$rec->{'id'}} = $rec->{'eissn'};
         $self->{'research_area'}{$rec->{'id'}} = $rec->{'research_area'};
         $self->{'doi'}{$rec->{'id'}} = $rec->{'doi'};
+        $self->{'jtitle'}{$rec->{'id'}} = $rec->{'jtitle'};
+        $self->{'jtitle_alt'}{$rec->{'id'}} = $rec->{'jtitle_alt'};
+        $self->{'series'}{$rec->{'id'}} = $rec->{'series'};
         if ($rec->{'title_sub'}) {
             $self->{'title'}{$rec->{'id'}} = $rec->{'title_main'} . ' : ' . $rec->{'title_sub'};
         } else {
@@ -247,6 +253,15 @@ sub load_source
             }
             if ($self->{'eissn'}{$id}) {
                 $rec->{'eissn'} = $self->{'eissn'}{$id};
+            }
+            if ($self->{'jtitle'}{$id}) {
+                $rec->{'jtitle'} = $self->{'jtitle'}{$id};
+            }
+            if ($self->{'jtitle_alt'}{$id}) {
+                $rec->{'jtitle_alt'} = $self->{'jtitle_alt'}{$id};
+            }
+            if ($self->{'series'}{$id}) {
+                $rec->{'series'} = $self->{'series'}{$id};
             }
             if ($self->{'research_area'}{$id}) {
                 $rec->{'research_area'} = $self->{'research_area'}{$id};
