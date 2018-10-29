@@ -538,6 +538,7 @@ sub records
         'research_area'           =>  12,
         'doi'                     =>  30,
         'issn'                    =>  20,
+        'jtitle'                  =>  50,
         'spacer-1'                =>   5,
         'status'                  =>  10,
         'green-loc'               =>  10,
@@ -572,16 +573,16 @@ sub records
         'golden-fre'              => 1,
     };
     my @fields_input = (
-        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre', 'reason',
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre', 'reason',
         'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates', 'fulltext_remote_valid', 'blacklisted_issn',
     );
     my @fields_official = (
-        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre',
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre',
         'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
         'spacer-5', 'fulltext_remote_valid', 'blacklisted_issn',
     );
     my @fields_internal = (
-        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre', 'reason',
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre', 'reason',
         'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
         'spacer-5', 'fulltext_remote_valid', 'blacklisted_issn',
     );
@@ -602,8 +603,8 @@ sub records
     &write ($sps, $name, $row, 0, 1, 'title', &label ($labels, $lang, 'scoped-records'));
     $row++;
     my $col = 0;
-    &write ($sps, $name, $row,  $col, 6, 'head', &label ($labels, $lang, 'publication'));
-    $col += 7;
+    &write ($sps, $name, $row,  $col, 7, 'head', &label ($labels, $lang, 'publication'));
+    $col += 8;
     if ($int) {
         &write ($sps, $name, $row, $col, 6, 'head', &label ($labels, $lang, 'oa-indicator'));
         $col += 7;
@@ -700,6 +701,7 @@ sub publications
         'research_area_details'   =>  15,
         'doi'                     =>  30,
         'issn'                    =>  20,
+        'jtitle'                  =>  50,
         'spacer-1'                =>   5,
         'aau'                     =>   4,
         'au'                      =>   4,
@@ -751,19 +753,19 @@ sub publications
     };
     my @fields_input = (
         'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 'bfi_research_area', 'research_area_details',
-        'doi', 'issn', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu',
+        'doi', 'issn', 'jtitle', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu',
         'status', 'realized_gre_loc', 'realized_gre_ext', 'realized_gol_apc', 'realized_gol_fre', 'reason', 'details', 'details-reason',
         'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url'
     );
     my @fields_official = (
         'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 
-        'doi', 'issn', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2',
+        'doi', 'issn', 'jtitle', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2',
         'status', 'realized_gre_loc', 'realized_gre_ext', 'realized_gol_apc', 'realized_gol_fre',
         'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5', 'cris-id', 'cris-url'
     );
     my @fields_internal = (
         'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 'bfi_research_area', 'research_area_details',
-        'doi', 'issn', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2',
+        'doi', 'issn', 'jtitle', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2',
         'status', 'realized_gre_loc', 'realized_gre_ext', 'realized_gol_apc', 'realized_gol_fre', 'reason', 'details', 'details-reason',
         'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5', 'cris-id', 'cris-url'
     );
@@ -785,11 +787,11 @@ sub publications
     $row++;
     my $col = 0;
     if ($int) {
-        &write ($sps, $name, $row,  $col, 8, 'head', &label ($labels, $lang, 'publication'));
-        $col += 9;
+        &write ($sps, $name, $row,  $col, 9, 'head', &label ($labels, $lang, 'publication'));
+        $col += 10;
     } else {
-        &write ($sps, $name, $row,  $col, 6, 'head', &label ($labels, $lang, 'publication'));
-        $col += 7;
+        &write ($sps, $name, $row,  $col, 7, 'head', &label ($labels, $lang, 'publication'));
+        $col += 8;
     }
     &write ($sps, $name, $row,  $col, 8, 'head', &label ($labels, $lang, 'university-affiliation'));
     $col += 9;
@@ -1060,7 +1062,7 @@ sub cover
     }
     &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
     $row++;
-    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, 'cover-note));
+    &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, 'cover-note'));
 }
 
 sub write
