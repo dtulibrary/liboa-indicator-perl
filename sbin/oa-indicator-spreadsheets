@@ -1029,12 +1029,16 @@ sub cover
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-bw-w"));
         $row++;
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+        $row++;
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, 'cover-note'));
         return ();
     }
     if ($type eq 'black') {
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, "cover-bw-b"));
         $row++;
         &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', '');
+        $row++;
+        &write ($sps, 'cover', $row, 1, 14, 'cover-text-merged', &label ($labels, $lang, 'cover-note'));
         return ();
     }
     for (my $i = 1; $i < 4; $i++) {
