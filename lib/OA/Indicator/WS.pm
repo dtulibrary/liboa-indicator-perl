@@ -961,7 +961,7 @@ sub duplicates
     }
     my $rs;
     if ($opt{'merge'}) {
-        $rs = $db->select ('dedupkey,source_id,first_author,first_author_pos,research_area,doi,issn,eissn,source,class,class_reasons,bfi_class,bfi_level', 'records',
+        $rs = $db->select ('dedupkey,source_id,first_author,first_author_pos,research_area,doi,issn,eissn,jtitle,jtitle_alt,series,source,class,class_reasons,bfi_class,bfi_level', 'records',
                            $where, 'order by dedupkey');
     } else {
         $rs = $db->select ('dedupkey,source_id', 'records', $where, 'order by dedupkey');
