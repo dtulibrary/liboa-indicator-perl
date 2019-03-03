@@ -32,6 +32,7 @@ sub create
                    oai_datestamp    text,
                    year             integer,
                    pubyear          text,
+                   pub_status       text,
                    doc_type         text,
                    doc_review       text,
                    doc_level        text,
@@ -165,7 +166,7 @@ sub load_source
         }
         my $rec = {};
         my @fields = split ("\t");
-        foreach my $fld (qw(id stamp date oai_harvest oai_datestamp source_id year doc_type doc_level doc_review research_area jno pno jtitle jtitle_alt series doi title_main title_sub pubyear)) {
+        foreach my $fld (qw(id stamp date oai_harvest oai_datestamp source_id year doc_type doc_level doc_review research_area jno pno jtitle jtitle_alt series doi title_main title_sub pubyear pub_status)) {
             $rec->{$fld} = shift (@fields);
         }
         $rec->{'source'} = $src;
@@ -388,6 +389,13 @@ sub eissn
         push (@ret, split (',', $s));
     }
     return (@ret);
+}
+
+sub pub_status
+{
+    my ($self, $id) = @_;
+
+    return ($self->field ($id, 'pub_status'));
 }
 
 sub xml

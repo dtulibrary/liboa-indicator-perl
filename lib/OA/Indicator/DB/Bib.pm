@@ -60,6 +60,7 @@ sub create
                    scoped_type           integer,
                    scoped_level          integer,
                    scoped_review         integer,
+                   scoped_published      integer,
                    scoped                integer,
                    screened_issn         integer,
                    screened_year         integer,
