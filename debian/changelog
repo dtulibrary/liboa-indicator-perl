@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.06-03) unstable; urgency=low
+
+  * Added new scope on the publication status.
+    
+    GIT revision: 8710226dc1acb36bcf34f1845df06ad9be8c77bf
+
+ -- franck <franck@cvt.dk>  Sun, 03 Mar 2019 10:57:01 +0100
+
 liboa-indicator-perl (1.06-02) unstable; urgency=low
 
   * Hopefully final version for October 2018 test run.
