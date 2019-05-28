@@ -11,7 +11,7 @@ sub new
 {
     my ($class) = @_;
 
-    my $self = {channel_id => 1, exchange_name => 'cvt.topic', request_id => 'oaindicator', queue_name => 'oa.export',
+    my $self = {channel_id => 1, exchange_name => 'cvt.direct', request_id => 'oaindicator', queue_name => 'oa.export',
                 queue_opt => {auto_delete => 1, durable => 1}, queue_arg => {'x-max-priority' => 10}, error => {code => 0}};
 
     return (bless ($self, $class));
