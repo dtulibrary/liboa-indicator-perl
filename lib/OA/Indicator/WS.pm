@@ -436,8 +436,9 @@ sub comm_records
     my ($self, $db) = @_;
 
     my $duplicates = $self->duplicates ($db);
-    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,jtitle,jtitle_alt,series,class,class_reasons,bfi_class,bfi_level,source_id,dedupkey,' .
-                          'fulltext_remote_valid,fulltext_local_valid,doaj_apc,blacklisted_issn', 'records', 'scoped=1 and screened=1', 'order by title');
+    my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,jtitle,jtitle_alt,series,class,class_reasons,bfi_class,bfi_level,source_id,' .
+                          'dedupkey,fulltext_remote_valid,fulltext_local_valid,doaj_apc,blacklisted_issn,upw_rep,upw_pub,upw_reasons', 'records',
+                          'scoped=1 and screened=1', 'order by title');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
     my $rc;
     while ($rc = $db->next ($rs)) {
@@ -1293,10 +1294,14 @@ sub respond_csv_encode
             cris_link              => 'University CRIS Record',
             duplicates             => 'Duplicates',
             fulltext_remote_valid  => 'External repository',
-            blacklisted_issn       => 'Blacklisted'
+            blacklisted_issn       => 'Blacklisted',
+            upw_rep                => 'Unpaywall repository',
+            upw_pub                => 'Unpaywall publisher',
+            upw_reasons            => 'Unpaywall reasons',
         };
         my @fields = qw(title first_author source research_area doi issn jtitle class realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre
-                        class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn);
+                        class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn
+                        upw_rep upw_pub upw_reasons);
         my @cols = ();
         foreach my $fld (@fields) {
             push (@cols, $fields->{$fld});

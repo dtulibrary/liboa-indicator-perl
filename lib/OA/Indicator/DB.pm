@@ -13,7 +13,7 @@ sub new
 
     $self->{'root'} = '/var/lib/oa-indicator/db';
     $self->{'rundb'} = new DB::SQLite ("$self->{'root'}/runs.sqlite3", DieError => 1);
-    $self->{'segments'} = [qw(load scope screen fetch verify classify report preserve)];
+    $self->{'segments'} = [qw(load scope screen fetch verify classify unpaywall report preserve)];
     foreach my $seg (@{$self->{'segments'}}) {
         $self->{'valid_segment'}{$seg} = 1;
     }

@@ -86,11 +86,15 @@ sub create
                    class                 text,
                    class_reasons         text,
                    pub_class             text,
-                   pub_class_reasons     text
+                   pub_class_reasons     text,
+                   upw_pub               text,
+                   upw_rep               text,
+                   upw_reasons           text
                )');
     $db->sql ('create index if not exists records_source_id           on records (source_id)');
     $db->sql ('create index if not exists records_source              on records (source)');
     $db->sql ('create index if not exists records_dedupkey            on records (dedupkey)');
+    $db->sql ('create index if not exists records_doi                 on records (doi)');
     $db->sql ('create index if not exists records_scoped_type         on records (scoped_type)');
     $db->sql ('create index if not exists records_scoped_level        on records (scoped_level)');
     $db->sql ('create index if not exists records_scoped_review       on records (scoped_review)');

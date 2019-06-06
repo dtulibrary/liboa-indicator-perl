@@ -559,6 +559,10 @@ sub records
         'spacer-5'                =>   5,
         'fulltext_remote_valid'   =>  20,
         'blacklisted_issn'        =>  20,
+        'spacer-6'                =>   5,
+        'upw_rep'                 => 100,
+        'upw_pub'                 => 100,
+        'upw_reasons'             =>  20,
     };
     my $center = {
         'university'              => 1,
@@ -573,18 +577,19 @@ sub records
         'golden-fre'              => 1,
     };
     my @fields_input = (
-        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre', 'reason',
-        'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates', 'fulltext_remote_valid', 'blacklisted_issn',
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre',
+        'reason', 'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates', 'fulltext_remote_valid', 'blacklisted_issn',
+        'upw_rep', 'upw_pub', 'upw_reasons',
     );
     my @fields_official = (
-        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre',
-        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
-        'spacer-5', 'fulltext_remote_valid', 'blacklisted_issn',
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
+        'golden-fre', 'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
+        'spacer-5', 'upw_rep', 'upw_pub', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn',
     );
     my @fields_internal = (
-        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre', 'reason',
-        'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
-        'spacer-5', 'fulltext_remote_valid', 'blacklisted_issn',
+        'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
+        'golden-fre', 'reason', 'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
+        'spacer-5', 'upw_rep', 'upw_pub', 'upw_reasons', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn',
     );
     my $name = 'records';
     &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records'));
@@ -618,6 +623,13 @@ sub records
     $col += 3;
     &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'in-cris-pub'));
     $col += 4;
+    if ($int) {
+        &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'unpaywall'));
+        $col += 4;
+    } else {
+        &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'unpaywall'));
+        $col += 3;
+    }
     &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'usage-authority'));
     $row++;
     my @fields;

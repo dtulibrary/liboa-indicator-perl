@@ -305,3 +305,11 @@ fulltext_remote_valid          da Anvendt Eksternt Repositorie
 blacklisted_issn               en Extended-embargoed Journal Used
 blacklisted_issn               da Anvendt tidsskrift med lang embargo
 
+unpaywall                      en Unpaywall hints
+unpaywall                      da Unpaywall hints
+upw_rep                        en In repository (OAI recognized)
+upw_rep                        da I repositorie (OAI anerkendt)
+upw_pub                        en At publisher (CC-licens)
+upw_pub                        da Ved forlag (CC-licens)
+upw_reasons                    en Reasons
+upw_reasons                    da Reasons

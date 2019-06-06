@@ -29,13 +29,14 @@ sub new
         mxd     => 'MXD',
         romeo   => 'Sherpa/Romeo',
     };
-    $self->{'segments'} = [qw(load scope screen fetch classify)];
+    $self->{'segments'} = [qw(load scope screen fetch classify unpaywall)];
     $self->{'segment'}  = {
-        load     => 'Load',
-        scope    => 'Scope',
-        screen   => 'Screen',
-        fetch    => 'Fetch fulltext',
-        classify => 'Classify',
+        load      => 'Load',
+        scope     => 'Scope',
+        screen    => 'Screen',
+        fetch     => 'Fetch fulltext',
+        classify  => 'Classify',
+        unpaywall => 'Unpaywall',
     };
     return (bless ($self, $class));
 }

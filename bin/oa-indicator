@@ -270,6 +270,17 @@ if ($comm eq 'segment') {
         }
         exit (0);
     }
+    if ($name eq 'unpaywall') {
+        require OA::Indicator::Segments::Unpaywall;
+        $db->segment_start ('unpaywall');
+        my $seg = new OA::Indicator::Segments::Unpaywall ($db->db (), $oai);
+        if ($seg->process ($extra)) {
+            $db->segment_end ('unpaywall', 1);
+        } else {
+            $db->segment_end ('unpaywall', 0);
+        }
+        exit (0);
+    }
     $oai->log_main ('f', "un-implemented segment: $name");
 }
 if ($comm eq 'close') {
