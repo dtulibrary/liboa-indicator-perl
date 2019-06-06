@@ -215,7 +215,7 @@ sub harvest
         }
         if ($rec->{'xml'} =~ m/<header>(.*?)<\/header>/s) {
             my $head = $1;
-            if ($head =~ m/<identifier>oai:pure.atira.dk:publications\/(.*?)<\/identifier>/) {
+            if ($head =~ m/<identifier>oai:.*?\.dk:publications\/(.*?)<\/identifier>/) {
                 $rec->{'source_id'} = $1;
             }
             if ($head =~ m/<datestamp>(.*?)<\/datestamp>/) {
