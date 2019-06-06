@@ -1,3 +1,12 @@
+liboa-indicator-perl (1.07-02) unstable; urgency=low
+
+  * Full version for 2018 first test run, including unpaywall, CRIS links
+    updates and changes to adapt to Pure and DS2 evolution.
+    
+    GIT revision: f4112f1414e966ecc6c9bfb1b16a7cfa0437f5af
+
+ -- franck <franck@cvt.dk>  Thu, 06 Jun 2019 13:09:20 +0200
+
 liboa-indicator-perl (1.07-01) unstable; urgency=low
 
   * Adding unpaywall
