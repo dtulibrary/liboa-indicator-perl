@@ -1,0 +1,17 @@
+aau cris http://vbn.aau.dk/en/publications/id($id).html
+au  cris http://pure.au.dk/portal/en/publications/id($id).html
+cbs cris http://research.cbs.dk/portal/en/publications/id($id).html
+dtu cris http://orbit.dtu.dk/portal/en/publications/id($id).html
+itu cris https://pure.itu.dk/portal/en/publications/id($id).html
+ku  cris https://forskning.ku.dk/find-en-forsker/?pure=en/publications/x($id).html
+ruc cris http://forskning.ruc.dk/site/en/publications/id($id).html
+sdu cris https://portal.findresearcher.sdu.dk/en/publications/$id
+
+aau oai  http://vbn.aau.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id
+au  oai  https://pure.au.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id
+cbs oai  http://research-api.cbs.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id
+dtu oai  http://orbit.dtu.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id
+itu oai  https://pure.itu.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id
+ku  oai  http://curis.ku.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id
+ruc oai  https://rucforsk.ruc.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id
+sdu oai  http://findresearcher.sdu.dk:8080/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id

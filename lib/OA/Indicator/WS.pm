@@ -13,6 +13,18 @@ sub new
     my $self = {};
 
     $self->{'db'} = new OA::Indicator::DB;
+    if (-e '/etc/oa-indicator/hosts.tab') {
+        open (my $fin, '/etc/oa-indicator/hosts.tab');
+        while (<$fin>) {
+            chomp;
+            s/#.*//;
+            if (m/^\s*$/) {
+                next;
+            }
+            my ($source, $type, $url) = split (' ', $_, 3);
+            $self->{'hosts'}{$source}{$type} = $url;
+        }
+    }
     return  (bless ($self, $class));
 }
 
@@ -1041,31 +1053,13 @@ sub cris_link
 
     $source = lc ($source);
     $source =~ s/[^a-z]//g;
-    if ($source eq 'aau') {
-        return ("http://vbn.aau.dk/en/publications/id($id).html");
+    if (exists ($self->{'hosts'}{$source}{'cris'})) {
+        my $url = $self->{'hosts'}{$source}{'cris'};
+        $url =~ s/\$id/$id/;
+        return ($url);
+    } else {
+        die ("fatal: cris_link - unsupported source: $source");
     }
-    if ($source eq 'au') {
-        return ("http://pure.au.dk/portal/en/publications/id($id).html");
-    }
-    if ($source eq 'cbs') {
-        return ("http://research.cbs.dk/en/publications/id($id).html");
-    }
-    if ($source eq 'dtu') {
-        return ("http://orbit.dtu.dk/en/publications/id($id).html");
-    }
-    if ($source eq 'itu') {
-        return ("https://pure.itu.dk/portal/en/publications/id($id).html");
-    }
-    if ($source eq 'ku') {
-        return ("http://research.ku.dk/search/?pure=en/publications/id($id).html");
-    }
-    if ($source eq 'ruc') {
-        return ("https://rucforsk.ruc.dk/site/en/publications/id($id).html");
-    }
-    if ($source eq 'sdu') {
-        return ("http://findresearcher.sdu.dk/portal/da/publications/id($id).html");
-    }
-    die ("fatal: cris_link - unsupported source: $source");
 }
 
 sub oai_link
@@ -1074,31 +1068,13 @@ sub oai_link
 
     $source = lc ($source);
     $source =~ s/[^a-z]//g;
-    if ($source eq 'aau') {
-        return ("http://vbn.aau.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
+    if (exists ($self->{'hosts'}{$source}{'oai'})) {
+        my $url = $self->{'hosts'}{$source}{'oai'};
+        $url =~ s/\$id/$id/;
+        return ($url);
+    } else {
+        die ("fatal: oai_link - unsupported source: $source");
     }
-    if ($source eq 'au') {
-        return ("https://pure.au.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
-    }
-    if ($source eq 'cbs') {
-        return ("http://research.cbs.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
-    }
-    if ($source eq 'dtu') {
-        return ("http://orbit.dtu.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
-    }
-    if ($source eq 'itu') {
-        return ("https://pure.itu.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
-    }
-    if ($source eq 'ku') {
-        return ("http://curis.ku.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
-    }
-    if ($source eq 'ruc') {
-        return ("https://rucforsk.ruc.dk/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
-    }
-    if ($source eq 'sdu') {
-        return ("http://findresearcher.sdu.dk:8080/ws/oai?verb=GetRecord&metadataPrefix=ddf-mxd&identifier=oai:pure.atira.dk:publications/$id");
-    }
-    die ("fatal: cris_link - unsupported source: $source");
 }
 
 sub respond

@@ -37,6 +37,7 @@ install::
 	@install -D -m 664 etc/apache.conf $(DESTDIR)/etc/apache2/conf-enabled/oa-indicator.conf
 	@install -D -m 664 etc/whitelist.tab $(DESTDIR)/etc/oa-indicator/whitelist.tab
 	@install -D -m 664 etc/labels.tab $(DESTDIR)/etc/oa-indicator/labels.tab
+	@install -D -m 664 etc/hosts.tab $(DESTDIR)/etc/oa-indicator/hosts.tab
 	@cd etc; \
         for file in html/*; \
         do \
