@@ -449,8 +449,8 @@ sub comm_records
 
     my $duplicates = $self->duplicates ($db);
     my $rs = $db->select ('title,first_author,source,research_area,doi,issn,eissn,jtitle,jtitle_alt,series,class,class_reasons,bfi_class,bfi_level,source_id,' .
-                          'dedupkey,fulltext_remote_valid,fulltext_local_valid,doaj_apc,blacklisted_issn,upw_rep,upw_pub,upw_reasons', 'records',
-                          'scoped=1 and screened=1', 'order by title');
+                          'dedupkey,fulltext_remote_valid,fulltext_local_valid,doaj_apc,blacklisted_issn,upw_rep,upw_pub,upw_reasons,fulltext_embargo,' .
+                          'fulltext_embargo_end', 'records', 'scoped=1 and screened=1', 'order by title');
     $self->{'result'}{'response'}{'body'}{'record'} = [];
     my $rc;
     while ($rc = $db->next ($rs)) {
@@ -1274,10 +1274,12 @@ sub respond_csv_encode
             upw_rep                => 'Unpaywall repository',
             upw_pub                => 'Unpaywall publisher',
             upw_reasons            => 'Unpaywall reasons',
+            fulltext_embargo       => 'Under Embargo',
+            fulltext_embargo_end   => 'Embargo end',
         };
         my @fields = qw(title first_author source research_area doi issn jtitle class realized_gre_loc realized_gre_ext realized_gol_apc realized_gol_fre
                         class_reasons bfi_class bfi_level dedupkey ddf_link source_id cris_link duplicates fulltext_remote_valid blacklisted_issn
-                        upw_rep upw_pub upw_reasons);
+                        upw_rep upw_pub upw_reasons fulltext_embargo fulltext_embargo_end);
         my @cols = ();
         foreach my $fld (@fields) {
             push (@cols, $fields->{$fld});

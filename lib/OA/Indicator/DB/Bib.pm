@@ -74,6 +74,8 @@ sub create
                    fulltext_remote       text,
                    fulltext_local_valid  integer,
                    fulltext_remote_valid text,
+                   fulltext_embargo      integer,
+                   fulltext_embargo_end  text,
                    doaj_issn             text,
                    doaj_apc              integer,
                    doaj_apc_price        text,

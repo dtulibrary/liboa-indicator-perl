@@ -563,6 +563,8 @@ sub records
         'upw_rep'                 => 100,
         'upw_pub'                 => 100,
         'upw_reasons'             =>  20,
+        'fulltext_embargo'        =>  20,
+        'fulltext_embargo_end'    =>  20,
     };
     my $center = {
         'university'              => 1,
@@ -575,21 +577,22 @@ sub records
         'green-ext'               => 1,
         'golden-apc'              => 1,
         'golden-fre'              => 1,
+        'fulltext_embargo'        => 1,
     };
     my @fields_input = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre',
         'reason', 'classification', 'level', 'ddf-id', 'ddf-url', 'cris-id', 'cris-url', 'duplicates', 'fulltext_remote_valid', 'blacklisted_issn',
-        'upw_rep', 'upw_pub', 'upw_reasons',
+        'upw_rep', 'upw_pub', 'upw_reasons', 'fulltext_embargo', 'fulltext_embargo_end',
     );
     my @fields_official = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
         'golden-fre', 'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
-        'spacer-5', 'upw_rep', 'upw_pub', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn',
+        'spacer-5', 'upw_rep', 'upw_pub', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn', 'fulltext_embargo', 'fulltext_embargo_end',
     );
     my @fields_internal = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
         'golden-fre', 'reason', 'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
-        'spacer-5', 'upw_rep', 'upw_pub', 'upw_reasons', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn',
+        'spacer-5', 'upw_rep', 'upw_pub', 'upw_reasons', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn', 'spacer-7', 'fulltext_embargo', 'fulltext_embargo_end',
     );
     my $name = 'records';
     &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records'));
@@ -631,6 +634,9 @@ sub records
         $col += 3;
     }
     &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'usage-authority'));
+    $col += 3;
+    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'embargo'));
+    $col += 3;
     $row++;
     my @fields;
     if ($int) {
@@ -674,6 +680,12 @@ sub records
             } else {
                 $rec->{$fld} = '';
             }
+        }
+        if ($rec->{'fulltext_embargo'}) {
+            $rec->{'fulltext_embargo'} = 'X';
+        } else {
+            $rec->{'fulltext_embargo'} = '';
+            $rec->{'fulltext_embargo_end'} = '';
         }
         foreach my $fld (@fields) {
             if ($fld =~ m/^spacer-/) {

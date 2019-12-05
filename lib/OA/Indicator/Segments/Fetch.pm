@@ -26,13 +26,32 @@ sub process
     while ($rec = $self->{'db'}->next ($rs)) {
         $count->{'total'}++;
         $records->{$rec->{'id'}} = {
-            id                  => $rec->{'id'},
-            fulltext_link       => 0,
-            fulltext_link_oa    => 0,
-            fulltext_downloaded => 0,
-            fulltext_verified   => 0,
-            fulltext_pdf        => 0,
+            id                   => $rec->{'id'},
+            fulltext_link        => 0,
+            fulltext_link_oa     => 0,
+            fulltext_downloaded  => 0,
+            fulltext_verified    => 0,
+            fulltext_pdf         => 0,
+            fulltext_embargo     => 0,
+            fulltext_embargo_end => '',
         };
+    }
+    my $embargo = {};
+    $rs = $self->{'db'}->select ('dads_id,embargo_end', 'mxdft', "embargo_end!='' and embargo_end is not null");
+    while ($rec = $self->{'db'}->next ($rs)) {
+        if (exists ($records->{$rec->{'dads_id'}})) {
+            $ambargo->{$rec->{'dads_id'}}{$rec->{'embargo_end'}} = 1;
+        }
+    }
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
+    my $today = sprintf ('%04d-%02d-%02d', 1900 + $year, $mon + 1, $day);
+    foreach my $id (keys (%{$embargo})) {
+        foreach my $date (keys (%{$embargo->{$id}})) {
+            if ($date gt $today) {
+                $records->{$id}{'fulltext_embargo'} = 1;
+            }
+        }
+        $records->{$id}{'fulltext_embargo_end'} = join ('; ', sort (keys (%{$embargo->{$id}})));
     }
     $self->{'oai'}->log ('i', "starting fulltext checks of $count->{'total'} records");
     my $mxd = new OA::Indicator::DB::MXD ($self->{'db'}, $self->{'oai'});

@@ -313,3 +313,11 @@ upw_pub                        en At publisher (CC-license)
 upw_pub                        da Ved forlag (CC-licens)
 upw_reasons                    en Reasons
 upw_reasons                    da Reasons
+
+embargo                        en Fulltext Embargo
+embargo                        da Fuldtekst Embargo
+fulltext_embargo               en Under Embargo
+fulltext_embargo               da Embargobelagt
+fulltext_embargo_end           en Embargo end date
+fulltext_embargo_end           da Embargo slutdato
+
