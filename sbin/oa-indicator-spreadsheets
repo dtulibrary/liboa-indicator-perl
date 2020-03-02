@@ -50,6 +50,7 @@ foreach my $type (qw(eng dan int)) {
     &summary ($sheet, $labels, $lang, 'universities');
     &publications ($sheet, $labels, $lang, $int);
     &records ($sheet, $labels, $lang, $int);
+    &records ($sheet, $labels, $lang, $int, 19996);
     if ($int) {
         &screened ($sheet, $labels, $lang);
 #       &extra ($sheet, $labels, $lang);
@@ -79,6 +80,7 @@ foreach my $type (qw(eng dan int)) {
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
     &records ($sheet, $labels, $lang, $int);
+    &records ($sheet, $labels, $lang, $int, 19996);
 #   extra
     if ($int) {
         $oai->log ('i', 'creating %s %s', $type, 'extra');
@@ -529,7 +531,7 @@ sub screened
 
 sub records
 {
-    my ($sps, $labels, $lang, $int) = @_;
+    my ($sps, $labels, $lang, $int, $offset) = @_;
 
     my $width = {
         'title'                   => 100,
@@ -578,6 +580,7 @@ sub records
         'golden-apc'              => 1,
         'golden-fre'              => 1,
         'fulltext_embargo'        => 1,
+        'fulltext_embargo_end'    => 1,
     };
     my @fields_input = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'status', 'green-loc', 'green-ext', 'golden-apc', 'golden-fre',
@@ -587,7 +590,7 @@ sub records
     my @fields_official = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
         'golden-fre', 'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
-        'spacer-5', 'upw_rep', 'upw_pub', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn', 'fulltext_embargo', 'fulltext_embargo_end',
+        'spacer-5', 'upw_rep', 'upw_pub', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn', 'spacer-7', 'fulltext_embargo', 'fulltext_embargo_end',
     );
     my @fields_internal = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
@@ -595,7 +598,11 @@ sub records
         'spacer-5', 'upw_rep', 'upw_pub', 'upw_reasons', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn', 'spacer-7', 'fulltext_embargo', 'fulltext_embargo_end',
     );
     my $name = 'records';
-    &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records'));
+    if ($offset) {
+        &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records') . ' 2');
+    } else {
+        &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records') . ' 1');
+    }
     my @sizes = ();
     if ($int) {
         foreach my $fld (@fields_internal) {
@@ -660,6 +667,10 @@ sub records
     binmode ($fin, 'utf8');
     my $s = <$fin>;
     while (<$fin>) {
+        if ($offset) {
+            $offset--;
+            next;
+        }
         chomp;
         my $col = 0;
         my @cols = split ("\t", $_);
@@ -681,7 +692,7 @@ sub records
                 $rec->{$fld} = '';
             }
         }
-        if ($rec->{'fulltext_embargo'}) {
+        if (($rec->{'status'} eq 'unclear') && ($rec->{'fulltext_embargo'})) {
             $rec->{'fulltext_embargo'} = 'X';
         } else {
             $rec->{'fulltext_embargo'} = '';
@@ -699,7 +710,7 @@ sub records
                     &write ($sps, $name, $row,  $col, 1, 'text-center', $rec->{$fld}, fix_width => 0);
                 }
             } else {
-                if (($fld eq 'cris-url') && (length ($rec->{$fld}) > 250)) {
+                if (($rec->{$fld} =~ m/https?:/) && (length ($rec->{$fld}) > 250)) {
                     &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, asString => 1, fix_width => 0);
                 } else {
                     &write ($sps, $name, $row,  $col, 1, 'text', $rec->{$fld}, fix_width => 0);
@@ -708,6 +719,9 @@ sub records
             $col++;
         }
         $row++;
+        if ($row >= 20000) {
+            last;
+        }
     }
     close ($fin);
 }
