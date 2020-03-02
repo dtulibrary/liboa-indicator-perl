@@ -40,7 +40,7 @@ sub process
     $rs = $self->{'db'}->select ('dads_id,embargo_end', 'mxdft', "embargo_end!='' and embargo_end is not null");
     while ($rec = $self->{'db'}->next ($rs)) {
         if (exists ($records->{$rec->{'dads_id'}})) {
-            $ambargo->{$rec->{'dads_id'}}{$rec->{'embargo_end'}} = 1;
+            $embargo->{$rec->{'dads_id'}}{$rec->{'embargo_end'}} = 1;
         }
     }
     my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
