@@ -203,10 +203,12 @@ sub load_source
         my @fields = split ("\t");
         foreach my $fld (qw(dads_id version type access license embargo_start embargo_end url)) {
             $rec->{$fld} = shift (@fields);
+            if (!defined ($rec->{$fld})) {
+                $rec->{$fld} = '';
+            }
         }
         if ((!defined ($rec->{'url'})) || ($rec->{'url'} =~ m/^[\s\t\r\n]*$/)) {
-            $count->{'ft-no-url'}++;
-            next;
+            $rec->{'url'} = '';
         }
         $rec->{'embargo_start'} =~ s/\+.*//;
         $rec->{'embargo_end'} =~ s/\+.*//;
@@ -216,7 +218,7 @@ sub load_source
         $count->{'ft'}++;
     }
     close ($fin);
-    $self->{'oai'}->log ('i',  "loaded $count->{'ft'} fulltext links, skipped $count->{'ft-no-url'} missing URL");
+    $self->{'oai'}->log ('i',  "loaded $count->{'ft'} fulltext links");
 #   Person records
     if (!open ($fin, "/var/lib/oa-indicator/$year/mxd/$src.persons")) {
         $self->{'oai'}->log ('f', "failed to open /var/lib/oa-indicator/$year/mxd/$src.persons ($!)");
