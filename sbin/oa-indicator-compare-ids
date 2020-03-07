@@ -1,0 +1,209 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Fatal qw(open);
+
+if (!@ARGV) {
+    die ("usage: oa-indicator-compare-ids <repo-1> <repo-2>\n");
+}
+my ($repo1, $repo2) = @ARGV;
+if ((-f $repo1) && (-f $repo2)) {
+    print (join ("\t", 'Source', 'f1 Harvest begin', 'f1 Harvest end', 'f2 Harvest begin', 'f2 Harvest end', 'Total', 'Deletes', '%', 'Updates', '%', 'New', '%'), "\n");
+    &compare_files ($repo1, $repo2);
+    exit (0);
+}
+if (!-d $repo1) {
+    $repo1 = '/var/lib/oa-indicator/' . $repo1;
+    if (!-d $repo1) {
+        die ("usage: oa-indicator-compare-ids <repo-1> <repo-2>\n");
+    }
+}
+if (!-d $repo2) {
+    $repo2 = '/var/lib/oa-indicator/' . $repo2;
+    if (!-d $repo2) {
+        die ("usage: oa-indicator-compare-ids <repo-1> <repo-2>\n");
+    }
+}
+print (join ("\t", 'Source', 'f1 Harvest begin', 'f1 Harvest end', 'f2 Harvest begin', 'f2 Harvest end', 'Old total', 'Deletes', '%', 'Updates', '%', 'New', '%', 'New total'), "\n");
+my $title = {
+    bfi   => 'BFI',
+    doaj  => 'DOAJ',
+    doar  => 'Whitelist',
+    jwlep => 'Blacklist',
+    romeo => 'Sherpa/Romeo',
+    bib   => 'Bib',
+    mxd   => 'MXD',
+    aau   => 'AAU',
+    au    => 'AU',
+    cbs   => 'CBS',
+    dtu   => 'DTU',
+    itu   => 'ITU',
+    ku    => 'KU',
+    sdu   => 'SDU',
+    ruc   => 'RUC',
+};
+foreach my $src (qw(bfi doaj doar jwlep romeo)) {
+    print ($title->{$src}, "\t");
+    &compare_files ("$repo1/$src/$src.ids.gz", "$repo2/$src/$src.ids.gz");
+}
+foreach my $src (qw(bib mxd)) {
+    my $suf;
+    if ($src eq 'bib') {
+        $suf = 'ids.gz';
+    } else {
+        $suf = 'ids';
+    }
+    foreach my $uni (qw(aau au cbs dtu itu ku sdu ruc)) {
+        print ($title->{$src}, ' - ', $title->{$uni}, "\t");
+        &compare_files ("$repo1/$src/$uni.$suf", "$repo2/$src/$uni.$suf");
+    }
+}
+exit (0);
+
+sub compare_files
+{
+    my ($file1, $file2) = @_;
+
+    my $done = {};
+    my $data = {};
+    my $stat = {};
+    my $Year;
+    if ($file1 =~ m/oa-indicator\/([0-9]{4})/) {
+        $Year = $1;
+    }
+    if ($file1 =~ m/\.gz$/) {
+        open (FIN, "zcat $file1 |");
+    } else {
+        open (FIN, $file1);
+    }
+    while (<FIN>) {
+        if (m/^#/) {
+            next;
+        }
+        chomp;
+        my @fld = split ("\t");
+        my $id     = shift (@fld);
+        my $stamp  = shift (@fld);
+        my $date   = shift (@fld);
+        my $status = shift (@fld);
+        if ($status eq 'deleted') {
+            next;
+        }
+        if (($Year) && ($file1 =~ m/\/bib\//)) {
+            my $year = $fld[1];
+            if ($year != $Year) {
+                next;
+            }
+        }
+        if (($Year) && ($file1 =~ m/\/mxd\//)) {
+            my $year = $fld[2];
+            if ($year != $Year) {
+                next;
+            }
+        }
+        if (!exists ($done->{$id})) {
+            $stat->{'total'}++;
+            $done->{$id} = 1;
+        }
+        if (!exists ($stat->{'f1-harvest-begin'})) {
+            $stat->{'f1-harvest-begin'} = $date;
+        }
+        $stat->{'f1-harvest-end'} = $date;
+        if (exists ($data->{$id})) {
+            $stat->{'f1-duplicate'}++;
+#           warn ("f1 duplicate id: $id\n");
+            next;
+        }
+        $data->{$id} = join ("\t", @fld);
+    }
+    close (FIN);
+    $done = {};
+    if ($file2 =~ m/\.gz$/) {
+        open (FIN, "zcat $file2 |");
+    } else {
+        open (FIN, $file2);
+    }
+    my $ids = {};
+    while (<FIN>) {
+        if (m/^#/) {
+            next;
+        }
+        chomp;
+        my @fld = split ("\t");
+        my $id     = shift (@fld);
+        my $stamp  = shift (@fld);
+        my $date   = shift (@fld);
+        my $status = shift (@fld);
+        if ($status eq 'deleted') {
+            next;
+        }
+        if (($Year) && ($file1 =~ m/\/bib\//)) {
+            my $year = $fld[1];
+            if ($year != $Year) {
+                next;
+            }
+        }
+        if (($Year) && ($file1 =~ m/\/mxd\//)) {
+            my $year = $fld[2];
+            if ($year != $Year) {
+                next;
+            }
+        }
+        if (!exists ($done->{$id})) {
+            $stat->{'total-new'}++;
+            $done->{$id} = 1;
+        }
+        if (!exists ($stat->{'f2-harvest-begin'})) {
+            $stat->{'f2-harvest-begin'} = $date;
+        }
+        $stat->{'f2-harvest-end'} = $date;
+        if (exists ($ids->{$id})) {
+            $stat->{'f2-duplicate'}++;
+#           warn ("f2 duplicate id: $id\n");
+            next;
+        }
+        $ids->{$id} = 1;
+        if (exists ($data->{$id})) {
+            my $line = join ("\t", @fld);
+            if ($data->{$id} eq $line) {
+                $stat->{'change-none'}++;
+            } else {
+                $stat->{'change-upd'}++;
+            }
+            delete ($data->{$id});
+        } else {
+            $stat->{'change-new'}++;
+        }
+    }
+    close (FIN);
+    foreach my $id (keys (%{$data})) {
+        $stat->{'change-del'}++;
+    }
+    foreach my $f ('f1-harvest-begin', 'f1-harvest-end', 'f2-harvest-begin', 'f2-harvest-end') {
+        if ($stat->{$f}) {
+           printf ("%s\t", $stat->{$f});
+        } else {
+           printf ("0\t");
+        }
+    }
+    if ($stat->{'total'}) {
+        print ($stat->{'total'}, "\t");
+    } else {
+        print (0, "\t");
+    }
+    foreach my $f ('change-del', 'change-upd', 'change-new') {
+        if ($stat->{$f}) {
+            if ($stat->{'total'}) {
+                printf ("%d\t%0.2f%%\t", $stat->{$f}, ($stat->{$f} / $stat->{'total'} * 100));
+            } else {
+                printf ("%d\tNA\t", $stat->{$f});
+            }
+        } else {
+            printf ("%d\t\t", 0);
+        }
+    }
+    printf ("%d\t", $stat->{'total-new'});
+    print ("\n");
+}
+
