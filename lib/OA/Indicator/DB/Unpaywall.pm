@@ -141,9 +141,13 @@ sub harvest
                 } else {
                     if ($rs->code == 404) {
                         my $re = decode_json ($rs->content);
-                        if ($re->{'message'} =~ m/invalid doi/) {
+                        if ($re->{'message'} =~ m/invalid doi/i) {
                             $self->{'oai'}->log ('e', "invalid DOI: %s - %s", $doi, $re->{'message'});
                             $self->store ($doi, 404, 'invalid doi', '');
+                            $done++;
+                        } elsif ($re->{'message'} =~ m/isn.t in unpaywall/i) {
+                            $self->{'oai'}->log ('w', "DOI not in Unpaywall: %s - %s", $doi, $re->{'message'});
+                            $self->store ($doi, 404, 'not found', '');
                             $done++;
                         } else {
                             $self->{'oai'}->log ('e', "harvest error: %s - %s - %s", $rs->code, $rs->message, $re->{'message'});
