@@ -99,7 +99,7 @@ if ($run->{'fatal'}) {
     $oai->log_main ('f', "harvest of bibliographic failed");
 } else {
     $oai->log ('i', 'done');
-    $oai->log_main ('f', "harvest of bibliographic done");
+    $oai->log_main ('i', "harvest of bibliographic done");
 }
 exit (0);
 

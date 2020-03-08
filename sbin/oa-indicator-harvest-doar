@@ -99,7 +99,7 @@ if ($run->{'fatal'}) {
     $oai->log_main ('f', "harvest of doar failed");
 } else {
     $oai->log ('i', 'done');
-    $oai->log_main ('f', "harvest of doar done");
+    $oai->log_main ('i', "harvest of doar done");
 }
 exit (0);
 
