@@ -89,7 +89,7 @@ sub load
         if (!$rec->{'journal_level'}) {
             $rec->{'journal_level'} = 0;
         } else {
-            if (($rec->{'journal_level'} != 1) && ($rec->{'journal_level'} != 2)) {
+            if (($rec->{'journal_level'} != 1) && ($rec->{'journal_level'} != 2) && ($rec->{'journal_level'} != 3)) {
                 $rec->{'journal_level'} = 0;
             }
         }
