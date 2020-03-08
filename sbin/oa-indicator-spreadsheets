@@ -49,8 +49,9 @@ foreach my $type (qw(eng dan int)) {
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
     &publications ($sheet, $labels, $lang, $int);
-    &records ($sheet, $labels, $lang, $int);
-    &records ($sheet, $labels, $lang, $int, 19996);
+    if (&records ($sheet, $labels, $lang, $int)) {
+        &records ($sheet, $labels, $lang, $int, 39996);
+    }
     if ($int) {
         &screened ($sheet, $labels, $lang);
 #       &extra ($sheet, $labels, $lang);
@@ -79,8 +80,9 @@ foreach my $type (qw(eng dan int)) {
     &summary ($sheet, $labels, $lang, 'national');
     &summary ($sheet, $labels, $lang, 'research_area');
     &summary ($sheet, $labels, $lang, 'universities');
-    &records ($sheet, $labels, $lang, $int);
-    &records ($sheet, $labels, $lang, $int, 19996);
+    if (&records ($sheet, $labels, $lang, $int)) {
+        &records ($sheet, $labels, $lang, $int, 39996);
+    }
 #   extra
     if ($int) {
         $oai->log ('i', 'creating %s %s', $type, 'extra');
@@ -589,19 +591,19 @@ sub records
     );
     my @fields_official = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
-        'golden-fre', 'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
+        'golden-fre', 'spacer-2', 'classification', 'level', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
         'spacer-5', 'upw_rep', 'upw_pub', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn', 'spacer-7', 'fulltext_embargo', 'fulltext_embargo_end',
     );
     my @fields_internal = (
         'title', 'first-local-author', 'university', 'research_area', 'doi', 'issn', 'jtitle', 'spacer-1', 'status', 'green-loc', 'green-ext', 'golden-apc',
-        'golden-fre', 'reason', 'spacer-2', 'classification', 'level', 'spacer-3', 'ddf-id', 'ddf-url', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
+        'golden-fre', 'reason', 'spacer-2', 'classification', 'level', 'spacer-4', 'cris-id', 'cris-url', 'duplicates',
         'spacer-5', 'upw_rep', 'upw_pub', 'upw_reasons', 'spacer-6', 'fulltext_remote_valid', 'blacklisted_issn', 'spacer-7', 'fulltext_embargo', 'fulltext_embargo_end',
     );
     my $name = 'records';
     if ($offset) {
         &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records') . ' 2');
     } else {
-        &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records') . ' 1');
+        &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-records'));
     }
     my @sizes = ();
     if ($int) {
@@ -629,8 +631,8 @@ sub records
     }
     &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'bfi'));
     $col += 3;
-    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
-    $col += 3;
+#   &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
+#   $col += 3;
     &write ($sps, $name, $row, $col, 3, 'head', &label ($labels, $lang, 'in-cris-pub'));
     $col += 4;
     if ($int) {
@@ -692,7 +694,7 @@ sub records
                 $rec->{$fld} = '';
             }
         }
-        if (($rec->{'status'} eq 'unclear') && ($rec->{'fulltext_embargo'})) {
+        if (($rec->{'status'} =~ m/^(unclear|unused)$/) && ($rec->{'fulltext_embargo'})) {
             $rec->{'fulltext_embargo'} = 'X';
         } else {
             $rec->{'fulltext_embargo'} = '';
@@ -719,11 +721,13 @@ sub records
             $col++;
         }
         $row++;
-        if ($row >= 20000) {
-            last;
+        if ($row >= 40000) {
+            close ($fin);
+            return (1);
         }
     }
     close ($fin);
+    return (0);
 }
 
 sub publications
@@ -799,13 +803,13 @@ sub publications
         'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 
         'doi', 'issn', 'jtitle', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2',
         'status', 'realized_gre_loc', 'realized_gre_ext', 'realized_gol_apc', 'realized_gol_fre',
-        'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5', 'cris-id', 'cris-url'
+        'spacer-3', 'classification', 'level', 'spacer-5', 'cris-id', 'cris-url'
     );
     my @fields_internal = (
         'title', 'first-danish-author', 'first-danish-author-uni', 'research_area', 'bfi_research_area', 'research_area_details',
         'doi', 'issn', 'jtitle', 'spacer-1', 'aau', 'au', 'cbs', 'dtu', 'itu', 'ku', 'ruc', 'sdu', 'spacer-2',
         'status', 'realized_gre_loc', 'realized_gre_ext', 'realized_gol_apc', 'realized_gol_fre', 'reason', 'details', 'details-reason',
-        'spacer-3', 'classification', 'level', 'spacer-4', 'ddf-id', 'ddf-url', 'spacer-5', 'cris-id', 'cris-url'
+        'spacer-3', 'classification', 'level', 'spacer-5', 'cris-id', 'cris-url'
     );
     my $name = 'publications';
     &worksheet ($sps, $name, &label ($labels, $lang, 'scoped-publications'));
@@ -842,8 +846,8 @@ sub publications
     }
     &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'bfi'));
     $col += 3;
-    &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
-    $col += 3;
+#   &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-ddf'));
+#   $col += 3;
     &write ($sps, $name, $row, $col, 2, 'head', &label ($labels, $lang, 'in-cris-pub'));
     $row++;
     my @fields;
