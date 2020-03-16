@@ -20,10 +20,16 @@ sub process
 
     my $upw = new OA::Indicator::DB::Unpaywall ($self->{'db'}, $self->{'oai'});
     $upw->create ();
-    my $rs = $self->{'db'}->select ('doi', 'records', 'scoped=1 and screened=1 and doi!="" and doi is not null');
+    my $rs = $self->{'db'}->select ('id,doi', 'records', 'scoped=1 and screened=1 and doi!="" and doi is not null');
     my $rec;
+    my $recs = {};
     while ($rec = $self->{'db'}->next ($rs)) {
         $upw->request ($rec->{'doi'});
+        if (exists ($recs->{$rec->{'doi'}})) {
+            push (@{$recs->{$rec->{'doi'}}}, $rec);
+        } else {
+            $recs->{$rec->{'doi'}} = [$rec];
+        }
     }
     if (!$upw->harvest ($type)) {
         return (0);
@@ -34,10 +40,11 @@ sub process
     my $done = 0;
     my $records = 0;
     foreach my $doi (@DOI) {
+        if (!exists ($recs->{$doi})) {
+            next;
+        }
         my $rec = $upw->doi_list ($doi);
-        my $rs = $self->{'db'}->select ('id', 'records', "scoped=1 and screened=1 and doi='$doi'");
-        my $rc;
-        while ($rc = $self->{'db'}->next ($rs)) {
+        foreach my $rc (@{$recs->{$doi}}) {
             if ($rec->{'pub'}) {
                 $rc->{'upw_pub'} = $rec->{'pub'};
             } else {

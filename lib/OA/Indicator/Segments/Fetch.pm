@@ -17,8 +17,21 @@ sub new
 
 sub process
 {
-    my ($self, $type) = @_;
+    my ($self, @args) = @_;
 
+    my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
+    my $harvestDate = sprintf ('%04d-%02d-%02d', 1900 + $year, $mon + 1, $day);
+    my $dummyRun = '';
+    foreach my $arg (@args) {
+        if ($arg =~ m/dummy/) {
+            $dummyRun = 'dummy';
+            next;
+        }
+        if ($arg =~ m/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) {
+            $harvestDate = $arg;
+        }
+    }
+    $self->{'oai'}->log ('i', "using harvest date: $harvestDate");
     my $count = {total => 0, requests => 0, noft => 0, notdo => 0, notoa => 0};
     my $records = {};
     my $rs = $self->{'db'}->select ('id', 'records', 'scoped=1 and screened=1');
@@ -43,11 +56,9 @@ sub process
             $embargo->{$rec->{'dads_id'}}{$rec->{'embargo_end'}} = 1;
         }
     }
-    my ($sec, $min, $hour, $day, $mon, $year) = localtime (time);
-    my $today = sprintf ('%04d-%02d-%02d', 1900 + $year, $mon + 1, $day);
     foreach my $id (keys (%{$embargo})) {
         foreach my $date (keys (%{$embargo->{$id}})) {
-            if ($date gt $today) {
+            if ($date ge $harvestDate) {
                 $records->{$id}{'fulltext_embargo'} = 1;
             }
         }
@@ -117,7 +128,7 @@ sub process
     if ($n) {
         $self->{'oai'}->log ('i', "$n are not open access - " .  join (', ', @s));
     }
-    $ft->harvest ($type);
+    $ft->harvest ($dummyRun);
     $self->{'oai'}->log ('i', 'done');
     return (1);
 }
