@@ -129,14 +129,24 @@ sub issn_normalize
 {
     my ($self, $issn) = @_;
 
-    $issn = uc ($issn);
-    $issn =~ s/[^0-9X]//g;
-    return ($issn);
+    my @ISSN = ();
+    foreach my $i (split (';', $issn)) {
+        $i = uc ($i);
+        $i =~ s/[^0-9X]//g;
+        if ($i) {
+            push (@ISSN, $i);
+        }
+    }
+    if (@ISSN) {
+        return (join (';', @ISSN));
+    } else {
+        return ('');
+    }
 }
 
 sub cache
 {
-    my ($self, $issn) = @_;
+    my ($self) = @_;
 
     if (exists ($self->{'cache'})) {
         return (1);
@@ -149,22 +159,24 @@ sub cache
             if ((!defined ($rec->{$fld})) || ($rec->{$fld} eq '')) {
                 next;
             }
-            if ($rec->{$fld} !~ m/^[0-9]{7}[0-9X]$/) {
-                $self->{'oai'}->log ('w',  "invalid ISSN: $rec->{$fld} for $rec->{'id'}");
-                next;
-            }
-            if (exists ($self->{'cache'}{$rec->{$fld}})) {
-                if ($self->{'cache'}{$rec->{$fld}}->[0] ne $rec->{'license'}) {
-                    $self->{'oai'}->log ('w',  "existing ISSN with two different license: $rec->{$fld} : $self->{'cache'}{$rec->{$fld}}->[0] != $rec->{'license'}");
+            foreach my $issn (split (';', $rec->{$fld})) {
+                if ($issn !~ m/^[0-9]{7}[0-9X]$/) {
+                    $self->{'oai'}->log ('w',  "invalid ISSN: $issn for $rec->{'id'}");
+                    next;
                 }
-                if ($self->{'cache'}{$rec->{$fld}}->[2] ne $rec->{'apc'}) {
-                    $self->{'oai'}->log ('w',  "existing ISSN with two different APC: $rec->{$fld} : $self->{'cache'}{$rec->{$fld}}->[2] != $rec->{'apc'}");
+                if (exists ($self->{'cache'}{$issn})) {
+                    if ($self->{'cache'}{$issn}->[0] ne $rec->{'license'}) {
+                        $self->{'oai'}->log ('w',  "existing ISSN with two different license: $issn : $self->{'cache'}{$issn}->[0] != $rec->{'license'}");
+                    }
+                    if ($self->{'cache'}{$issn}->[2] ne $rec->{'apc'}) {
+                        $self->{'oai'}->log ('w',  "existing ISSN with two different APC: $issn : $self->{'cache'}{$issn}->[2] != $rec->{'apc'}");
+                    }
+                } else {
+                    if (($rec->{'apc'}) && ($rec->{'apc_currency'})) {
+                        $rec->{'apc_price'} = $rec->{'apc_currency'} . ' ' . $rec->{'apc_price'};
+                    }
+                    $self->{'cache'}{$issn} = [$rec->{'license'}, $rec->{'id'}, $rec->{'apc'}, $rec->{'apc_price'}];
                 }
-            } else {
-                if (($rec->{'apc'}) && ($rec->{'apc_currency'})) {
-                    $rec->{'apc_price'} = $rec->{'apc_currency'} . ' ' . $rec->{'apc_price'};
-                }
-                $self->{'cache'}{$rec->{$fld}} = [$rec->{'license'}, $rec->{'id'}, $rec->{'apc'}, $rec->{'apc_price'}];
             }
         }
     }
