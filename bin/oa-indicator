@@ -196,7 +196,7 @@ if ($comm eq 'load') {
     exit (0);
 }
 if ($comm eq 'segment') {
-    my ($year, $run_type, $name, $extra) = @ARGV;
+    my ($year, $run_type, $name, @args) = @ARGV;
     if ($year) {
         if (!$oai->valid_year ($year)) {
             &usage ($oai, 'invalid year: ' . $year);
@@ -249,10 +249,22 @@ if ($comm eq 'segment') {
         exit (0);
     }
     if ($name eq 'fetch') {
+        if ($run_type eq 'prod') {
+            my $harvestDate = 0;
+            foreach my $arg (@args) {
+                if ($arg =~ m/^20[0-9]{2}-[0-9]{2}-[0-9]{2}$/) {
+                    $harvestDate = 1;
+                }
+            }
+            if (!$harvestDate) {
+                $oai->log_main ('f', "harvest date required for production fetch, e.g.: oa-indicator segment 2018 prod fetch 2020-03-03");
+                exit (0);
+            }
+        }
         require OA::Indicator::Segments::Fetch;
         $db->segment_start ('fetch');
         my $seg = new OA::Indicator::Segments::Fetch ($db->db (), $oai);
-        if ($seg->process ($extra)) {
+        if ($seg->process (@args)) {
             $db->segment_end ('fetch', 1);
         } else {
             $db->segment_end ('fetch', 0);
@@ -274,7 +286,7 @@ if ($comm eq 'segment') {
         require OA::Indicator::Segments::Unpaywall;
         $db->segment_start ('unpaywall');
         my $seg = new OA::Indicator::Segments::Unpaywall ($db->db (), $oai);
-        if ($seg->process ($extra)) {
+        if ($seg->process (@args)) {
             $db->segment_end ('unpaywall', 1);
         } else {
             $db->segment_end ('unpaywall', 0);
@@ -324,6 +336,22 @@ if ($comm eq 'spreadsheets') {
     my $db = new OA::Indicator::DB ();
     $db->reuse ($year, $run_type);
     system ("/usr/sbin/oa-indicator-spreadsheets $year $run_type");
+    exit (0);
+}
+if ($comm eq 'nagiosupdate') {
+    system ("/usr/sbin/oa-indicator-status -r");
+    exit (0);
+}
+if ($comm eq 'qafulltext') {
+    my ($year) = @ARGV;
+    if ($year) {
+        if (!$oai->valid_year ($year)) {
+            &usage ($oai, 'invalid year: ' . $year);
+        }
+    } else {
+        &usage ($oai);
+    }
+    system ("/usr/sbin/oa-indicator-qa $year");
     exit (0);
 }
 if ($comm eq 'release') {
@@ -537,6 +565,8 @@ sub comm
         'segment'      => '',
         'close'        => '',
         'spreadsheets' => '',
+        'nagiosupdate' => '',
+        'qafulltext'   => '',
         'release'      => '',
         'status'       => '',
         'repostatus'   => 'repo-status',
@@ -574,15 +604,17 @@ sub usage
     }
     my @seg = $oai->segments ();
     shift (@seg);
-    warn ("usage: oa-indicator data-repo    <year> [description]\n");
-    warn ('       oa-indicator harvest      <year> <' . join (' | ', $oai->data_types ()) . ">\n");
-    warn ('       oa-indicator load         <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
-    warn ('       oa-indicator segment      <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', @seg) . ">\n");
-    warn ('       oa-indicator close        <year> <' . join (' | ', $oai->run_types ()) . ">\n");
-    warn ('       oa-indicator spreadsheets <year> <' . join (' | ', $oai->run_types ()) . ">\n");
-    warn ('       oa-indicator release      <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
-    warn ("       oa-indicator compare-ids  <repo-1> <repo-2>\n");
-    warn ('       oa-indicator status       [year] [' . join (' | ', $oai->run_types ()) . "]\n");
+    warn ("usage: oa-indicator data-repo     <year> [description]\n");
+    warn ('       oa-indicator harvest       <year> <' . join (' | ', $oai->data_types ()) . ">\n");
+    warn ('       oa-indicator load          <year> <' . join (' | ', $oai->run_types ()) . "> [description])\n");
+    warn ('       oa-indicator segment       <year> <' . join (' | ', $oai->run_types ()) . '> <' . join (' | ', @seg) . ">\n");
+    warn ('       oa-indicator close         <year> <' . join (' | ', $oai->run_types ()) . ">\n");
+    warn ('       oa-indicator spreadsheets  <year> <' . join (' | ', $oai->run_types ()) . ">\n");
+    warn ("       oa-indicator nagios-update        (after prod runs only)\n");
+    warn ("       oa-indicator qa-fulltext   <year> (after prod runs only)\n");
+    warn ('       oa-indicator release       <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
+    warn ("       oa-indicator compare-ids   <repo-1> <repo-2>\n");
+    warn ('       oa-indicator status        [year] [' . join (' | ', $oai->run_types ()) . "]\n");
     warn ("       oa-indicator repo-status\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
     exit (1);
