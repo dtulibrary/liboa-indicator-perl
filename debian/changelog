@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.07-05) unstable; urgency=low
+
+  * Final version post 2018 production run.
+    
+    GIT revision: 1888156b90c9622c35e8836192245d405e8263e2
+
+ -- franck <franck@cvt.dk>  Tue, 17 Mar 2020 00:19:36 +0100
+
 liboa-indicator-perl (1.07-04) unstable; urgency=low
 
   * Updated version for 2018 official run.
