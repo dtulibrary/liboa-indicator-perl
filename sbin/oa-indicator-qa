@@ -1,0 +1,189 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use OA::Indicator::QA::Extracts;
+use Fatal qw(open);
+
+if (!@ARGV) {
+    die ("usage: oa-indicator-qa <year>\n");
+}
+my $year = shift (@ARGV);
+if (($year < 2013) || ($year > 2020)) {
+    die ("fatal: invalid year: $year\n");
+}
+my @years = ();
+for (my $y = 2013; $y < $year; $y++) {
+    push (@years, $y);
+}
+my $xt = new OA::Indicator::QA::Extracts (@years, $year);
+$xt->pages_extract ();
+my $count = {n => 0};
+my $records = {};
+foreach my $did ($xt->fulltext ()) {
+    my $dsid = $xt->fulltext ($did, 'dsid');
+    my $sid = $xt->ids ($year, $dsid);
+    if (!$sid) {
+        next;
+    }
+    foreach my $y (@years) {
+        if ($xt->ids ($y, $dsid)) {
+            $count->{"id in both $y and $year: $dsid - $sid"}++;
+        }
+    }
+    my $loc = $xt->fulltext ($did, 'type');
+    my $type = 0;
+    my $mime  = $xt->fulltext ($did, 'mime');
+    my $pages = $xt->fulltext ($did, 'pdf_pages');
+    if (!$pages) {
+        $pages = 0;
+    }
+    my $size  = $xt->fulltext ($did, 'size');
+    my $art_pages = $xt->pages ($sid);
+    if ($mime ne 'application/pdf') {
+        $type = 1;
+    } else {
+        if (!$art_pages) {
+            $count->{'missing bib page count'}++;
+            $art_pages = 0;
+        } elsif ($art_pages == -1) {
+            $count->{'error in bib page count'}++;
+            $art_pages = 0;
+        }
+        if ($pages == 0) {
+            if ($size > 0) {
+                $type = '4a';
+            } else {
+                $type = '4b';
+            }
+        } elsif ($art_pages == 0) {
+            if ($pages < 3) {
+                if ($pages < 2) {
+                    $type = '5a';
+                } else {
+                    $type = '5b';
+                }
+            }
+        } else {
+            my $diff = ($pages - $art_pages);
+            if ($diff > 10) {
+                $type = '2c';
+                $count->{'diff 11-'}++;
+            } elsif ($diff > 5) {
+                $type = '2b';
+                $count->{'diff  6-10'}++;
+            } elsif ($diff > 2) {
+                $type = '2a';
+                $count->{'diff  3- 5'}++;
+            } elsif ($diff > 0) {
+                $count->{'diff  1- 2'}++;
+            }
+            if ($diff == 0) {
+                $count->{'diff  0'}++;
+            }
+            if ($diff < -10) {
+                $type = '3d';
+                $count->{'diff -11-'}++;
+            } elsif ($diff < -5) {
+                $type = '3c';
+                $count->{'diff -6-10'}++;
+            } elsif ($diff < -2) {
+                $type = '3b';
+                $count->{'diff -3- 5'}++;
+            } elsif ($diff < 0) {
+                $type = '3a';
+                $count->{'diff -1- 2'}++;
+            }
+        }
+        if ((!$type) && ($loc eq 'rem')) {
+            $type = '6';
+        }
+    }
+    $count->{"type: $type"}++;
+    if ($type) {
+        my $alt;
+        if ($xt->multiple ($dsid)) {
+            $alt = 'Yes';
+        } else {
+            $alt = 'No';
+        }
+        my $filename = $xt->fulltext ($did, 'filename');
+        $filename =~ s/([^-_\.0-9A-Za-z])/"%" . sprintf ("%x", ord ($1))/geo;
+        my $ft = 'http://oa-indicator.dtic.dk/oa-indicator/ft/2016/' . $dsid . '/' . $filename;
+        my $title = $xt->records ($dsid, 'title');
+        if (!defined ($title)) {
+            $count->{"undefined title: $dsid"}++;
+        }
+        $title =~ s/"/''/g;
+        $count->{'n'}++;
+        if (exists ($records->{$type}{$xt->records ($dsid, 'source')}{$loc}{$dsid . $count->{'n'}})) {
+            die ("fatal: duplicate record");
+        }
+        if (($pages == 0) && ($mime ne 'application/pdf')) {
+            $pages = '';
+        }
+        $records->{$type}{$xt->records ($dsid, 'source')}{$loc}{$dsid . $count->{'n'}} = {
+            alt       => $alt,
+            mime      => $mime,
+            size      => $size,
+            pages     => $pages,
+            art_pages => $art_pages,
+            title     => $title,
+            art_url   => 'http://forskningsdatabasen.dk/en/catalog/' . $xt->records ($dsid, 'dedupkey'),
+            ft_url    => $xt->fulltext ($did, 'url'),
+            ft        => $ft,
+        };
+    }
+}
+open (my $f2, "> /var/lib/oa-indicator/runs/$year.prod/oa-indicator-qa-$year-2.csv");
+print($f2 join ("\t", 'Type', 'Uni', 'FT Type', 'Alt FT', 'Mime Type', 'Size', 'Pages', 'Bib Pages', 'Title', 'DDF Link', 'Fulltext link',
+                'OA-Indicator Harvested Fulltext'), "\n");
+foreach my $type (sort (keys (%{$records}))) {
+    foreach my $source (sort (keys (%{$records->{$type}}))) {
+        foreach my $loc (sort (keys (%{$records->{$type}{$source}}))) {
+            foreach my $id (sort (keys (%{$records->{$type}{$source}{$loc}}))) {
+                print ($f2 join ("\t", $type, $source, $loc));
+                foreach my $f (qw(alt mime size pages art_pages title art_url ft_url ft)) {
+                    print ($f2 "\t", $records->{$type}{$source}{$loc}{$id}{$f});
+                }
+                print ($f2 "\n");
+            }
+        }
+    }
+}
+close ($f2);
+my $types = {
+    '0'  => 'Normal cases not included in this spreadsheet',
+    '1'  => 'Non-PDF fulltext',
+    '2a' => 'PDF-pages is larger than bib record-pages : 3-5',
+    '2b' => 'PDF-pages is larger than bib record-pages : 6-10',
+    '2c' => 'PDF-pages is larger than bib record-pages : 11 and more',
+    '3a' => 'PDF-pages is less than bib record-pages : 1-2',
+    '3b' => 'PDF-pages is less than bib record-pages : 3-5',
+    '3c' => 'PDF-pages is less than bib record-pages : 6-10',
+    '3d' => 'PDF-pages is less than bib record-pages : 11 and more',
+    '4a' => 'Could not get PDF-pages, downloaded fulltext has size bigger than zero',
+    '4b' => 'Could not get PDF-pages, downloaded fulltext has zero size',
+    '5a' => 'Missing Bib Pages, fulltext 1 page',
+    '5b' => 'Missing Bib Pages, fulltext 2 pages',
+    '6'  => 'Remote fulltext not included in one of the other types',
+};
+open (my $f1, "> /var/lib/oa-indicator/runs/$year.prod/oa-indicator-qa-$year-1.csv");
+print ($f1 "OA-Indicator fulltext manual checks\n\n");
+print ($f1 join ("\t", qw(Records Type Description)), "\n");
+open (my $f3, "> /var/lib/oa-indicator/runs/$year.prod/oa-indicator-qa-$year-3.csv");
+print ($f3 "Various errors\n");
+foreach my $key (sort (keys (%{$count}))) {
+    if ($key =~ m/type: ([0-9][a-f]?)/) {
+        print ($f1 join ("\t", $count->{$key}, $1, $types->{$1}), "\n");
+    } else {
+        if (($key !~ m/^diff /) && ($key ne 'n')) {
+            print ($f3 join ("\t", $count->{$key}, $key), "\n");
+        }
+    }
+}
+close ($f3);
+close ($f1);
+warn ("info: see /var/lib/oa-indicator/runs/$year.prod/oa-indicator-qa-$year-*.csv for output\n");
+warn ("done\n");
+exit (0);
