@@ -40,11 +40,28 @@ sub field
 {
     my ($self, $name) = @_;
 
-    my $s = $self->{'xml'}->field ($self->{'xpath'}{$name});
-    $s =~ s/[\s\t\n\r]+/ /g;
-    $s =~ s/^\s//;
-    $s =~ s/\s$//;
-    return ($s);
+    if (wantarray) {
+        my @fld = ();
+        foreach my $s ($self->{'xml'}->field ($self->{'xpath'}{$name})) {
+            $s =~ s/[\s\t\n\r]+/ /g;
+            $s =~ s/^\s//;
+            $s =~ s/\s$//;
+            if ($s) {
+                push (@fld, $s);
+            }
+        }
+        if (@fld) {
+            return (@fld);
+        } else {
+            return ('');
+        }
+    } else {
+        my $s = $self->{'xml'}->field ($self->{'xpath'}{$name});
+        $s =~ s/[\s\t\n\r]+/ /g;
+        $s =~ s/^\s//;
+        $s =~ s/\s$//;
+        return ($s);
+    }
 }
 
 sub id
@@ -67,7 +84,11 @@ sub primary
     my @ret = ();
     foreach my $f (@{$self->{'primary_fields'}}) {
         if (!exists ($self->{'rec'}{$f})) {
-            $self->{'rec'}{$f} = $self->field ($f);
+            if ($f =~ m/issn/) {
+                $self->{'rec'}{$f} = join (';', $self->field ($f));
+            } else {
+                $self->{'rec'}{$f} = $self->field ($f);
+            }
         }
         push (@ret, $self->{'rec'}{$f});
     }
