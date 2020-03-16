@@ -84,12 +84,18 @@ sub request
 {
     my ($self, $id, $type, $url, $size, $mime, $filename) = @_;
 
+    $url =~ s/^([\s\+]|%20)+//;
+    $url =~ s/([\s\+]|%20)+$//;
     if ($url =~ m/^[\s\t\r\n]*$/) {
         $self->{'oai'}->log ('w', "skipping request with empty URL: %s", $id);
         return (0);
     }
     if ($url !~ m/^https?:/i) {
         $self->{'oai'}->log ('w', "skipping request with unsupported URL protocol: %s : %s", $id, $url);
+        return (0);
+    }
+    if ($url =~ m/https?:\/\/10\./) {
+        $self->{'oai'}->log ('w', "skipping request with invalid URL host: %s : %s", $id, $url);
         return (0);
     }
     if (!$size) {
@@ -399,6 +405,23 @@ sub http_get
             }
         }
     }
+#   Very temporary fix for 2018 run, to go around LWP library error
+    if ($code == 500) {
+        $url = lc ($url);
+        $url =~ s/[^0-9a-z\.]+/-/g;
+        $url =~ s/^-//;
+        $url =~ s/-$//;
+        if ($url !~ m/\.pdf$/) {
+            $url .= '.pdf';
+        }
+        $url = 'http://localhost/ft/' . $url;
+        $re = new HTTP::Request ('GET' => $url);
+        my $rsa = $self->{'ua'}->request ($re);
+        if ($rsa->code == 200) {
+            return ($rsa);
+        }
+    }
+#   temporary fix end
     return ($rs);
 }
 
