@@ -389,6 +389,12 @@ if ($comm eq 'compare-ids') {
     system ("/usr/sbin/oa-indicator-compare-ids $repo1 $repo2");
     exit (0);
 }
+if ($comm eq 'count-ids') {
+    my ($repo1, $repo2) = @ARGV;
+
+    system ("/usr/sbin/oa-indicator-count-ids $repo1 $repo2");
+    exit (0);
+}
 if ($comm eq 'status') {
     my ($year, $run_type) = @ARGV;
     if ($year) {
@@ -571,6 +577,7 @@ sub comm
         'status'       => '',
         'repostatus'   => 'repo-status',
         'compareids'   => 'compare-ids',
+        'countids'     => 'count-ids',
     };
     my $co = lc ($comm);
     $co =~ s/[^a-z]//g;
@@ -614,6 +621,7 @@ sub usage
     warn ("       oa-indicator qa-fulltext   <year> (after prod runs only)\n");
     warn ('       oa-indicator release       <year> <' . join (' | ', $oai->run_types ()) . "> [run] [reset]\n\n");
     warn ("       oa-indicator compare-ids   <repo-1> <repo-2>\n");
+    warn ("       oa-indicator count-ids     <repo-1> <repo-2>\n");
     warn ('       oa-indicator status        [year] [' . join (' | ', $oai->run_types ()) . "]\n");
     warn ("       oa-indicator repo-status\n\n");
     warn ("       valid years are " . $oai->valid_year_range () . "\n\n");
