@@ -1,3 +1,11 @@
+liboa-indicator-perl (1.08-00) unstable; urgency=low
+
+  * Pre-move to standalone oa-indicator
+    
+    GIT revision: ceb6260448f405ac956166ace23ba100d436b3cc
+
+ -- kybus <fkybus@gmail.com>  Sun, 25 Oct 2020 06:46:01 +0100
+
 liboa-indicator-perl (1.07-05) unstable; urgency=low
 
   * Final version post 2018 production run.
